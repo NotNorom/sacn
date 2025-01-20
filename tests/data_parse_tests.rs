@@ -13,12 +13,11 @@ extern crate uuid;
 #[cfg(test)]
 pub mod data_parse_tests {
 
-use sacn::packet::*;
+use sacn::{error::Error, packet::*};
 use uuid::Uuid;
 
 /// Uses the sACN error-chain errors.
-use sacn::error::errors::*;
-use sacn::sacn_parse_pack_error::sacn_parse_pack_error;
+use sacn::sacn_parse_pack_error;
 
 /// A full test data packet as specified as an example in
 /// ANSI E1.31-2018 Appendix B Table B-13: Universe Synchronization Example E1.31 Data Packet.
@@ -3266,8 +3265,8 @@ fn test_data_packet_parse_pack() {
 fn test_malformed_data_packet_wrong_preample_lower_byte_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_LOWER_BYTE) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3289,8 +3288,8 @@ fn test_malformed_data_packet_wrong_preample_lower_byte_parse() {
 fn test_malformed_data_packet_wrong_preample_upper_byte_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_UPPER_BYTE) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3312,8 +3311,8 @@ fn test_malformed_data_packet_wrong_preample_upper_byte_parse() {
 fn test_malformed_data_packet_wrong_postample_lower_byte_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_LOWER_BYTE) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3335,8 +3334,8 @@ fn test_malformed_data_packet_wrong_postample_lower_byte_parse() {
 fn test_malformed_data_packet_wrong_postample_upper_byte_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_UPPER_BYTE) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3358,8 +3357,8 @@ fn test_malformed_data_packet_wrong_postample_upper_byte_parse() {
 fn test_malformed_data_packet_root_layer_wrong_flags() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_WRONG_FLAGS) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParsePduInvalidFlags(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3381,8 +3380,8 @@ fn test_malformed_data_packet_root_layer_wrong_flags() {
 fn test_malformed_data_packet_root_layer_too_low_length() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_TOO_LOW_LENGTH) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3404,8 +3403,8 @@ fn test_malformed_data_packet_root_layer_too_low_length() {
 fn test_malformed_data_packet_root_layer_too_high_length() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_TOO_HIGH_LENGTH) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3427,8 +3426,8 @@ fn test_malformed_data_packet_root_layer_too_high_length() {
 fn test_malformed_data_packet_wrong_acn_identifier_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_WRONG_ACN_IDENTIFIER) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3450,8 +3449,8 @@ fn test_malformed_data_packet_wrong_acn_identifier_parse() {
 fn test_malformed_data_packet_unknown_acn_vector_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_UNKNOWN_ACN_VECTOR) {
         Err(e) => {
-            match *e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::PduInvalidVector(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::PduInvalidVector(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3473,8 +3472,8 @@ fn test_malformed_data_packet_unknown_acn_vector_parse() {
 fn test_malformed_data_packet_extended_acn_vector_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_ROOT_LAYER_EXTENDED_VECTOR) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(_) => {
+            match e {
+                Error::SacnParsePackError(_) => {
                     // As this is a byzantine type error because the packet is otherwise correct except the vector is the wrong vector type the exact
                     // parse error isn't enforced but the packet must still be rejected.
                     assert!(true, "Malformed packet successfully rejected");
@@ -3498,8 +3497,8 @@ fn test_malformed_data_packet_extended_acn_vector_parse() {
 fn test_malformed_data_packet_too_long_cid_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_TOO_LONG_CID) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(_) => {
+            match e {
+                Error::SacnParsePackError(_) => {
                     // The exact error in this case is not defined as other fields will be effected as all the data
                     // is shifted, therefore just check for any parse error.
                     assert!(true, "Malformed packet successfully rejected");
@@ -3523,8 +3522,8 @@ fn test_malformed_data_packet_too_long_cid_parse() {
 fn test_malformed_data_packet_too_short_cid_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_TOO_SHORT_CID) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3546,8 +3545,8 @@ fn test_malformed_data_packet_too_short_cid_parse() {
 fn test_malformed_data_packet_framing_layer_wrong_flags_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParsePduInvalidFlags(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3569,8 +3568,8 @@ fn test_malformed_data_packet_framing_layer_wrong_flags_parse() {
 fn test_malformed_data_packet_framing_layer_low_length_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_FRAMING_LAYER_LOW_LENGTH) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3592,8 +3591,8 @@ fn test_malformed_data_packet_framing_layer_low_length_parse() {
 fn test_malformed_data_packet_framing_layer_high_length_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_FRAMING_LAYER_HIGH_LENGTH) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3615,8 +3614,8 @@ fn test_malformed_data_packet_framing_layer_high_length_parse() {
 fn test_malformed_data_packet_framing_layer_wrong_vector_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_FRAMING_LAYER_WRONG_VECTOR) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::PduInvalidVector(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::PduInvalidVector(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3670,8 +3669,8 @@ fn test_data_packet_max_source_name_length_parse(){
 fn test_malformed_data_packet_source_name_not_null_terminated_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_NOT_NULL_TERMINATED_SOURCE_NAME) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::SourceNameInvalid(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::SourceNameInvalid(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3693,8 +3692,8 @@ fn test_malformed_data_packet_source_name_not_null_terminated_parse() {
 fn test_malformed_data_packet_too_high_priority_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_TOO_HIGH_PRIORITY) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidPriority(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidPriority(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3808,8 +3807,8 @@ fn test_data_packet_no_sync_parse() {
 fn test_malformed_data_packet_too_high_sync_addr_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_TOO_HIGH_SYNC_ADDR_PACKET) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidSyncAddr(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidSyncAddr(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4211,8 +4210,8 @@ fn test_data_packet_options_bit_7_set_parse() {
 fn test_malformed_data_packet_too_high_universe_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_TOO_HIGH_UNIVERSE) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidUniverse(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidUniverse(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4234,8 +4233,8 @@ fn test_malformed_data_packet_too_high_universe_parse() {
 fn test_malformed_data_packet_too_low_universe_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_TOO_LOW_UNIVERSE) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidUniverse(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidUniverse(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4257,8 +4256,8 @@ fn test_malformed_data_packet_too_low_universe_parse() {
 fn test_malformed_data_packet_dmp_layer_too_high_length_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_LENGTH) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4280,8 +4279,8 @@ fn test_malformed_data_packet_dmp_layer_too_high_length_parse() {
 fn test_malformed_data_packet_dmp_layer_too_low_length_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_LENGTH) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4303,8 +4302,8 @@ fn test_malformed_data_packet_dmp_layer_too_low_length_parse() {
 fn test_malformed_data_packet_dmp_layer_wrong_flags_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_WRONG_FLAGS) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParsePduInvalidFlags(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4326,8 +4325,8 @@ fn test_malformed_data_packet_dmp_layer_wrong_flags_parse() {
 fn test_malformed_data_packet_dmp_layer_wrong_vector_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_WRONG_VECTOR) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::PduInvalidVector(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::PduInvalidVector(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4349,8 +4348,8 @@ fn test_malformed_data_packet_dmp_layer_wrong_vector_parse() {
 fn test_malformed_data_packet_dmp_layer_wrong_address_data_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_DATA) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4372,8 +4371,8 @@ fn test_malformed_data_packet_dmp_layer_wrong_address_data_parse() {
 fn test_malformed_data_packet_dmp_layer_wrong_first_property_address_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_WRONG_FIRST_PROPERTY_ADDRESS) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4395,8 +4394,8 @@ fn test_malformed_data_packet_dmp_layer_wrong_first_property_address_parse() {
 fn test_malformed_data_packet_dmp_layer_wrong_address_increment_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_INCREMENT) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInvalidData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4418,8 +4417,8 @@ fn test_malformed_data_packet_dmp_layer_wrong_address_increment_parse() {
 fn test_malformed_data_packet_dmp_layer_too_high_property_count_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_PROPERTY_COUNT) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4441,8 +4440,8 @@ fn test_malformed_data_packet_dmp_layer_too_high_property_count_parse() {
 fn test_malformed_data_packet_dmp_layer_too_low_property_count_parse() {
     match AcnRootLayerProtocol::parse(&TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_PROPERTY_COUNT) {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::SacnParsePackError(sacn_parse_pack_error::ErrorKind::ParseInsufficientData(_)) => {
+            match e {
+                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {

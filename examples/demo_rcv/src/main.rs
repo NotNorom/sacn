@@ -203,7 +203,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                 ACTION_RECV => { // Receive data
                     if split_input.len() < 2 {
                         display_help();
-                        bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"));
+                        bail!(std::io::Error::new(std::io::Error::InvalidInput, "Insufficient parts ( < 2 )"));
                     }
 
                     // To learn about how to parse strings to ints.
@@ -223,7 +223,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                 ACTION_RECV_CONTINUOUS => { // Receive data continuously.
                     if split_input.len() < 3 {
                         display_help();
-                        bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 3 )"));
+                        bail!(std::io::Error::new(std::io::Error::InvalidInput, "Insufficient parts ( < 3 )"));
                     }
 
                      let timeout_secs: u64 = split_input[1].parse().unwrap();
@@ -253,7 +253,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                 ACTION_SLEEP => {
                     if split_input.len() < 2 {
                         display_help();
-                        bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"));
+                        bail!(std::io::Error::new(std::io::Error::InvalidInput, "Insufficient parts ( < 2 )"));
                     }
                     let millisecs: u64 = split_input[1].parse().unwrap();
                     sleep(Duration::from_millis(millisecs));
@@ -261,7 +261,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                 ACTION_LISTEN_UNIVERSE => {
                     if split_input.len() < 2 {
                         display_help();
-                        bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"));
+                        bail!(std::io::Error::new(std::io::Error::InvalidInput, "Insufficient parts ( < 2 )"));
                     }
                     let universe: u16 = split_input[1].parse().unwrap();
                     dmx_recv.listen_universes(&[universe])?;
@@ -269,7 +269,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                 ACTION_STOP_LISTEN_UNIVERSE => {
                     if split_input.len() < 2 {
                         display_help();
-                        bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"));
+                        bail!(std::io::Error::new(std::io::Error::InvalidInput, "Insufficient parts ( < 2 )"));
                     }
                     let universe: u16 = split_input[1].parse().unwrap();
 
@@ -283,7 +283,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                         },
                         Err(_e) => {
                             bail!(std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput, "Preview flag option not 'true'/'false' or otherwise parsable as boolean"));
+                                std::io::Error::InvalidInput, "Preview flag option not 'true'/'false' or otherwise parsable as boolean"));
                         }
                     }
                 }
@@ -295,7 +295,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                         },
                         Err(_e) => {
                             bail!(std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput, "Announce discovery option not 'true'/'false' or otherwise parsable as boolean"));
+                                std::io::Error::InvalidInput, "Announce discovery option not 'true'/'false' or otherwise parsable as boolean"));
                         }
                     }
                 }
@@ -307,14 +307,14 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                         },
                         Err(_e) => {
                             bail!(std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput, "Announce stream termination option not 'true'/'false' or otherwise parsable as boolean"));
+                                std::io::Error::InvalidInput, "Announce stream termination option not 'true'/'false' or otherwise parsable as boolean"));
                         }
                     }
                 }
                 ACTION_FILE_OUT => {
                     if split_input.len() < 4 {
                         display_help();
-                        bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 3 )"));
+                        bail!(std::io::Error::new(std::io::Error::InvalidInput, "Insufficient parts ( < 3 )"));
                     }
 
                     let file_path = split_input[1];
@@ -341,7 +341,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> Result<bool> {
                     }
                 }
                 x => {
-                    bail!(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("Unknown input type: {}", x)));
+                    bail!(std::io::Error::new(std::io::Error::InvalidInput, format!("Unknown input type: {}", x)));
                 }
             }
             Ok(true)
@@ -409,10 +409,10 @@ fn create_values_str(values: Vec<u8>) -> Result<String> {
 fn print_recv(res: Result<Vec<DMXData>>) {
     match res {
         Err(e) => {
-            match e.kind() {
-                ErrorKind::Sacn(x) => {
+            match e {
+                Error::Sacn(x) => {
                     match x.kind() {
-                        sacn::error::errors::ErrorKind::UniverseTerminated(_src_cid, uni) => {
+                        sacn::error::errors::Error::UniverseTerminated(_src_cid, uni) => {
                             println!("Universe {} Terminated", uni);
                         }
                         z => {

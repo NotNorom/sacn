@@ -17,9 +17,9 @@ socket2 = { version = "0.3.4", features = ["reuseport"] }
 libc = { version = "0.2.67" } 
 
 lazy_static = "1.4.0"
-error-chain = "0.12.2"
 
 uuid = { version = "0.6.3", features = ["use_std", "v4"] }
+thiserror = { version = "2.0.11", default-features = false }
 
 [features]
 default = ["std"]
