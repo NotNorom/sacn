@@ -21,10 +21,10 @@
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
 /// Mass import as a very large amount of packet is used here (upwards of 20 items) and this is much cleaner.
-use packet::{E131RootLayerData::*, *};
+use crate::packet::{E131RootLayerData::*, *};
 
 /// Same reasoning as for packet meaning all sacn errors are imported.
-use error::Error;
+use crate::error::Error;
 
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
 /// This is used for uniquely identifying sources when counting sequence numbers.

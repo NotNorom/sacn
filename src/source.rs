@@ -16,7 +16,7 @@
 
 use crate::error::Error;
 use crate::SacnResult;
-use packet::*;
+use crate::packet::*;
 
 use std::cell::RefCell;
 use std::cmp;
