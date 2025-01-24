@@ -2,7 +2,7 @@
 name = "sacn"
 description = "Rust sACN implementation."
 version = "0.9.0"
-edition = "2018"
+edition = "2021"
 readme = "README.md"
 keywords = ["acn", "sacn", "dmx", "e131", "ansi"]
 authors = ["Lukas Schmierer <lukas.schmierer@lschmierer.de>", "Paul Lancaster <paul@lancasterzone.com>"]
