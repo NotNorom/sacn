@@ -13,7 +13,7 @@ extern crate uuid;
 
 pub mod ipv4_tests;
 
-const TEST_NETWORK_INTERFACE_IPV6: [&'static str; 3] = [
+const TEST_NETWORK_INTERFACE_IPV6: [&str; 3] = [
     "2a02:c7f:d20a:c600:a502:2dae:7716:601b",
     "2a02:c7f:d20a:c600:a502:2dae:7716:601c",
     "2a02:c7f:d20a:c600:a502:2dae:7716:601d",
@@ -113,7 +113,7 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !received_result.is_err(),
+            received_result.is_ok(),
             "Failed: Error when receiving data"
         );
 
@@ -190,7 +190,7 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !received_result.is_err(),
+            received_result.is_ok(),
             "Failed: Error when receiving data"
         );
 
@@ -260,7 +260,7 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !sync_pkt_res.is_err(),
+            sync_pkt_res.is_ok(),
             "Failed: Error when receiving packets"
         );
 
@@ -350,7 +350,7 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !sync_pkt_res.is_err(),
+            sync_pkt_res.is_ok(),
             "Failed: Error when receiving packets"
         );
 
@@ -425,7 +425,7 @@ mod sacn_ipv6_multicast_test {
 
         src.register_universe(universe).unwrap();
 
-        let _ = src
+        src
             .send(
                 &[universe],
                 &TEST_DATA_SINGLE_UNIVERSE,
@@ -440,7 +440,7 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !received_result.is_err(),
+            received_result.is_ok(),
             "Failed: Error when receiving data"
         );
 
@@ -518,7 +518,7 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !sync_pkt_res.is_err(),
+            sync_pkt_res.is_ok(),
             "Failed: Error when receiving packets"
         );
 
@@ -663,9 +663,9 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(received_result1.len(), 1); // Check only 1 universe received as expected.
         assert_eq!(received_result2.len(), 1); // Check only 1 universe received as expected.
 
-        let mut result = vec![
+        let mut result = [
             received_result1[0].clone(),
-            received_result2[0].clone(),
+            received_result2[0].clone()
         ];
         result.sort_unstable(); // Ordering of received data is undefined, to make it easier to check sort first.
 
@@ -756,7 +756,7 @@ mod sacn_ipv6_multicast_test {
                 .unwrap();
 
                 // Receivers listen to all universes
-                for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+                for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
                     dmx_recv.listen_universes(&[i]).unwrap();
                 }
 
@@ -822,7 +822,7 @@ mod sacn_ipv6_multicast_test {
         const SND_THREADS: usize = 1;
         const BASE_UNIVERSE: u16 = 2;
         const UNIVERSE_COUNT: usize = 1;
-        const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+        const SOURCE_NAMES: [&str; 1] = ["Source 1"];
 
         let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -888,7 +888,7 @@ mod sacn_ipv6_multicast_test {
 
             let discovered = dmx_recv.get_discovered_sources();
 
-            if discovered.len() > 0 {
+            if !discovered.is_empty() {
                 assert_eq!(discovered.len(), 1);
                 assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
                 let universes = discovered[0].get_all_universes();
@@ -913,7 +913,7 @@ mod sacn_ipv6_multicast_test {
         const SND_THREADS: usize = 1;
         const BASE_UNIVERSE: u16 = 2;
         const UNIVERSE_COUNT: usize = 5;
-        const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+        const SOURCE_NAMES: [&str; 1] = ["Source 1"];
 
         let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -979,7 +979,7 @@ mod sacn_ipv6_multicast_test {
 
             let discovered = dmx_recv.get_discovered_sources();
 
-            if discovered.len() > 0 {
+            if !discovered.is_empty() {
                 assert_eq!(discovered.len(), 1);
                 assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
 
@@ -1005,7 +1005,7 @@ mod sacn_ipv6_multicast_test {
         const SND_THREADS: usize = 1;
         const BASE_UNIVERSE: u16 = 2;
         const UNIVERSE_COUNT: usize = 600;
-        const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+        const SOURCE_NAMES: [&str; 1] = ["Source 1"];
 
         let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -1076,7 +1076,7 @@ mod sacn_ipv6_multicast_test {
 
             let discovered = dmx_recv.get_discovered_sources();
 
-            if discovered.len() > 0 {
+            if !discovered.is_empty() {
                 assert_eq!(discovered.len(), 1);
                 assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
                 let universes = discovered[0].get_all_universes();
@@ -1147,11 +1147,11 @@ mod sacn_ipv6_multicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !received_result.is_err(),
+            received_result.is_ok(),
             "Failed: Error when receiving 1st universe of data"
         );
         assert!(
-            !received_result_2.is_err(),
+            received_result_2.is_ok(),
             "Failed: Error when receiving 2nd universe of data"
         );
 
@@ -1198,7 +1198,7 @@ mod sacn_ipv6_multicast_test {
 
             src.register_universe(universe).unwrap();
 
-            let _ = src
+            src
                 .send(
                     &[universe],
                     &TEST_DATA_SINGLE_UNIVERSE,
@@ -1220,7 +1220,7 @@ mod sacn_ipv6_multicast_test {
 
             src.register_universe(universe).unwrap();
 
-            let _ = src
+            src
                 .send(
                     &[universe],
                     &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
@@ -1240,7 +1240,7 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(res1.len(), 1);
         assert_eq!(res2.len(), 1);
 
-        let res = vec![res1[0].clone(), res2[0].clone()];
+        let res = [res1[0].clone(), res2[0].clone()];
 
         assert_eq!(res[0].universe, universe);
         assert_eq!(res[1].universe, universe);
@@ -1613,7 +1613,7 @@ mod sacn_ipv6_multicast_test {
                 .unwrap();
         ipv4_source.set_preview_mode(false).unwrap();
         ipv4_source.set_multicast_loop_v4(true).unwrap();
-        ipv4_source.register_universes(&[universe as u16]).unwrap();
+        ipv4_source.register_universes(&[universe]).unwrap();
 
         // Create and setup the ipv4 receiver socket.
         let ipv4_recv = Socket::new(Domain::ipv4(), Type::dgram(), None).unwrap();
@@ -1634,13 +1634,13 @@ mod sacn_ipv6_multicast_test {
             .unwrap();
         ipv4_recv
             .join_multicast_v4(
-                &ipv4_multicast_addr.as_inet().unwrap().ip(),
+                ipv4_multicast_addr.as_inet().unwrap().ip(),
                 &Ipv4Addr::UNSPECIFIED,
             )
             .unwrap();
         ipv4_recv
             .join_multicast_v4(
-                &ipv4_discovery_multicast_addr.as_inet().unwrap().ip(),
+                ipv4_discovery_multicast_addr.as_inet().unwrap().ip(),
                 &Ipv4Addr::UNSPECIFIED,
             )
             .unwrap();
@@ -1673,10 +1673,10 @@ mod sacn_ipv6_multicast_test {
             )
             .unwrap();
         ipv6_recv
-            .join_multicast_v6(&ipv6_multicast_addr.as_inet6().unwrap().ip(), 0)
+            .join_multicast_v6(ipv6_multicast_addr.as_inet6().unwrap().ip(), 0)
             .unwrap();
         ipv6_recv
-            .join_multicast_v6(&ipv6_discovery_multicast_addr.as_inet6().unwrap().ip(), 0)
+            .join_multicast_v6(ipv6_discovery_multicast_addr.as_inet6().unwrap().ip(), 0)
             .unwrap();
 
         // Send and receive the data packet over IPv4.
@@ -1821,7 +1821,7 @@ mod sacn_ipv6_unicast_test {
             ACN_SDT_MULTICAST_PORT,
         );
 
-        let _ = src
+        src
             .send(
                 &[universe],
                 &TEST_DATA_SINGLE_UNIVERSE,
@@ -1836,7 +1836,7 @@ mod sacn_ipv6_unicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !received_result.is_err(),
+            received_result.is_ok(),
             "Failed: Error when receiving data"
         );
 
@@ -1898,7 +1898,7 @@ mod sacn_ipv6_unicast_test {
 
         src.register_universes(&UNIVERSES).unwrap();
 
-        let _ = src
+        src
             .send(
                 &UNIVERSES,
                 &TEST_DATA_MULTIPLE_UNIVERSE,
@@ -1907,8 +1907,7 @@ mod sacn_ipv6_unicast_test {
                     SocketAddr::new(
                         IpAddr::V6(TEST_NETWORK_INTERFACE_IPV6[0].parse().unwrap()),
                         ACN_SDT_MULTICAST_PORT,
-                    )
-                    .into(),
+                    ),
                 ),
                 Some(UNIVERSES[0]),
             )
@@ -1920,8 +1919,7 @@ mod sacn_ipv6_unicast_test {
                 SocketAddr::new(
                     IpAddr::V6(TEST_NETWORK_INTERFACE_IPV6[0].parse().unwrap()),
                     ACN_SDT_MULTICAST_PORT,
-                )
-                .into(),
+                ),
             ),
         )
         .unwrap();
@@ -1931,7 +1929,7 @@ mod sacn_ipv6_unicast_test {
         rcv_thread.join().unwrap();
 
         assert!(
-            !sync_pkt_res.is_err(),
+            sync_pkt_res.is_ok(),
             "Failed: Error when receiving packets"
         );
 

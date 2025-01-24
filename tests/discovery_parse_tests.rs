@@ -795,7 +795,7 @@ fn test_discovery_packet_parse_pack() {
     };
 
     assert_eq!(
-        AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET).unwrap(),
+        AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET).unwrap(),
         packet
     );
 
@@ -808,7 +808,7 @@ fn test_discovery_packet_parse_pack() {
 
 #[test]
 fn test_discovery_packet_root_layer_unknown_vector_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_UNKNOWN_VECTOR) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_UNKNOWN_VECTOR) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::PduInvalidVector(_)) => {
@@ -831,7 +831,7 @@ fn test_discovery_packet_root_layer_unknown_vector_parse() {
 
 #[test]
 fn test_discovery_packet_root_layer_data_vector_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_DATA_VECTOR) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_DATA_VECTOR) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(_) => {
@@ -856,7 +856,7 @@ fn test_discovery_packet_root_layer_data_vector_parse() {
 
 #[test]
 fn test_discovery_packet_too_short_cid_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_TOO_SHORT_CID) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_TOO_SHORT_CID) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
@@ -879,7 +879,7 @@ fn test_discovery_packet_too_short_cid_parse() {
 
 #[test]
 fn test_discovery_packet_too_long_cid_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_TOO_LONG_CID) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_TOO_LONG_CID) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(_) => {
@@ -905,7 +905,7 @@ fn test_discovery_packet_too_long_cid_parse() {
 
 #[test]
 fn test_discovery_packet_wrong_flags_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_WRONG_FLAGS) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_WRONG_FLAGS) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(_)) => {
@@ -928,7 +928,7 @@ fn test_discovery_packet_wrong_flags_parse() {
 
 #[test]
 fn test_discovery_packet_framing_layer_length_too_long_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
@@ -951,7 +951,7 @@ fn test_discovery_packet_framing_layer_length_too_long_parse() {
 
 #[test]
 fn test_discovery_packet_framing_layer_length_too_short_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
@@ -974,7 +974,7 @@ fn test_discovery_packet_framing_layer_length_too_short_parse() {
 
 #[test]
 fn test_discovery_packet_framing_layer_wrong_flags_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(_)) => {
@@ -997,7 +997,7 @@ fn test_discovery_packet_framing_layer_wrong_flags_parse() {
 
 #[test]
 fn test_discovery_packet_sync_framing_vector_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_SYNC_FRAMING_VECTOR) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_SYNC_FRAMING_VECTOR) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(_) => {
@@ -1023,7 +1023,7 @@ fn test_discovery_packet_sync_framing_vector_parse() {
 
 #[test]
 fn test_discovery_packet_unknown_framing_vector_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_UNKNOWN_FRAMING_VECTOR) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_UNKNOWN_FRAMING_VECTOR) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::PduInvalidVector(_)) => {
@@ -1046,7 +1046,7 @@ fn test_discovery_packet_unknown_framing_vector_parse() {
 
 #[test]
 fn test_discovery_packet_arbitrary_reserved_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_ARBITRARY_RESERVED) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_ARBITRARY_RESERVED) {
         Err(e) => {
                 assert!(false, "Unexpected error returned: {}", e);
             }
@@ -1068,7 +1068,7 @@ fn test_discovery_packet_arbitrary_reserved_parse() {
 
 #[test]
 fn test_discovery_packet_discovery_layer_wrong_flags_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_WRONG_FLAGS) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_WRONG_FLAGS) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(_)) => {
@@ -1091,7 +1091,7 @@ fn test_discovery_packet_discovery_layer_wrong_flags_parse() {
 
 #[test]
 fn test_discovery_packet_discovery_layer_length_too_short_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_SHORT) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_SHORT) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
@@ -1114,7 +1114,7 @@ fn test_discovery_packet_discovery_layer_length_too_short_parse() {
 
 #[test]
 fn test_discovery_packet_discovery_layer_length_too_long_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_LONG) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_LONG) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
@@ -1137,7 +1137,7 @@ fn test_discovery_packet_discovery_layer_length_too_long_parse() {
 
 #[test]
 fn test_discovery_packet_discovery_layer_vector_unknown_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_VECTOR_UNKNOWN) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_VECTOR_UNKNOWN) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::PduInvalidVector(_)) => {
@@ -1160,7 +1160,7 @@ fn test_discovery_packet_discovery_layer_vector_unknown_parse() {
 
 #[test]
 fn test_discovery_packet_page_higher_than_last_page_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_PAGE_HIGHER_THAN_LAST_PAGE) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_PAGE_HIGHER_THAN_LAST_PAGE) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInvalidPage(_)) => {
@@ -1183,7 +1183,7 @@ fn test_discovery_packet_page_higher_than_last_page_parse() {
 
 #[test]
 fn test_discovery_packet_decending_order_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_DECENDING_ORDER) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DECENDING_ORDER) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInvalidUniverseOrder(_)) => {
@@ -1206,7 +1206,7 @@ fn test_discovery_packet_decending_order_parse() {
 
 #[test]
 fn test_discovery_packet_random_order_parse() {
-    match AcnRootLayerProtocol::parse(&TEST_UNIVERSE_DISCOVERY_PACKET_RANDOM_ORDER) {
+    match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_RANDOM_ORDER) {
         Err(e) => {
             match e {
                 Error::SacnParsePackError(ParsePackError::ParseInvalidUniverseOrder(_)) => {
@@ -1306,7 +1306,7 @@ fn generate_test_universe_discovery_packet(universes_to_generate: u16) -> Vec<u8
         test_universe_discovery_packet.push(vals[1]);
     }
 
-    return test_universe_discovery_packet;
+    test_universe_discovery_packet
 }
 
 #[test]

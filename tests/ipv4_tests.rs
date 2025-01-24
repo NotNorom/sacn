@@ -35,7 +35,7 @@ use socket2::{Domain, Socket, Type};
 /// For some tests to work multiple instances of the protocol must be on the same network with the same port for example to test multiple simultaneous receivers, this means multiple IP's are needed.
 /// This is achieved by assigning multiple static IP's to the test machine and theses IP's are specified below.
 /// Theses must be changed depending on the network that the test machine is on.
-pub const TEST_NETWORK_INTERFACE_IPV4: [&'static str; 3] =
+pub const TEST_NETWORK_INTERFACE_IPV4: [&str; 3] =
     ["192.168.0.6", "192.168.0.7", "192.168.0.8"];
 
 pub const TEST_DATA_PARTIAL_CAPACITY_UNIVERSE: [u8; 313] = [
@@ -262,7 +262,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     rcv_thread2.join().unwrap();
 
     assert!(
-        !received_result1.is_err(),
+        received_result1.is_ok(),
         "Failed: Error when receiving data"
     );
     let received_data1: Vec<DMXData> = received_result1.unwrap();
@@ -276,7 +276,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     );
 
     assert!(
-        !received_result2.is_err(),
+        received_result2.is_ok(),
         "Failed: Error when receiving data"
     );
     let received_data2: Vec<DMXData> = received_result2.unwrap();
@@ -401,9 +401,9 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
     assert_eq!(received_result1.len(), 1); // Check only 1 universe received as expected.
     assert_eq!(received_result2.len(), 1); // Check only 1 universe received as expected.
 
-    let mut results = vec![
+    let mut results = [
         received_result1[0].clone(),
-        received_result2[0].clone(),
+        received_result2[0].clone()
     ];
     results.sort_unstable(); // Ordering of received data is undefined, to make it easier to check sort first.
 
@@ -457,7 +457,7 @@ fn test_send_recv_single_universe_unicast_ipv4() {
 
     let dst_ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT);
 
-    let _ = src
+    src
         .send(
             &[universe],
             &TEST_DATA_SINGLE_UNIVERSE,
@@ -472,7 +472,7 @@ fn test_send_recv_single_universe_unicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !received_result.is_err(),
+        received_result.is_ok(),
         "Failed: Error when receiving data"
     );
 
@@ -559,7 +559,7 @@ fn test_send_recv_single_universe_multicast_ipv4() {
 
     // Check that the receiver received the data without error.
     assert!(
-        !received_result.is_err(),
+        received_result.is_ok(),
         "Failed: Error when receiving data"
     );
 
@@ -726,7 +726,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !received_result.is_err(),
+        received_result.is_ok(),
         "Failed: Error when receiving data"
     );
 
@@ -813,7 +813,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !received_result.is_err(),
+        received_result.is_ok(),
         "Failed: Error when receiving data"
     );
 
@@ -907,7 +907,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
 
     // Check that the first lot of data received (which should be the second packet) is as expected.
     assert!(
-        !first_received_result.is_err(),
+        first_received_result.is_ok(),
         "Unexpected error when receiving first lot of data"
     );
     let received_data: Vec<DMXData> = first_received_result.unwrap();
@@ -1001,11 +1001,11 @@ fn test_send_recv_two_universe_multicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !received_result.is_err(),
+        received_result.is_ok(),
         "Failed: Error when receiving 1st universe of data"
     );
     assert!(
-        !received_result_2.is_err(),
+        received_result_2.is_ok(),
         "Failed: Error when receiving 2nd universe of data"
     );
 
@@ -1083,7 +1083,7 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !received_result.is_err(),
+        received_result.is_ok(),
         "Failed: Error when receiving data"
     );
 
@@ -1158,7 +1158,7 @@ fn test_send_recv_across_universe_multicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !sync_pkt_res.is_err(),
+        sync_pkt_res.is_ok(),
         "Failed: Error when receiving packets"
     );
 
@@ -1229,13 +1229,13 @@ fn test_send_recv_across_universe_unicast_ipv4() {
 
     src.register_universes(&UNIVERSES).unwrap();
 
-    let _ = src
+    src
         .send(
             &UNIVERSES,
             &TEST_DATA_MULTIPLE_UNIVERSE,
             Some(priority),
             Some(
-                SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT).into(),
+                SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT),
             ),
             Some(UNIVERSES[0]),
         )
@@ -1243,7 +1243,7 @@ fn test_send_recv_across_universe_unicast_ipv4() {
     sleep(Duration::from_millis(500)); // Small delay to allow the data packets to get through as per NSI-E1.31-2018 Appendix B.1 recommendation.
     src.send_sync_packet(
         UNIVERSES[0],
-        Some(SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT).into()),
+        Some(SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT)),
     )
     .unwrap();
 
@@ -1252,7 +1252,7 @@ fn test_send_recv_across_universe_unicast_ipv4() {
     rcv_thread.join().unwrap();
 
     assert!(
-        !sync_pkt_res.is_err(),
+        sync_pkt_res.is_ok(),
         "Failed: Error when receiving packets"
     );
 
@@ -1309,7 +1309,7 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
 
         src.register_universe(universe_1).unwrap();
 
-        let _ = src
+        src
             .send(
                 &[universe_1],
                 &TEST_DATA_SINGLE_UNIVERSE,
@@ -1331,7 +1331,7 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
 
         src.register_universe(universe_2).unwrap();
 
-        let _ = src
+        src
             .send(
                 &[universe_2],
                 &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
@@ -1351,7 +1351,7 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
     assert_eq!(res1.len(), 1);
     assert_eq!(res2.len(), 1);
 
-    let mut res = vec![res1[0].clone(), res2[0].clone()];
+    let mut res = [res1[0].clone(), res2[0].clone()];
     res.sort_unstable();
 
     assert_eq!(res[0].universe, universe_1);
@@ -1385,7 +1385,7 @@ fn test_two_senders_one_recv_same_universe_no_sync_multicast_ipv4() {
 
         src.register_universe(universe).unwrap();
 
-        let _ = src
+        src
             .send(
                 &[universe],
                 &TEST_DATA_SINGLE_UNIVERSE,
@@ -1407,7 +1407,7 @@ fn test_two_senders_one_recv_same_universe_no_sync_multicast_ipv4() {
 
         src.register_universe(universe).unwrap();
 
-        let _ = src
+        src
             .send(
                 &[universe],
                 &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
@@ -1427,7 +1427,7 @@ fn test_two_senders_one_recv_same_universe_no_sync_multicast_ipv4() {
     assert_eq!(res1.len(), 1);
     assert_eq!(res2.len(), 1);
 
-    let res = vec![res1[0].clone(), res2[0].clone()];
+    let res = [res1[0].clone(), res2[0].clone()];
 
     assert_eq!(res[0].universe, universe);
     assert_eq!(res[1].universe, universe);
@@ -1520,18 +1520,18 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
         res1[0].values,
         htp_dmx_merge(
             &DMXData {
-                universe: universe,
+                universe,
                 values: TEST_DATA_SINGLE_UNIVERSE.to_vec(),
-                sync_uni: sync_uni,
+                sync_uni,
                 priority: 100,
                 src_cid: None,
                 preview: false,
                 recv_timestamp: Instant::now()
             },
             &DMXData {
-                universe: universe,
+                universe,
                 values: TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec(),
-                sync_uni: sync_uni,
+                sync_uni,
                 priority: 100,
                 src_cid: None,
                 preview: false,
@@ -1617,7 +1617,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
             .unwrap();
 
             // Receivers listen to all universes
-            for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+            for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
                 dmx_recv.listen_universes(&[i]).unwrap();
             }
 
@@ -1749,7 +1749,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
             .unwrap();
 
             // Receivers listen to all universes
-            for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+            for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
                 dmx_recv.listen_universes(&[i]).unwrap();
             }
 
@@ -1881,7 +1881,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
             .unwrap();
 
             // Receivers listen to all universes
-            for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+            for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
                 dmx_recv.listen_universes(&[i]).unwrap();
             }
 
@@ -2013,7 +2013,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
             .unwrap();
 
             // Receivers listen to all universes
-            for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+            for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
                 dmx_recv.listen_universes(&[i]).unwrap();
             }
 
@@ -2077,7 +2077,7 @@ fn test_universe_discovery_one_universe_one_source_ipv4() {
     const SND_THREADS: usize = 1;
     const BASE_UNIVERSE: u16 = 2;
     const UNIVERSE_COUNT: usize = 1;
-    const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+    const SOURCE_NAMES: [&str; 1] = ["Source 1"];
 
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -2143,7 +2143,7 @@ fn test_universe_discovery_one_universe_one_source_ipv4() {
 
         let discovered = dmx_recv.get_discovered_sources();
 
-        if discovered.len() > 0 {
+        if !discovered.is_empty() {
             assert_eq!(discovered.len(), 1);
             assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
             let universes = discovered[0].get_all_universes();
@@ -2168,7 +2168,7 @@ fn test_universe_discovery_one_universe_one_source_ipv4() {
 fn test_universe_discovery_interval_ipv4() {
     const SND_THREADS: usize = 1;
     const BASE_UNIVERSE: u16 = 1;
-    const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+    const SOURCE_NAMES: [&str; 1] = ["Source 1"];
     const INTERVAL_EXPECTED_MILLIS: u128 = E131_UNIVERSE_DISCOVERY_INTERVAL.as_millis(); // Expected discovery packet interval is every 10 seconds (10000 milliseconds).
     const INTERVAL_TOLERANCE_MILLIS: u128 = 1000; // Allow up to a second either side of this interval to account for random variations.
 
@@ -2263,7 +2263,7 @@ fn test_universe_discovery_interval_ipv4() {
 fn test_universe_discovery_interval_with_updates_ipv4() {
     const SND_THREADS: usize = 1;
     const BASE_UNIVERSE: u16 = 1;
-    const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+    const SOURCE_NAMES: [&str; 1] = ["Source 1"];
     const INTERVAL_EXPECTED_MILLIS: u128 = E131_UNIVERSE_DISCOVERY_INTERVAL.as_millis(); // Expected discovery packet interval is every 10 seconds (10000 milliseconds).
     const INTERVAL_TOLERANCE_MILLIS: u128 = 1000; // Allow up to a second either side of this interval to account for random variations.
     const SENDER_REGISTER_DELAY: Duration = Duration::from_secs(1); // The time between registering new universe on the sender.
@@ -2360,7 +2360,7 @@ fn test_universe_discovery_multiple_universe_one_source_ipv4() {
     const SND_THREADS: usize = 1;
     const BASE_UNIVERSE: u16 = 2;
     const UNIVERSE_COUNT: usize = 5;
-    const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+    const SOURCE_NAMES: [&str; 1] = ["Source 1"];
 
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -2426,7 +2426,7 @@ fn test_universe_discovery_multiple_universe_one_source_ipv4() {
 
         let discovered = dmx_recv.get_discovered_sources();
 
-        if discovered.len() > 0 {
+        if !discovered.is_empty() {
             assert_eq!(discovered.len(), 1);
             assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
 
@@ -2452,7 +2452,7 @@ fn test_universe_discovery_multiple_pages_one_source_ipv4() {
     const SND_THREADS: usize = 1;
     const BASE_UNIVERSE: u16 = 2;
     const UNIVERSE_COUNT: usize = 600;
-    const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+    const SOURCE_NAMES: [&str; 1] = ["Source 1"];
 
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -2523,7 +2523,7 @@ fn test_universe_discovery_multiple_pages_one_source_ipv4() {
 
         let discovered = dmx_recv.get_discovered_sources();
 
-        if discovered.len() > 0 {
+        if !discovered.is_empty() {
             assert_eq!(discovered.len(), 1);
             assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
             let universes = discovered[0].get_all_universes();
@@ -2549,7 +2549,7 @@ fn test_universe_discovery_multiple_pages_one_source_ipv4() {
 #[ignore]
 fn test_universe_discovery_no_universes_ipv4() {
     const SND_THREADS: usize = 1;
-    const SOURCE_NAMES: [&'static str; 1] = ["Source 1"];
+    const SOURCE_NAMES: [&str; 1] = ["Source 1"];
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
     let mut snd_threads = Vec::new();
@@ -2681,7 +2681,7 @@ fn test_receiver_sources_exceeded_3() {
     .unwrap();
 
     // Receivers listen to all universes
-    for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+    for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
         dmx_recv.listen_universes(&[i]).unwrap();
     }
 
@@ -2780,7 +2780,7 @@ fn test_receiver_source_limit_2() {
     .unwrap();
 
     // Receivers listen to all universes
-    for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+    for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
         dmx_recv.listen_universes(&[i]).unwrap();
     }
 
@@ -2856,7 +2856,7 @@ fn test_receiver_source_limit_2_termination_check() {
     .unwrap();
 
     // Receivers listen to all universes
-    for i in (BASE_UNIVERSE as u16)..((SND_THREADS as u16) + (BASE_UNIVERSE as u16)) {
+    for i in BASE_UNIVERSE..((SND_THREADS as u16) + BASE_UNIVERSE) {
         dmx_recv.listen_universes(&[i]).unwrap();
     }
 
@@ -2878,7 +2878,7 @@ fn test_receiver_source_limit_2_termination_check() {
     let new_src_thread = thread::spawn(move || {
         let ip: SocketAddr = SocketAddr::new(
             IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT + 1 + (3 as u16),
+            ACN_SDT_MULTICAST_PORT + 1 + 3_u16,
         );
         let mut src = SacnSource::with_ip(&format!("Source {}", 3), ip).unwrap();
 
@@ -2958,7 +2958,7 @@ fn test_preview_data_2_receiver_1_sender() {
             assert_eq!(data.universe, UNIVERSE);
             assert_eq!(data.values, NORMAL_DATA);
 
-            assert_eq!(data.preview, false);
+            assert!(!data.preview);
 
             if i == 0 {
                 // The receiver listening to preview_data will receive twice.
@@ -2969,7 +2969,7 @@ fn test_preview_data_2_receiver_1_sender() {
 
                 assert_eq!(preview_data.universe, UNIVERSE);
                 assert_eq!(preview_data.values, PREVIEW_DATA);
-                assert_eq!(preview_data.preview, true);
+                assert!(preview_data.preview);
             } else {
                 // The other receiver should not.
                 match dmx_recv.recv(TIMEOUT) {
@@ -4051,7 +4051,7 @@ fn generate_data_packet_raw(
     dmx_data: Vec<u8>,
 ) -> Vec<u8> {
     assert!(
-        universe >= E131_MIN_MULTICAST_UNIVERSE && universe <= E131_MAX_MULTICAST_UNIVERSE,
+        (E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe),
         "Generated data packet universe out of range"
     );
     assert!(
@@ -4191,7 +4191,7 @@ fn generate_sync_packet_raw(cid: [u8; 16], sync_addr: u16, seq_num: u8) -> Vec<u
 /// The use of a UDP socket also shows that the protocol uses UDP at the transport layer.
 /// 
 #[test]
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 #[ignore]
 fn test_data_packet_transmit_format() {
     const CID: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
@@ -4252,7 +4252,7 @@ fn test_terminate_packet_transmit_format() {
         ACN_SDT_MULTICAST_PORT + 1,
     );
     let mut source =
-        SacnSource::with_cid_ip(&"Source", Uuid::from_bytes(&cid).unwrap(), ip).unwrap();
+        SacnSource::with_cid_ip("Source", Uuid::from_bytes(&cid).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
@@ -4276,12 +4276,11 @@ fn test_terminate_packet_transmit_format() {
     source.terminate_stream(1, start_code).unwrap();
     for _ in 0..2 {
         recv_socket.recv_from(&mut recv_buf).unwrap();
-        assert_eq!(
+        assert!(
             match AcnRootLayerProtocol::parse(&recv_buf).unwrap().pdu.data {
                 E131RootLayerData::DataPacket(data) => data.stream_terminated,
                 _ => panic!(),
-            },
-            true
+            }
         )
     }
 }
@@ -4311,7 +4310,7 @@ fn test_sync_packet_transmit_format() {
         ACN_SDT_MULTICAST_PORT + 1,
     );
     let mut source =
-        SacnSource::with_cid_ip(&"Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
+        SacnSource::with_cid_ip("Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
@@ -4437,7 +4436,7 @@ fn test_discovery_packet_transmit_format() {
 
     // Creates the source.
     let mut source = SacnSource::with_cid_ip(
-        &str::from_utf8(&SOURCE_NAME).unwrap(),
+        str::from_utf8(&SOURCE_NAME).unwrap(),
         Uuid::from_bytes(&CID).unwrap(),
         ip,
     )
@@ -4459,7 +4458,7 @@ fn test_discovery_packet_transmit_format() {
         .as_inet();
 
     recv_socket
-        .join_multicast_v4(&address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
+        .join_multicast_v4(address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
         .unwrap();
 
     let mut recv_buf = [0; DISCOVERY_PACKET_LENGTH_EXPECTED];
@@ -4549,7 +4548,7 @@ fn test_sync_packet_transmit_seq_numbers() {
         ACN_SDT_MULTICAST_PORT + 1,
     );
     let mut source =
-        SacnSource::with_cid_ip(&"Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
+        SacnSource::with_cid_ip("Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
@@ -4587,7 +4586,7 @@ fn test_sync_packet_transmit_seq_numbers() {
 /// This shows the source complies with ANSI E1.31-2018 Section 6.2.5 "E1.31 Data Packet: Sequence Number". 
 /// 
 #[test]
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 #[ignore]
 fn test_track_data_packet_seq_numbers() {
     /* Packet parameters */
@@ -4635,7 +4634,7 @@ fn test_track_data_packet_seq_numbers() {
         let address = universe_to_ipv4_multicast_addr(*u).unwrap().as_inet();
 
         recv_socket
-            .join_multicast_v4(&address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
+            .join_multicast_v4(address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
             .unwrap();
     }
 
@@ -4659,7 +4658,7 @@ fn test_track_data_packet_seq_numbers() {
 /// This shows the source complies with ANSI E1.31-2018 Section 6.2.5 "E1.31 Data Packet: Sequence Number". 
 /// 
 #[test]
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 #[ignore]
 fn test_track_sync_packet_seq_numbers() {
     // Source CID and name, set to arbitrary values as not the focus of the test.
@@ -4704,7 +4703,7 @@ fn test_track_sync_packet_seq_numbers() {
         let address = universe_to_ipv4_multicast_addr(*u).unwrap().as_inet();
 
         recv_socket
-            .join_multicast_v4(&address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
+            .join_multicast_v4(address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
             .unwrap();
     }
 
@@ -4730,7 +4729,7 @@ fn test_track_sync_packet_seq_numbers() {
 /// ANSI E1.31-2018 Section 6.3.3.1.
 /// 
 #[test]
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 #[ignore]
 /// Linux only because of the mechanism used for creating the recv sockets so that they only receive from a single multicast address.
 /// This is unrelated to the actual library and is just the way the test is written.
@@ -4780,10 +4779,10 @@ fn test_sync_packet_multicast_address() {
         let multicast_addr = universe_to_ipv4_multicast_addr(*sync_addr).unwrap();
         recv_sockets[i].bind(&multicast_addr).unwrap();
         recv_sockets[i]
-            .join_multicast_v4(&multicast_addr.as_inet().unwrap().ip(), &TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap())
+            .join_multicast_v4(multicast_addr.as_inet().unwrap().ip(), &TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap())
             .unwrap();
 
-        i = i + 1;
+        i += 1;
     }
 
     for s in START_SEQ_NUM .. START_SEQ_NUM + SYNC_PACKETS_TO_SEND {
@@ -4804,7 +4803,7 @@ fn test_sync_packet_multicast_address() {
 
             assert_eq!(&recv_buf[0..amt], &expected_packet[..]);
 
-            i = i + 1;
+            i += 1;
         }
     }
 }

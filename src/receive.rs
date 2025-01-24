@@ -292,13 +292,10 @@ impl SacnReceiver {
     /// For more details see SacnReceiver::listen_universes().
     ///
     pub fn with_ip(ip: SocketAddr, source_limit: Option<usize>) -> SacnResult<SacnReceiver> {
-        match source_limit {
-            Some(x) => {
-                if x == 0 {
-                    return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Source_limit has a value of Some(0) which would indicate this receiver can never receive from any source"))?;
-                }
+        if let Some(x) = source_limit {
+            if x == 0 {
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Source_limit has a value of Some(0) which would indicate this receiver can never receive from any source"))?;
             }
-            None => {}
         }
         let mut sri = SacnReceiver {
             receiver: SacnNetworkReceiver::new(ip)?,
@@ -308,7 +305,7 @@ impl SacnReceiver {
             merge_func: DEFAULT_MERGE_FUNC,
             partially_discovered_sources: Vec::new(),
             process_preview_data: PROCESS_PREVIEW_DATA_DEFAULT,
-            source_limit: source_limit,
+            source_limit,
             sequences: SequenceNumbering::new(),
             announce_source_discovery: ANNOUNCE_SOURCE_DISCOVERY_DEFAULT,
             announce_stream_termination: ANNOUNCE_STREAM_TERMINATION_DEFAULT,
@@ -588,7 +585,7 @@ impl SacnReceiver {
                         // To stop recv blocking forever with a non-None timeout due to packets being received consistently (that reset the timeout)
                         // within the receive timeout (e.g. universe discovery packets if the discovery interval < timeout) the timeout needs to be
                         // adjusted to account for the time already taken.
-                        if !timeout.is_none() {
+                        if timeout.is_some() {
                             let elapsed = start_time.elapsed();
                             match timeout.unwrap().checked_sub(elapsed) {
                                 None => {
@@ -598,7 +595,7 @@ impl SacnReceiver {
                                         "No data available in given timeout",
                                     ))?
                                 }
-                                Some(new_timeout) => return self.recv(Some(new_timeout)),
+                                Some(new_timeout) => self.recv(Some(new_timeout)),
                             }
                         } else {
                             // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
@@ -613,7 +610,7 @@ impl SacnReceiver {
                         match s.kind() {
                             // Windows and Unix use different error types (WouldBlock/TimedOut) for the same error.
                             std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
-                                if !timeout.is_none() {
+                                if timeout.is_some() {
                                     let elapsed = start_time.elapsed();
                                     match timeout.unwrap().checked_sub(elapsed) {
                                         None => {
@@ -631,7 +628,7 @@ impl SacnReceiver {
                                                 ))?
                                             }
                                         }
-                                        Some(new_timeout) => return self.recv(Some(new_timeout)),
+                                        Some(new_timeout) => self.recv(Some(new_timeout)),
                                     }
                                 } else {
                                     // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
@@ -792,7 +789,7 @@ impl SacnReceiver {
                 recv_timestamp: Instant::now(),
             };
 
-            return Ok(Some(vec![dmx_data]));
+            Ok(Some(vec![dmx_data]))
         } else {
             // As per ANSI E1.31-2018 Appendix B.2 the receiver should listen at the synchronisation address when a data packet is received with a non-zero
             // synchronisation address.
@@ -833,7 +830,7 @@ impl SacnReceiver {
     ///
     /// universe:    The sACN universe to remove.
     ///
-    fn terminate_stream<'a>(&mut self, src_cid: Uuid, source_name: Cow<'a, str>, universe: u16) {
+    fn terminate_stream(&mut self, src_cid: Uuid, source_name: Cow<'_, str>, universe: u16) {
         match self.sequences.remove_seq_numbers(src_cid, universe) {
             _ => {
                 // Will only return an error if the source/universe wasn't found which is acceptable because as it
@@ -914,7 +911,7 @@ impl SacnReceiver {
         )?;
 
         let res = self.rtrv_waiting_data(sync_pkt.synchronization_address);
-        if res.len() == 0 {
+        if res.is_empty() {
             Ok(None)
         } else {
             Ok(Some(res))
@@ -956,11 +953,8 @@ impl SacnReceiver {
     /// Arguments:
     /// src: The DiscoveredSacnSource to update the record of discovered sacn sources with.
     fn update_discovered_srcs(&mut self, src: DiscoveredSacnSource) {
-        match find_discovered_src(&self.discovered_sources, &src.name) {
-            Some(index) => {
-                self.discovered_sources.remove(index);
-            }
-            None => {}
+        if let Some(index) = find_discovered_src(&self.discovered_sources, &src.name) {
+            self.discovered_sources.remove(index);
         }
         self.discovered_sources.push(src);
     }
@@ -987,7 +981,7 @@ impl SacnReceiver {
         let universes = data.universes;
 
         let uni_page: UniversePage = UniversePage {
-            page: page,
+            page,
             universes: universes.into(),
         };
 
@@ -1013,7 +1007,7 @@ impl SacnReceiver {
                 // This is the first page received from this source.
                 let discovered_src: DiscoveredSacnSource = DiscoveredSacnSource {
                     name: discovery_pkt.source_name.to_string(),
-                    last_page: last_page,
+                    last_page,
                     pages: vec![uni_page],
                     last_updated: Instant::now(),
                 };
@@ -1029,7 +1023,7 @@ impl SacnReceiver {
             }
         }
 
-        return None; // No source fully discovered.
+        None// No source fully discovered.
     }
 
     /// Goes through all the waiting data and removes any which has timed out as a sync-packet for it hasn't been received within the E131_NETWORK_DATA_LOSS_TIMEOUT
@@ -1077,12 +1071,7 @@ impl Drop for SacnReceiver {
 /// name: The human readable name of the source to find.
 ///
 fn find_discovered_src(srcs: &Vec<DiscoveredSacnSource>, name: &String) -> Option<usize> {
-    for i in 0..srcs.len() {
-        if srcs[i].name == *name {
-            return Some(i);
-        }
-    }
-    None
+    srcs.iter().position(|source| source.name == *name)
 }
 
 /// In general the lower level transport layer is handled by SacnNetworkReceiver (which itself wraps a Socket).
@@ -1277,11 +1266,11 @@ impl SacnNetworkReceiver {
                 .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?;
         }
 
-        Ok(join_unix_multicast(
+        join_unix_multicast(
             &self.socket,
             multicast_addr,
             self.addr.ip(),
-        )?)
+        )
     }
 
     /// Removes this SacnNetworkReceiver from the multicast group which corresponds to the given universe.
@@ -1301,11 +1290,11 @@ impl SacnNetworkReceiver {
                 .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?;
         }
 
-        Ok(leave_unix_multicast(
+        leave_unix_multicast(
             &self.socket,
             multicast_addr,
             self.addr.ip(),
-        )?)
+        )
     }
 
     /// Sets the value of the is_multicast_enabled flag to the given value.
@@ -1329,7 +1318,7 @@ impl SacnNetworkReceiver {
     /// This flag is set when the receiver is created as not all environments currently support IP multicast.
     /// E.g. IPv6 Windows IP Multicast is currently unsupported.
     fn is_multicast_enabled(&self) -> bool {
-        return self.is_multicast_enabled;
+        self.is_multicast_enabled
     }
 
     /// If set to true then only receive over IPv6. If false then receiving will be over both IPv4 and IPv6.
@@ -1369,7 +1358,7 @@ impl SacnNetworkReceiver {
     ) -> SacnResult<AcnRootLayerProtocol<'a>> {
         self.socket.recv(&mut buf[0..])?;
 
-        Ok(AcnRootLayerProtocol::parse(buf)?)
+        AcnRootLayerProtocol::parse(buf)
     }
 
     /// Set the timeout for the recv operation.
@@ -1446,7 +1435,7 @@ impl DiscoveredSacnSource {
             }
         }
 
-        return true;
+        true
     }
 
     /// Returns all the universes being send by this SacnSource as discovered through the universe discovery mechanism.
@@ -1525,7 +1514,7 @@ fn join_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr) 
         AF_INET => match addr.as_inet() {
             Some(a) => match interface_addr {
                 IpAddr::V4(ref interface_v4) => {
-                    socket.join_multicast_v4(a.ip(), &interface_v4)?;
+                    socket.join_multicast_v4(a.ip(), interface_v4)?;
                 }
                 IpAddr::V6(ref _interface_v6) => {
                     Err(Error::IpVersionError(
@@ -1572,7 +1561,7 @@ fn leave_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr)
         AF_INET => match addr.as_inet() {
             Some(a) => match interface_addr {
                 IpAddr::V4(ref interface_v4) => {
-                    socket.leave_multicast_v4(a.ip(), &interface_v4)?;
+                    socket.leave_multicast_v4(a.ip(), interface_v4)?;
                 }
                 IpAddr::V6(ref _interface_v6) => {
                     Err(Error::IpVersionError(
@@ -1735,8 +1724,8 @@ struct TimedStampedSeqNo {
 impl TimedStampedSeqNo {
     fn new(sequence_number: u8, last_recv: Instant) -> TimedStampedSeqNo {
         TimedStampedSeqNo {
-            sequence_number: sequence_number,
-            last_recv: last_recv,
+            sequence_number,
+            last_recv,
         }
     }
 }
@@ -1767,10 +1756,10 @@ impl SequenceNumbering {
     /// This implementation uses HashMaps internally to allow O(1) checking and updating of sequence numbers.
     ///
     fn new() -> SequenceNumbering {
-        return SequenceNumbering {
+        SequenceNumbering {
             data_sequences: HashMap::new(),
             sync_sequences: HashMap::new(),
-        };
+        }
     }
 
     /// Clears the sequence number records completely removing all sources/universes for all types of packet.
@@ -1928,18 +1917,15 @@ fn check_seq_number(
         announce_timeout,
     )?;
 
-    match src_sequences.get(&cid) {
-        None => {
-            // New source not previously received from.
-            if source_limit.is_none() || src_sequences.len() < source_limit.unwrap() {
-                src_sequences.insert(cid, HashMap::new());
-            } else {
-                Err(Error::SourcesExceededError(
-                    format!("Already at max sources: {}", src_sequences.len()).to_string(),
-                ))?;
-            }
+    if src_sequences.get(&cid).is_none() {
+        // New source not previously received from.
+        if source_limit.is_none() || src_sequences.len() < source_limit.unwrap() {
+            src_sequences.insert(cid, HashMap::new());
+        } else {
+            Err(Error::SourcesExceededError(
+                format!("Already at max sources: {}", src_sequences.len()).to_string(),
+            ))?;
         }
-        Some(_) => {}
     };
 
     let expected_seq = match src_sequences.get(&cid) {
@@ -2031,7 +2017,7 @@ fn check_timeouts(
                     break;
                 }
             }
-            if timedout_uni == None {
+            if timedout_uni.is_none() {
                 break;
             }
         }
@@ -2144,8 +2130,8 @@ pub fn discard_lowest_priority_then_previous(i: &DMXData, n: &DMXData) -> SacnRe
 /// If this doesn't hold an error will be returned.
 /// Other merge functions may allow merging different start codes or not check for them.
 pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
-    if i.values.len() < 1
-        || n.values.len() < 1
+    if i.values.is_empty()
+        || n.values.is_empty()
         || i.universe != n.universe
         || i.values[0] != n.values[0]
         || i.sync_uni != n.sync_uni
@@ -2177,9 +2163,9 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
     let mut n_val = n_iter.next();
 
     while (i_val.is_some()) || (n_val.is_some()) {
-        if i_val == None {
+        if i_val.is_none() {
             r.values.push(*n_val.unwrap());
-        } else if n_val == None {
+        } else if n_val.is_none() {
             r.values.push(*i_val.unwrap());
         } else {
             r.values.push(max(*n_val.unwrap(), *i_val.unwrap()));
@@ -2240,10 +2226,10 @@ mod test {
 
                 // Universe discovery layer.
                 data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
-                    page: page,
+                    page,
 
                     // The number of the final page.
-                    last_page: last_page,
+                    last_page,
 
                     // List of universes.
                     universes: universes.clone().into(),
@@ -2291,7 +2277,7 @@ mod test {
                     page: 0,
 
                     // The number of the final page.
-                    last_page: last_page,
+                    last_page,
 
                     // List of universes.
                     universes: universes_page_1.clone().into(),
@@ -2307,7 +2293,7 @@ mod test {
                     page: 1,
 
                     // The number of the final page.
-                    last_page: last_page,
+                    last_page,
 
                     // List of universes.
                     universes: universes_page_2.clone().into(),
@@ -2350,9 +2336,9 @@ mod test {
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
-            universe: universe,
+            universe,
             values: vals.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 100,
             src_cid: None,
             preview: false,
@@ -2380,9 +2366,9 @@ mod test {
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
-            universe: universe,
+            universe,
             values: vals.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 100,
             src_cid: None,
             preview: false,
@@ -2421,9 +2407,9 @@ mod test {
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
-            universe: universe,
+            universe,
             values: vals.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 100,
             src_cid: None,
             preview: false,
@@ -2471,9 +2457,9 @@ mod test {
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
-            universe: universe,
+            universe,
             values: vals.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 100,
             src_cid: None,
             preview: false,
@@ -2483,9 +2469,9 @@ mod test {
         let vals2: Vec<u8> = vec![0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3];
 
         let dmx_data2 = DMXData {
-            universe: universe,
+            universe,
             values: vals2.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 100,
             src_cid: None,
             preview: false,
@@ -2516,9 +2502,9 @@ mod test {
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
-            universe: universe,
+            universe,
             values: vals.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 120,
             src_cid: None,
             preview: false,
@@ -2528,9 +2514,9 @@ mod test {
         let vals2: Vec<u8> = vec![0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3];
 
         let dmx_data2 = DMXData {
-            universe: universe,
+            universe,
             values: vals2.clone(),
-            sync_uni: sync_uni,
+            sync_uni,
             priority: 100,
             src_cid: None,
             preview: false,
@@ -2575,11 +2561,11 @@ mod test {
             source_name: "Source_A".into(),
             priority: 100,
             synchronization_address: 0,
-            sequence_number: sequence_number,
+            sequence_number,
             preview_data: false,
             stream_terminated: false,
             force_synchronization: false,
-            universe: universe,
+            universe,
             data: DataPacketDmpLayer {
                 property_values: Cow::from(&TEST_DATA_SINGLE_UNIVERSE[0..]),
             },
@@ -2599,7 +2585,7 @@ mod test {
         sequence_number: u8,
     ) -> SynchronizationPacketFramingLayer {
         SynchronizationPacketFramingLayer {
-            sequence_number: sequence_number,
+            sequence_number,
             synchronization_address: sync_address,
         }
     }
@@ -2733,7 +2719,7 @@ mod test {
                 generate_data_packet_framing_layer_seq_num(UNIVERSE1, i),
             );
 
-            let diff: i16 = ((i as i16) - (LAST_SEQ_NUM as i16)) as i16;
+            let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
 
             match res {
                 Err(Error::OutOfSequence(_)) => {
@@ -2845,7 +2831,7 @@ mod test {
             );
 
             // Cannot do straight 8 bit arithmetic that relies on underflows/overflows as this is undefined behaviour in rust forbidden by the compiler.
-            let diff: i16 = ((i as i16) - (LAST_SEQ_NUM as i16)) as i16;
+            let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
 
             match res {
                 Err(Error::OutOfSequence(_)) => {
@@ -3372,7 +3358,7 @@ mod test {
 
         let data2 = DMXData {
             universe: UNIVERSE,
-            values: values,
+            values,
             sync_uni: SYNC_ADDR,
 
             // The below values can be different for 2 DMXData to be taken as equivalent.

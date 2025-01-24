@@ -35,7 +35,7 @@ use socket2::{Domain, Socket, Type};
 use uuid::Uuid;
 
 /// The name of the thread which runs periodically to perform various actions such as universe discovery adverts for the source.
-const SND_UPDATE_THREAD_NAME: &'static str = "rust_sacn_snd_update_thread";
+const SND_UPDATE_THREAD_NAME: &str = "rust_sacn_snd_update_thread";
 
 /// The default startcode used to send stream termination packets when the SacnSource is closed.
 const DEFAULT_TERMINATE_START_CODE: u8 = 0;
@@ -563,14 +563,10 @@ impl Drop for SacnSource {
 
         if let Some(thread) = self.update_thread.take() {
             {
-                match unlock_internal_mut(&mut self.internal) {
-                    // Internal is accessed twice separately, this allows the discovery thread to interleave between running being set to false speeding up termination.
-                    Ok(mut i) => {
-                        match i.terminate(DEFAULT_TERMINATE_START_CODE) {
-                            _ => {} // For same reasons as above a potential error is ignored and a 'best attempt' is used to clean up.
-                        }
+                if let Ok(mut i) = unlock_internal_mut(&mut self.internal) {
+                    match i.terminate(DEFAULT_TERMINATE_START_CODE) {
+                        _ => {} // For same reasons as above a potential error is ignored and a 'best attempt' is used to clean up.
                     }
-                    Err(_) => {} // As drop isn't always explicitly called and cannot return an error the error is ignored. Memory safety is maintain and this prevents causing a panic!.
                 };
             }
             thread.join().unwrap();
@@ -615,9 +611,9 @@ impl SacnSourceInternal {
         socket.bind(&ip.into())?;
 
         let ds = SacnSourceInternal {
-            socket: socket,
+            socket,
             addr: ip,
-            cid: cid,
+            cid,
             name: name.to_string(),
             preview_data: false,
             data_sequences: RefCell::new(HashMap::new()),
@@ -670,7 +666,7 @@ impl SacnSourceInternal {
     fn register_universe(&mut self, universe: u16) -> SacnResult<()> {
         is_universe_in_range(universe)?;
 
-        if self.universes.len() == 0 {
+        if self.universes.is_empty() {
             self.universes.push(universe);
         } else {
             match self.universes.binary_search(&universe) {
@@ -775,14 +771,14 @@ impl SacnSourceInternal {
         dst_ip: Option<SocketAddr>,
         synchronisation_addr: Option<u16>,
     ) -> SacnResult<()> {
-        if self.running == false {
+        if !self.running {
             // Indicates that this sender has been terminated.
             Err(Error::SenderAlreadyTerminated(
                 "Attempted to send".to_string(),
             ))?;
         }
 
-        if data.len() == 0 {
+        if data.is_empty() {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Must provide data to send, data.len() == 0",
@@ -1165,8 +1161,8 @@ impl SacnSourceInternal {
                     UniverseDiscoveryPacketFramingLayer {
                         source_name: self.name.as_str().into(),
                         data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
-                            page: page,
-                            last_page: last_page,
+                            page,
+                            last_page,
                             universes: universes.into(),
                         },
                     },

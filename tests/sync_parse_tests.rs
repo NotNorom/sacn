@@ -308,7 +308,7 @@ pub mod sync_parse_tests {
         };
 
         assert_eq!(
-            AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET).unwrap(),
+            AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET).unwrap(),
             packet
         );
 
@@ -320,7 +320,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_root_layer_data_vector_parse() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_ROOT_LAYER_DATA_VECTOR) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_ROOT_LAYER_DATA_VECTOR) {
             Err(e) => {
                 match e {
                     Error::SacnParsePackError(_) => {
@@ -344,7 +344,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_root_layer_unknown_vector_parse() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_ROOT_LAYER_UNKNOWN_VECTOR) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_ROOT_LAYER_UNKNOWN_VECTOR) {
             Err(e) => match e {
                 Error::SacnParsePackError(
                     sacn_parse_pack_error::ParsePackError::PduInvalidVector(_),
@@ -366,7 +366,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_too_short_cid_parse() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_TOO_SHORT_CID) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_TOO_SHORT_CID) {
             Err(e) => {
                 match e {
                     Error::SacnParsePackError(_) => {
@@ -390,7 +390,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_too_long_cid_parse() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_TOO_LONG_CID) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_TOO_LONG_CID) {
             Err(e) => {
                 match e {
                     Error::SacnParsePackError(_) => {
@@ -414,7 +414,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_framing_layer_wrong_flags_parse() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
             Err(e) => match e {
                 Error::SacnParsePackError(
                     sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_),
@@ -437,7 +437,7 @@ pub mod sync_parse_tests {
     #[test]
     fn test_sync_packet_framing_layer_length_too_long_parse() {
         match AcnRootLayerProtocol::parse(
-            &TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG,
+            TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG,
         ) {
             Err(e) => match e {
                 Error::SacnParsePackError(
@@ -461,7 +461,7 @@ pub mod sync_parse_tests {
     #[test]
     fn test_sync_packet_framing_layer_length_too_short_parse() {
         match AcnRootLayerProtocol::parse(
-            &TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT,
+            TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT,
         ) {
             Err(e) => match e {
                 Error::SacnParsePackError(
@@ -485,7 +485,7 @@ pub mod sync_parse_tests {
     #[test]
     fn test_sync_packet_framing_layer_discovery_vector() {
         match AcnRootLayerProtocol::parse(
-            &TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_DISCOVERY_VECTOR,
+            TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_DISCOVERY_VECTOR,
         ) {
             Err(e) => {
                 match e {
@@ -511,7 +511,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_framing_layer_unknown_vector() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_UNKNOWN_VECTOR)
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_UNKNOWN_VECTOR)
         {
             Err(e) => match e {
                 Error::SacnParsePackError(
@@ -534,7 +534,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_too_high_sync_addr() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_TOO_HIGH_SYNC_ADDRESS) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_TOO_HIGH_SYNC_ADDRESS) {
             Err(e) => match e {
                 Error::SacnParsePackError(
                     sacn_parse_pack_error::ParsePackError::ParseInvalidUniverse(_),
@@ -556,7 +556,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_too_low_sync_addr() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_TOO_LOW_SYNC_ADDRESS) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_TOO_LOW_SYNC_ADDRESS) {
             Err(e) => match e {
                 Error::SacnParsePackError(
                     sacn_parse_pack_error::ParsePackError::ParseInvalidUniverse(_),
@@ -578,7 +578,7 @@ pub mod sync_parse_tests {
 
     #[test]
     fn test_sync_packet_arbitary_reserved() {
-        match AcnRootLayerProtocol::parse(&TEST_SYNCHRONIZATION_PACKET_ARBITARY_RESERVED) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_ARBITARY_RESERVED) {
             Err(_) => {
                 assert!(false, "Unexpected error returned");
             }

@@ -372,7 +372,7 @@ pub fn universe_to_ipv6_multicast_addr(universe: u16) -> SacnResult<SockAddr> {
 ///
 pub fn is_universe_in_range(universe: u16) -> SacnResult<()> {
     if (universe != E131_DISCOVERY_UNIVERSE)
-        && (universe < E131_MIN_MULTICAST_UNIVERSE || universe > E131_MAX_MULTICAST_UNIVERSE)
+        && !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe)
     {
         Err(Error::IllegalUniverse(format!(
             "Universe must be in the range [{} - {}], universe: {}",
@@ -489,7 +489,7 @@ macro_rules! impl_acn_root_layer_protocol {
                 buf[4..16].copy_from_slice(b"ASC-E1.17\x00\x00\x00");
 
                 // PDU block
-                Ok(self.pdu.pack(&mut buf[16..])?)
+                self.pdu.pack(&mut buf[16..])
             }
 
             /// The length of the packet when packed.
@@ -852,7 +852,7 @@ macro_rules! impl_data_packet_framing_layer {
                 NetworkEndian::write_u16(&mut buf[UNIVERSE_INDEX .. DATA_INDEX], self.universe);
 
                 // Data
-                Ok(self.data.pack(&mut buf[DATA_INDEX .. ])?)
+                self.data.pack(&mut buf[DATA_INDEX .. ])
             }
 
             fn len(&self) -> usize {
@@ -1084,7 +1084,7 @@ const E131_SYNC_FRAMING_LAYER_END_INDEX: usize = E131_SYNC_FRAMING_LAYER_RESERVE
 impl Pdu for SynchronizationPacketFramingLayer {
     fn parse(buf: &[u8]) -> SacnResult<SynchronizationPacketFramingLayer> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(&buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
+        let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
             Err(Error::SacnParsePackError(ParsePackError::ParseInsufficientData("Buffer contains insufficient data based on synchronisation packet framing layer pdu length field".to_string())))?;
         }
@@ -1110,8 +1110,7 @@ impl Pdu for SynchronizationPacketFramingLayer {
                 ..E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX],
         );
 
-        if synchronization_address > E131_MAX_MULTICAST_UNIVERSE
-            || synchronization_address < E131_MIN_MULTICAST_UNIVERSE
+        if !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&synchronization_address)
         {
             Err(Error::SacnParsePackError(
                 ParsePackError::ParseInvalidUniverse(
@@ -1258,7 +1257,7 @@ macro_rules! impl_universe_discovery_packet_framing_layer {
                 zeros(&mut buf[E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX .. E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX], E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_LENGTH);
 
                 // Data
-                Ok(self.data.pack(&mut buf[E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX .. ])?)
+                self.data.pack(&mut buf[E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX .. ])
             }
 
             fn len(&self) -> usize {
@@ -1354,7 +1353,7 @@ macro_rules! impl_universe_discovery_packet_universe_discovery_layer {
                 Ok(UniverseDiscoveryPacketUniverseDiscoveryLayer {
                     page,
                     last_page,
-                    universes: universes,
+                    universes,
                 })
             }
 
@@ -1469,7 +1468,7 @@ fn parse_universe_list<'a>(buf: &[u8], length: usize) -> SacnResult<Cow<'a, [u16
             // Enforce assending ordering of universes as per ANSI E1.31-2018 Section 8.5.
             universes.push(u);
             last_universe = u as i32;
-            i = i + E131_UNIVERSE_FIELD_LENGTH; // Jump to the next universe.
+            i += E131_UNIVERSE_FIELD_LENGTH; // Jump to the next universe.
         } else {
             Err(Error::SacnParsePackError(
                 ParsePackError::ParseInvalidUniverseOrder(
@@ -1593,7 +1592,7 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 = (((val / 256) as u16) << 8) | ((val % 256) as u16);
+        let low_16: u16 = ((val / 256) << 8) | (val % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
@@ -1613,7 +1612,7 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 = (((val / 256) as u16) << 8) | ((val % 256) as u16);
+        let low_16: u16 = ((val / 256) << 8) | (val % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
@@ -1632,8 +1631,8 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 = (((E131_MAX_MULTICAST_UNIVERSE / 256) as u16) << 8)
-            | ((E131_MAX_MULTICAST_UNIVERSE % 256) as u16);
+        let low_16: u16 = ((E131_MAX_MULTICAST_UNIVERSE / 256) << 8)
+            | (E131_MAX_MULTICAST_UNIVERSE % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
@@ -1652,8 +1651,8 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 = (((E131_MIN_MULTICAST_UNIVERSE / 256) as u16) << 8)
-            | ((E131_MIN_MULTICAST_UNIVERSE % 256) as u16);
+        let low_16: u16 = ((E131_MIN_MULTICAST_UNIVERSE / 256) << 8)
+            | (E131_MIN_MULTICAST_UNIVERSE % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
