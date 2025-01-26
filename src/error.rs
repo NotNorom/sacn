@@ -28,7 +28,7 @@
 /// UUID library used to handle the UUID's used in the CID fields, used here so that error can include the cid in messages.
 use uuid::Uuid;
 
-use crate::sacn_parse_pack_error::ParsePackError;
+use crate::{packet::{E131_MAX_MULTICAST_UNIVERSE, E131_MIN_MULTICAST_UNIVERSE}, sacn_parse_pack_error::ParsePackError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -126,8 +126,8 @@ pub enum Error {
     /// # Arguments
     /// msg: A string describing why/how the universe is an illegal universe.
     ///
-    #[error("illegal universe used, outwith allowed range, msg: {0}")]
-    IllegalUniverse(String),
+    #[error("Illegal universe used. Must be in the range [{} - {}], universe: {}", E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE, .0)]
+    IllegalUniverse(u16),
 
     /// Attempted to use a universe that wasn't first registered for use.
     /// To send from a universe with a sender it must first be registered. This allows universe discovery adverts to include the universe.

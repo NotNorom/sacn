@@ -374,12 +374,10 @@ pub fn is_universe_in_range(universe: u16) -> SacnResult<()> {
     if (universe != E131_DISCOVERY_UNIVERSE)
         && !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe)
     {
-        Err(Error::IllegalUniverse(format!(
-            "Universe must be in the range [{} - {}], universe: {}",
-            E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE, universe
-        )))?
+        Err(Error::IllegalUniverse(universe))
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 /// Fills the given array of bytes with the given length n with bytes of value 0.
@@ -1559,30 +1557,22 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv4_out_range_low() {
-        match universe_to_ipv4_multicast_addr(0) {
-            Ok(_) => assert!(
-                false,
-                "Universe to ipv4 multicast allowed below minimum allowed universe"
-            ),
-            Err(e) => match e {
-                Error::IllegalUniverse(ref _s) => assert!(true),
-                _ => assert!(false, "Unexpected error type returned"),
-            },
-        }
+        let result = universe_to_ipv4_multicast_addr(0);
+
+        assert!(
+            matches!(result, Err(Error::IllegalUniverse(_))),
+            "Universe must be higher than {E131_MIN_MULTICAST_UNIVERSE}",
+        );
     }
 
     #[test]
     fn test_universe_to_ip_ipv4_out_range_high() {
-        match universe_to_ipv4_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10) {
-            Ok(_) => assert!(
-                false,
-                "Universe to ipv4 multicast allowed above maximum allowed universe"
-            ),
-            Err(e) => match e {
-                Error::IllegalUniverse(ref _s) => assert!(true),
-                _ => assert!(false, "Unexpected error type returned"),
-            },
-        }
+        let result = universe_to_ipv4_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10);
+
+        assert!(
+            matches!(result, Err(Error::IllegalUniverse(_))),
+            "Universe must be lower than {E131_MAX_MULTICAST_UNIVERSE}"
+        );
     }
 
     #[test]
@@ -1631,8 +1621,8 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 = ((E131_MAX_MULTICAST_UNIVERSE / 256) << 8)
-            | (E131_MAX_MULTICAST_UNIVERSE % 256);
+        let low_16: u16 =
+            ((E131_MAX_MULTICAST_UNIVERSE / 256) << 8) | (E131_MAX_MULTICAST_UNIVERSE % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
@@ -1651,8 +1641,8 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 = ((E131_MIN_MULTICAST_UNIVERSE / 256) << 8)
-            | (E131_MIN_MULTICAST_UNIVERSE % 256);
+        let low_16: u16 =
+            ((E131_MIN_MULTICAST_UNIVERSE / 256) << 8) | (E131_MIN_MULTICAST_UNIVERSE % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
@@ -1667,30 +1657,28 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv6_out_range_low() {
-        match universe_to_ipv6_multicast_addr(0) {
-            Ok(_) => assert!(
-                false,
-                "Universe to ipv4 multicast allowed below minimum allowed universe"
-            ),
-            Err(e) => match e {
-                Error::IllegalUniverse(ref _s) => assert!(true),
-                _ => assert!(false, "Unexpected error type returned"),
-            },
-        }
+        let result = universe_to_ipv6_multicast_addr(0);
+
+        assert!(
+            matches!(result, Err(Error::IllegalUniverse(_))),
+            "Universe must be higher than {E131_MIN_MULTICAST_UNIVERSE}",
+        );
     }
+
+    // let result = universe_to_ipv4_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10);
+    // assert!(
+    //     matches!(result, Err(Error::IllegalUniverse(_))),
+    //     "Universe must be lower than {E131_MAX_MULTICAST_UNIVERSE}"
+    // );
 
     #[test]
     fn test_universe_to_ip_ipv6_out_range_high() {
-        match universe_to_ipv6_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10) {
-            Ok(_) => assert!(
-                false,
-                "Universe to ipv4 multicast allowed above maximum allowed universe"
-            ),
-            Err(e) => match e {
-                Error::IllegalUniverse(ref _s) => assert!(true),
-                _ => assert!(false, "Unexpected error type returned"),
-            },
-        }
+        let result = universe_to_ipv6_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10);
+
+        assert!(
+            matches!(result, Err(Error::IllegalUniverse(_))),
+            "Universe must be lower than {E131_MAX_MULTICAST_UNIVERSE}"
+        );
     }
 
     /// Verifies that the parameters are set correctly as per ANSI E1.31-2018 Appendix A: Defined Parameters (Normative).
