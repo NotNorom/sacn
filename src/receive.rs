@@ -831,12 +831,9 @@ impl SacnReceiver {
     /// universe:    The sACN universe to remove.
     ///
     fn terminate_stream(&mut self, src_cid: Uuid, source_name: Cow<'_, str>, universe: u16) {
-        match self.sequences.remove_seq_numbers(src_cid, universe) {
-            _ => {
-                // Will only return an error if the source/universe wasn't found which is acceptable because as it
-                // comes to the same result.
-            }
-        }
+        // Will only return an error if the source/universe wasn't found which is acceptable because as it
+        // comes to the same result.
+        let _ = self.sequences.remove_seq_numbers(src_cid, universe);
 
         match find_discovered_src(&self.discovered_sources, &source_name.to_string()) {
             Some(index) => {
@@ -1023,7 +1020,7 @@ impl SacnReceiver {
             }
         }
 
-        None// No source fully discovered.
+        None // No source fully discovered.
     }
 
     /// Goes through all the waiting data and removes any which has timed out as a sync-packet for it hasn't been received within the E131_NETWORK_DATA_LOSS_TIMEOUT
@@ -1070,7 +1067,7 @@ impl Drop for SacnReceiver {
 /// srcs: The Vec of DiscoveredSacnSources to search.
 /// name: The human readable name of the source to find.
 ///
-fn find_discovered_src(srcs: &Vec<DiscoveredSacnSource>, name: &String) -> Option<usize> {
+fn find_discovered_src(srcs: &[DiscoveredSacnSource], name: &String) -> Option<usize> {
     srcs.iter().position(|source| source.name == *name)
 }
 
@@ -1256,21 +1253,15 @@ impl SacnNetworkReceiver {
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
     ///
     fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
-        let multicast_addr;
-
-        if self.addr.is_ipv4() {
-            multicast_addr = universe_to_ipv4_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?;
+        let multicast_addr = if self.addr.is_ipv4() {
+            universe_to_ipv4_multicast_addr(universe)
+                .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?
         } else {
-            multicast_addr = universe_to_ipv6_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?;
-        }
+            universe_to_ipv6_multicast_addr(universe)
+                .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
+        };
 
-        join_unix_multicast(
-            &self.socket,
-            multicast_addr,
-            self.addr.ip(),
-        )
+        join_unix_multicast(&self.socket, multicast_addr, self.addr.ip())
     }
 
     /// Removes this SacnNetworkReceiver from the multicast group which corresponds to the given universe.
@@ -1280,21 +1271,15 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
-        let multicast_addr;
-
-        if self.addr.is_ipv4() {
-            multicast_addr = universe_to_ipv4_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?;
+        let multicast_addr = if self.addr.is_ipv4() {
+            universe_to_ipv4_multicast_addr(universe)
+                .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?
         } else {
-            multicast_addr = universe_to_ipv6_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?;
-        }
+            universe_to_ipv6_multicast_addr(universe)
+                .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
+        };
 
-        leave_unix_multicast(
-            &self.socket,
-            multicast_addr,
-            self.addr.ip(),
-        )
+        leave_unix_multicast(&self.socket, multicast_addr, self.addr.ip())
     }
 
     /// Sets the value of the is_multicast_enabled flag to the given value.
@@ -1875,7 +1860,7 @@ impl SequenceNumbering {
     ///
     /// universe: The universe being sent by the source from which to remove the sequence numbers.
     ///
-    fn remove_seq_numbers<'a>(&mut self, src_cid: Uuid, universe: u16) -> SacnResult<()> {
+    fn remove_seq_numbers(&mut self, src_cid: Uuid, universe: u16) -> SacnResult<()> {
         remove_source_universe_seq(&mut self.data_sequences, src_cid, universe)?;
         remove_source_universe_seq(&mut self.sync_sequences, src_cid, universe)
     }

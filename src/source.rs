@@ -15,8 +15,8 @@
 //
 
 use crate::error::Error;
-use crate::SacnResult;
 use crate::packet::*;
+use crate::SacnResult;
 
 use std::cell::RefCell;
 use std::cmp;
@@ -564,9 +564,7 @@ impl Drop for SacnSource {
         if let Some(thread) = self.update_thread.take() {
             {
                 if let Ok(mut i) = unlock_internal_mut(&mut self.internal) {
-                    match i.terminate(DEFAULT_TERMINATE_START_CODE) {
-                        _ => {} // For same reasons as above a potential error is ignored and a 'best attempt' is used to clean up.
-                    }
+                    let _ = i.terminate(DEFAULT_TERMINATE_START_CODE);
                 };
             }
             thread.join().unwrap();
@@ -903,15 +901,13 @@ impl SacnSourceInternal {
                 .send_to(&packet.pack_alloc().unwrap(), &dst_ip.unwrap().into())
                 .map_err(Error::SendUnicastData)?;
         } else {
-            let dst;
-
-            if self.addr.is_ipv6() {
-                dst = universe_to_ipv6_multicast_addr(universe)
-                    .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?;
+            let dst = if self.addr.is_ipv6() {
+                universe_to_ipv6_multicast_addr(universe)
+                    .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
             } else {
-                dst = universe_to_ipv4_multicast_addr(universe)
-                    .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?;
-            }
+                universe_to_ipv4_multicast_addr(universe)
+                    .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?
+            };
 
             self.socket
                 .send_to(&packet.pack_alloc().unwrap(), &dst)
@@ -1170,12 +1166,11 @@ impl SacnSourceInternal {
             },
         };
 
-        let ip;
-        if self.addr.is_ipv6() {
-            ip = universe_to_ipv6_multicast_addr(E131_DISCOVERY_UNIVERSE)?;
+        let ip= if self.addr.is_ipv6() {
+            universe_to_ipv6_multicast_addr(E131_DISCOVERY_UNIVERSE)?
         } else {
-            ip = universe_to_ipv4_multicast_addr(E131_DISCOVERY_UNIVERSE)?;
-        }
+            universe_to_ipv4_multicast_addr(E131_DISCOVERY_UNIVERSE)?
+        };
 
         self.socket.send_to(&packet.pack_alloc()?, &ip)?;
 

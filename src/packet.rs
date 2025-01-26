@@ -779,7 +779,7 @@ macro_rules! impl_data_packet_framing_layer {
                 // Universe
                 let universe = NetworkEndian::read_u16(&buf[UNIVERSE_INDEX .. DATA_INDEX]);
 
-                if universe < E131_MIN_MULTICAST_UNIVERSE || universe > E131_MAX_MULTICAST_UNIVERSE {
+                if !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe) {
                     Err(
                         Error::SacnParsePackError(
                             ParsePackError::ParseInvalidUniverse(
@@ -1330,7 +1330,7 @@ macro_rules! impl_universe_discovery_packet_universe_discovery_layer {
                     Err(Error::SacnParsePackError(ParsePackError::PduInvalidVector(vector)))?;
                 }
 
-                if length < E131_UNIVERSE_DISCOVERY_LAYER_MIN_LENGTH || length > E131_UNIVERSE_DISCOVERY_LAYER_MAX_LENGTH {
+                if !(E131_UNIVERSE_DISCOVERY_LAYER_MIN_LENGTH..=E131_UNIVERSE_DISCOVERY_LAYER_MAX_LENGTH).contains(&length) {
                     Err(Error::SacnParsePackError(ParsePackError::PduInvalidLength(length)))?;
                 }
 
