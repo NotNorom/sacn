@@ -22,6 +22,9 @@ lazy_static = "1.4.0"
 uuid = { version = "0.6.3", features = ["use_std", "v4"] }
 thiserror = { version = "2.0.11", default-features = false }
 
+[dev-dependencies]
+thiserror = { version = "2.0.11", default-features = false }
+
 [features]
 default = ["std"]
 std = ["net2"]
