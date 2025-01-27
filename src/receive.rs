@@ -1106,15 +1106,11 @@ impl SacnNetworkReceiver {
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
     ///
     fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
-        let multicast_addr;
-
-        if self.addr.is_ipv4() {
-            multicast_addr = universe_to_ipv4_multicast_addr(universe)
-                .chain_err(|| "Failed to convert universe to IPv4 multicast addr")?;
+        let multicast_addr = if self.addr.is_ipv4() {
+            universe_to_ipv4_multicast_addr(universe)?
         } else {
-            multicast_addr = universe_to_ipv6_multicast_addr(universe)
-                .chain_err(|| "Failed to convert universe to IPv6 multicast addr")?;
-        }
+            universe_to_ipv6_multicast_addr(universe)?
+        };
 
         Ok(join_win_multicast(&self.socket, multicast_addr)?)
     }
@@ -1126,15 +1122,11 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
-        let multicast_addr;
-
-        if self.addr.is_ipv4() {
-            multicast_addr = universe_to_ipv4_multicast_addr(universe)
-                .chain_err(|| "Failed to convert universe to IPv4 multicast addr")?;
+        let multicast_addr = if self.addr.is_ipv4() {
+            universe_to_ipv4_multicast_addr(universe)?
         } else {
-            multicast_addr = universe_to_ipv6_multicast_addr(universe)
-                .chain_err(|| "Failed to convert universe to IPv6 multicast addr")?;
-        }
+            universe_to_ipv6_multicast_addr(universe)?
+        };
 
         Ok(leave_win_multicast(&self.socket, multicast_addr)?)
     }
@@ -1172,7 +1164,7 @@ impl SacnNetworkReceiver {
     /// This will return an error if the SacnReceiver wasn't created using an IPv6 address to bind to.
     fn set_only_v6(&mut self, val: bool) -> SacnResult<()> {
         if self.addr.is_ipv4() {
-            Err(IpVersionError(
+            Err(Error::IpVersionError(
                 "No data available in given timeout".to_string(),
             ))
         } else {
@@ -1624,8 +1616,7 @@ fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
         AF_INET => match addr.as_inet() {
             Some(a) => {
                 socket
-                    .join_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))
-                    .chain_err(|| "Failed to join IPv4 multicast")?;
+                    .join_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
             }
             None => {
                 Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
@@ -1670,8 +1661,7 @@ fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
         AF_INET => match addr.as_inet() {
             Some(a) => {
                 socket
-                    .leave_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))
-                    .chain_err(|| "Failed to leave IPv4 multicast")?;
+                    .leave_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
             }
             None => {
                 Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
