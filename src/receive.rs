@@ -20,8 +20,14 @@
 /// Socket 2 used for the underlying UDP socket that sACN is sent over.
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
-/// Mass import as a very large amount of packet is used here (upwards of 20 items) and this is much cleaner.
-use crate::packet::{E131RootLayerData::*, *};
+use crate::packet::{
+    is_universe_in_range, universe_to_ipv4_multicast_addr, universe_to_ipv6_multicast_addr,
+    AcnRootLayerProtocol, DataPacketFramingLayer, E131RootLayer, E131RootLayerData,
+    SynchronizationPacketFramingLayer, UniverseDiscoveryPacketFramingLayer,
+    UniverseDiscoveryPacketUniverseDiscoveryLayer, E131_DISCOVERY_UNIVERSE,
+    E131_NETWORK_DATA_LOSS_TIMEOUT, E131_NO_SYNC_ADDR, E131_SEQ_DIFF_DISCARD_LOWER_BOUND,
+    E131_SEQ_DIFF_DISCARD_UPPER_BOUND, UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
+};
 
 /// Same reasoning as for packet meaning all sacn errors are imported.
 use crate::error::Error;
@@ -418,16 +424,14 @@ impl SacnReceiver {
         }
 
         for u in universes {
-            match self.universes.binary_search(u) {
-                Err(i) => {
-                    // Value not found, i is the position it should be inserted
-                    self.universes.insert(i, *u);
+            if let Err(i) = self.universes.binary_search(u) {
+                // Value not found, i is the position it should be inserted
+                self.universes.insert(i, *u);
 
-                    if self.is_multicast_enabled() {
-                        self.receiver.listen_multicast_universe(*u)?;
-                    }
-                }
-                Ok(_) => { // If value found then don't insert to avoid duplicates.
+                if self.is_multicast_enabled() {
+                    self.receiver.listen_multicast_universe(*u)?;
+                } else {
+                    // If value found then don't insert to avoid duplicates.
                 }
             }
         }
@@ -535,12 +539,12 @@ impl SacnReceiver {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::TimedOut,
                     "No data available in given timeout",
-                ))?
+                ))?;
             } else {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::WouldBlock,
                     "No data available in given timeout",
-                ))?
+                ))?;
             };
         }
 
@@ -565,9 +569,11 @@ impl SacnReceiver {
                 let pdu: E131RootLayer = pkt.pdu;
                 let data: E131RootLayerData = pdu.data;
                 let res = match data {
-                    DataPacket(d) => self.handle_data_packet(pdu.cid, d)?,
-                    SynchronizationPacket(s) => self.handle_sync_packet(pdu.cid, s)?,
-                    UniverseDiscoveryPacket(u) => {
+                    E131RootLayerData::DataPacket(d) => self.handle_data_packet(pdu.cid, d)?,
+                    E131RootLayerData::SynchronizationPacket(s) => {
+                        self.handle_sync_packet(pdu.cid, s)?
+                    }
+                    E131RootLayerData::UniverseDiscoveryPacket(u) => {
                         let discovered_src: Option<String> =
                             self.handle_universe_discovery_packet(u);
                         if discovered_src.is_some() && self.announce_source_discovery {
@@ -749,7 +755,7 @@ impl SacnReceiver {
         }
 
         if data_pkt.stream_terminated {
-            self.terminate_stream(cid, data_pkt.source_name, data_pkt.universe);
+            self.terminate_stream(cid, &data_pkt.source_name, data_pkt.universe);
             if self.announce_stream_termination {
                 Err(Error::UniverseTerminated {
                     src_cid: cid,
@@ -830,18 +836,16 @@ impl SacnReceiver {
     ///
     /// universe:    The sACN universe to remove.
     ///
-    fn terminate_stream(&mut self, src_cid: Uuid, source_name: Cow<'_, str>, universe: u16) {
+    fn terminate_stream(&mut self, src_cid: Uuid, source_name: &Cow<'_, str>, universe: u16) {
         // Will only return an error if the source/universe wasn't found which is acceptable because as it
         // comes to the same result.
         let _ = self.sequences.remove_seq_numbers(src_cid, universe);
 
-        match find_discovered_src(&self.discovered_sources, &source_name.to_string()) {
-            Some(index) => {
-                self.discovered_sources[index].terminate_universe(universe);
-            }
-            None => {
-                // As with sequence numbers the source might not be found which is acceptable.
-            }
+        if let Some(index) = find_discovered_src(&self.discovered_sources, &source_name.to_string())
+        {
+            self.discovered_sources[index].terminate_universe(universe);
+        } else {
+            // As with sequence numbers the source might not be found which is acceptable.
         }
     }
 
@@ -926,7 +930,7 @@ impl SacnReceiver {
         // This prevents having to copy DMXData.
         // Cannot do both actions at once as cannot modify a data structure while iterating over it.
         let mut keys: Vec<u16> = Vec::new();
-        for (uni, data) in self.waiting_data.iter() {
+        for (uni, data) in &self.waiting_data {
             if data.sync_uni == sync_uni {
                 keys.push(*uni);
             }
@@ -1151,7 +1155,7 @@ impl SacnNetworkReceiver {
         if val && self.is_ipv6() {
             Err(Error::OsOperationUnsupported(
                 "IPv6 multicast is currently unsupported on Windows".to_string(),
-            ));
+            ))?;
         }
         self.is_multicast_enabled = val;
         Ok(())
@@ -1261,7 +1265,7 @@ impl SacnNetworkReceiver {
                 .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
         };
 
-        join_unix_multicast(&self.socket, multicast_addr, self.addr.ip())
+        join_unix_multicast(&self.socket, &multicast_addr, self.addr.ip())
     }
 
     /// Removes this SacnNetworkReceiver from the multicast group which corresponds to the given universe.
@@ -1279,7 +1283,7 @@ impl SacnNetworkReceiver {
                 .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
         };
 
-        leave_unix_multicast(&self.socket, multicast_addr, self.addr.ip())
+        leave_unix_multicast(&self.socket, &multicast_addr, self.addr.ip())
     }
 
     /// Sets the value of the is_multicast_enabled flag to the given value.
@@ -1414,7 +1418,7 @@ impl DiscoveredSacnSource {
     pub fn has_all_pages(&mut self) -> bool {
         // https://rust-lang-nursery.github.io/rust-cookbook/algorithms/sorting.html (31/12/2019)
         self.pages.sort_by(|a, b| a.page.cmp(&b.page));
-        for i in 0..(self.last_page + 1) {
+        for i in 0..=self.last_page {
             if self.pages[i as usize].page != i {
                 return false;
             }
@@ -1437,7 +1441,7 @@ impl DiscoveredSacnSource {
     /// Removes the given universe from the list of universes being sent by this discovered source.
     pub fn terminate_universe(&mut self, universe: u16) {
         for p in &mut self.pages {
-            p.universes.retain(|x| *x != universe)
+            p.universes.retain(|x| *x != universe);
         }
     }
 }
@@ -1455,6 +1459,8 @@ impl DiscoveredSacnSource {
 /// Will return an error if the socket cannot be bound to the given address, see (bind)[fn.bind.Socket2].
 #[cfg(not(target_os = "windows"))]
 fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
+    use crate::packet::ACN_SDT_MULTICAST_PORT;
+
     if addr.is_ipv4() {
         let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
 
@@ -1493,8 +1499,8 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
 ///
 #[cfg(not(target_os = "windows"))]
-fn join_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
-    match addr.family() as i32 {
+fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
+    match i32::from(addr.family()) {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
         AF_INET => match addr.as_inet() {
             Some(a) => match interface_addr {
@@ -1520,7 +1526,7 @@ fn join_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr) 
             }
         },
         x => {
-            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}", x).to_string()))?;
+            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}").to_string()))?;
         }
     };
 
@@ -1540,8 +1546,7 @@ fn join_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr) 
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
 ///
 #[cfg(not(target_os = "windows"))]
-fn leave_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
-    match addr.family() as i32 {
+    match i32::from(addr.family()) {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
         AF_INET => match addr.as_inet() {
             Some(a) => match interface_addr {
@@ -1567,7 +1572,7 @@ fn leave_unix_multicast(socket: &Socket, addr: SockAddr, interface_addr: IpAddr)
             }
         },
         x => {
-            return Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}", x).to_string()));
+            return Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}").to_string()));
         }
     };
 
@@ -1627,21 +1632,21 @@ fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
                     .chain_err(|| "Failed to join IPv4 multicast")?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()));
+                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
             }
         },
         AF_INET6 => match addr.as_inet6() {
             Some(_) => {
                 Err(Error::OsOperationUnsupported(
                     "IPv6 multicast is currently unsupported on Windows".to_string(),
-                ));
+                ))?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()));
+                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()))?;
             }
         },
         x => {
-            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}", x).to_string()));
+            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}")))?;
         }
     };
 
@@ -1673,21 +1678,21 @@ fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
                     .chain_err(|| "Failed to leave IPv4 multicast")?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()));
+                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
             }
         },
         AF_INET6 => match addr.as_inet6() {
             Some(_) => {
                 Err(Error::OsOperationUnsupported(
                     "IPv6 multicast is currently unsupported on Windows".to_string(),
-                ));
+                ))?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()));
+                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()))?;
             }
         },
         x => {
-            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}", x).to_string()));
+            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}", x)))?;
         }
     };
 
@@ -2171,6 +2176,7 @@ mod test {
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::time::Instant;
 
+    use crate::packet::{DataPacketDmpLayer, ACN_SDT_MULTICAST_PORT};
     use uuid::Uuid;
 
     const TEST_DATA_SINGLE_UNIVERSE: [u8; 512] = [
