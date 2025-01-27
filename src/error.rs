@@ -28,7 +28,10 @@
 /// UUID library used to handle the UUID's used in the CID fields, used here so that error can include the cid in messages.
 use uuid::Uuid;
 
-use crate::{packet::{E131_MAX_MULTICAST_UNIVERSE, E131_MIN_MULTICAST_UNIVERSE}, sacn_parse_pack_error::ParsePackError};
+use crate::{
+    packet::{E131_MAX_MULTICAST_UNIVERSE, E131_MIN_MULTICAST_UNIVERSE},
+    sacn_parse_pack_error::ParsePackError,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -59,14 +62,6 @@ pub enum Error {
     /// Failed to multicast data
     #[error("Failed to multicast data")]
     SendMulticastData(#[source] std::io::Error),
-
-    /// Failed to convert universe to Ipv4 multicast address
-    #[error("Failed to convert universe to Ipv4 multicast address")]
-    ConvertUniverseToIpv4Address(#[source] Box<Error>),
-
-    /// Failed to convert universe to Ipv6 multicast address
-    #[error("Failed to convert universe to Ipv6 multicast address")]
-    ConvertUniverseToIpv6Address(#[source] Box<Error>),
 
     /// Synchronisation universe not allowed
     #[error("Synchronisation universe not allowed")]
@@ -120,11 +115,12 @@ pub enum Error {
     #[error("Attempted to exceed the capacity of a single universe, msg: {0}")]
     ExceedUniverseCapacity(String),
 
-    /// Attempted to use illegal universe, outwith allowed range of [E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE]
-    /// + E131_DISCOVERY_UNIVERSE inclusive
+    /// Attempted to use illegal universe. Allowed values are:
+    /// - Range from [`E131_MIN_MULTICAST_UNIVERSE`] to [`E131_MAX_MULTICAST_UNIVERSE`] inclusive
+    /// - [`E131_DISCOVERY_UNIVERSE`](crate::packet::E131_DISCOVERY_UNIVERSE)
     ///
     /// # Arguments
-    /// msg: A string describing why/how the universe is an illegal universe.
+    /// 0: Value of illegal universe
     ///
     #[error("Illegal universe used. Must be in the range [{} - {}], universe: {}", E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE, .0)]
     IllegalUniverse(u16),

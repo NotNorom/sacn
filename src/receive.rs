@@ -1258,11 +1258,9 @@ impl SacnNetworkReceiver {
     ///
     fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
-            universe_to_ipv4_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?
+            universe_to_ipv4_multicast_addr(universe)?
         } else {
-            universe_to_ipv6_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
+            universe_to_ipv6_multicast_addr(universe)?
         };
 
         join_unix_multicast(&self.socket, &multicast_addr, self.addr.ip())
@@ -1276,11 +1274,9 @@ impl SacnNetworkReceiver {
     ///
     fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
-            universe_to_ipv4_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?
+            universe_to_ipv4_multicast_addr(universe)?
         } else {
-            universe_to_ipv6_multicast_addr(universe)
-                .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
+            universe_to_ipv6_multicast_addr(universe)?
         };
 
         leave_unix_multicast(&self.socket, &multicast_addr, self.addr.ip())

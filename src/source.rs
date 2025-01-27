@@ -902,11 +902,9 @@ impl SacnSourceInternal {
                 .map_err(Error::SendUnicastData)?;
         } else {
             let dst = if self.addr.is_ipv6() {
-                universe_to_ipv6_multicast_addr(universe)
-                    .map_err(|err| Error::ConvertUniverseToIpv6Address(Box::new(err)))?
+                universe_to_ipv6_multicast_addr(universe)?
             } else {
-                universe_to_ipv4_multicast_addr(universe)
-                    .map_err(|err| Error::ConvertUniverseToIpv4Address(Box::new(err)))?
+                universe_to_ipv4_multicast_addr(universe)?
             };
 
             self.socket
