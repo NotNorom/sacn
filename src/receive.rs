@@ -21,10 +21,10 @@
 #[cfg(not(target_os = "windows"))]
 use std::net::{IpAddr, Ipv6Addr};
 use std::{
-    borrow::Cow,
-    cmp::{max, Ordering},
+    cmp::Ordering,
     collections::HashMap,
     fmt,
+    io::Read,
     net::{Ipv4Addr, SocketAddr},
     time::{Duration, Instant},
 };
@@ -1259,8 +1259,8 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    fn recv<'a>(&self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
-        self.socket.recv(&mut buf[0..])?;
+    fn recv<'a>(&mut self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
+        self.socket.read(buf)?;
 
         AcnRootLayerProtocol::parse(buf)
     }
@@ -1373,7 +1373,7 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
     use crate::packet::ACN_SDT_MULTICAST_PORT;
 
     if addr.is_ipv4() {
-        let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
+        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
 
         // Multiple different processes might want to listen to the sACN stream so therefore need to allow re-using the ACN port.
         socket.set_reuse_port(true)?;
@@ -1383,7 +1383,7 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
         socket.bind(&socket_addr.into())?;
         Ok(socket)
     } else {
-        let socket = Socket::new(Domain::ipv6(), Type::dgram(), Some(Protocol::udp()))?;
+        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))?;
 
         // Multiple different processes might want to listen to the sACN stream so therefore need to allow re-using the ACN port.
         socket.set_reuse_port(true)?;
@@ -1410,7 +1410,7 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
 fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
     match i32::from(addr.family()) {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
-        AF_INET => match addr.as_inet() {
+        AF_INET => match addr.as_socket_ipv4() {
             Some(a) => match interface_addr {
                 IpAddr::V4(ref interface_v4) => {
                     socket.join_multicast_v4(a.ip(), interface_v4)?;
@@ -1427,7 +1427,7 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
                 ))?;
             }
         },
-        AF_INET6 => match addr.as_inet6() {
+        AF_INET6 => match addr.as_socket_ipv6() {
             Some(a) => {
                 socket.join_multicast_v6(a.ip(), 0)?;
             }
@@ -1462,7 +1462,7 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
 fn leave_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
     match i32::from(addr.family()) {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
-        AF_INET => match addr.as_inet() {
+        AF_INET => match addr.as_socket_ipv4() {
             Some(a) => match interface_addr {
                 IpAddr::V4(ref interface_v4) => {
                     socket.leave_multicast_v4(a.ip(), interface_v4)?;
@@ -1479,7 +1479,7 @@ fn leave_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr
                 ))?;
             }
         },
-        AF_INET6 => match addr.as_inet6() {
+        AF_INET6 => match addr.as_socket_ipv6() {
             Some(a) => {
                 socket.leave_multicast_v6(a.ip(), 0)?;
             }
@@ -2472,10 +2472,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 0);
         let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 1);
@@ -2536,10 +2535,9 @@ mod test {
         // The exclusive lower bound on the diff values (new_packet_seq_num - last_packet_seq_num) that will be rejected.
         const REJECT_RANGE_LOWER_BOUND: i16 = -20;
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         for i in SEQ_NUM_LOWER_BOUND..SEQ_NUM_UPPER_BOUND {
             // Create the receiver.
@@ -2622,10 +2620,9 @@ mod test {
         // The exclusive lower bound on the diff values (new_packet_seq_num - last_packet_seq_num) that will be rejected.
         const REJECT_RANGE_LOWER_BOUND: i16 = -20;
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         for i in SEQ_NUM_LOWER_BOUND..SEQ_NUM_UPPER_BOUND {
             // Create the receiver.
@@ -2693,10 +2690,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let sync_packet = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 0);
         let sync_packet2 = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 1);
@@ -2744,10 +2740,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let sync_packet = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 0);
         let sync_packet2 = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 1);
@@ -2786,10 +2781,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 0);
         let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 1);
@@ -2829,10 +2823,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[UNIVERSE]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE, 0);
         let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE, 1);
@@ -2873,10 +2866,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[UNIVERSE1, UNIVERSE2]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 0);
         let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 1);
@@ -2916,10 +2908,9 @@ mod test {
 
         dmx_rcv.listen_universes(&[SYNC_ADDR_1, SYNC_ADDR_2]).unwrap();
 
-        let src_cid: Uuid = Uuid::from_bytes(&[
+        let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        ])
-        .unwrap();
+        ]);
 
         let sync_packet = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR_1, 0);
         let sync_packet2 = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR_1, 1);

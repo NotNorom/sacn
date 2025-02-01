@@ -3212,7 +3212,7 @@ pub mod data_parse_tests {
     fn test_data_packet_empty_capacity_parse_pack() {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
-                cid: Uuid::from_bytes(&TEST_DATA_PACKET_EMPTY[22..38]).unwrap(),
+                cid: Uuid::from_slice(&TEST_DATA_PACKET_EMPTY[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "Source_A".into(),
                     priority: 100,
@@ -3241,7 +3241,7 @@ pub mod data_parse_tests {
     fn test_data_packet_partial_capacity_parse_pack() {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
-                cid: Uuid::from_bytes(&TEST_DATA_PACKET_PARTIAL[22..38]).unwrap(),
+                cid: Uuid::from_slice(&TEST_DATA_PACKET_PARTIAL[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "Source_A".into(),
                     priority: 100,
@@ -3270,7 +3270,7 @@ pub mod data_parse_tests {
     fn test_data_packet_parse_pack() {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
-                cid: Uuid::from_bytes(&TEST_DATA_PACKET[22..38]).unwrap(),
+                cid: Uuid::from_slice(&TEST_DATA_PACKET[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "Source_A".into(),
                     priority: 100,
@@ -3579,7 +3579,7 @@ pub mod data_parse_tests {
     fn test_data_packet_max_source_name_length_parse() {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
-                cid: Uuid::from_bytes(&TEST_DATA_PACKET_MAX_SOURCE_NAME[22..38]).unwrap(),
+                cid: Uuid::from_slice(&TEST_DATA_PACKET_MAX_SOURCE_NAME[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "SourcSourcSourcSourcSourcSourcSourcSourcSourcSourcSourcSourcSou".into(),
                     priority: 100,

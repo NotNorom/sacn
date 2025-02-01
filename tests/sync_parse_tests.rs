@@ -295,7 +295,7 @@ pub mod sync_parse_tests {
     fn test_synchronization_packet_parse_pack() {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
-                cid: Uuid::from_bytes(&TEST_SYNCHRONIZATION_PACKET[22..38]).unwrap(),
+                cid: Uuid::from_slice(&TEST_SYNCHRONIZATION_PACKET[22..38]).unwrap(),
                 data: E131RootLayerData::SynchronizationPacket(SynchronizationPacketFramingLayer {
                     sequence_number: 0x70,
                     synchronization_address: 7962,

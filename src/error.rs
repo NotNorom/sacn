@@ -45,7 +45,7 @@ pub enum Error {
 
     // Allow UUID library to be used with error-chain system.
     #[error("uuid error: {0:?}")]
-    Uuid(#[from] uuid::ParseError),
+    Uuid(#[from] uuid::Error),
 
     // All parse/pack errors live within the same chain ('family') of errors as described in sacn_parse_packet_error.
     #[error("sacn parse error: {0:?}")]

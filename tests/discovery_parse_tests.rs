@@ -789,7 +789,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_parse_pack() {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
-                cid: Uuid::from_bytes(&TEST_UNIVERSE_DISCOVERY_PACKET[22..38]).unwrap(),
+                cid: Uuid::from_slice(&TEST_UNIVERSE_DISCOVERY_PACKET[22..38]).unwrap(),
                 data: E131RootLayerData::UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer {
                     source_name: "Source_A".into(),
                     data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
