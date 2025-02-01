@@ -12,174 +12,141 @@ extern crate socket2;
 extern crate uuid;
 
 use std::convert::TryInto; // Used for converting between u8 and u16 representations.
-use std::iter;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::str;
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, SyncSender};
-use std::thread;
-use std::thread::sleep;
 use std::time::{Duration, Instant}; // Used for converting between bytes and strings.
+use std::{
+    iter,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    str,
+    sync::{
+        mpsc,
+        mpsc::{Receiver, RecvTimeoutError, Sender, SyncSender},
+    },
+    thread,
+    thread::sleep,
+};
 
-use sacn::error::Error;
-use sacn::receive::{htp_dmx_merge, DMXData, SacnReceiver};
-use sacn::source::SacnSource;
-use sacn::{packet::*, SacnResult};
-
-/// UUID library used to handle the UUID's used in the CID fields.
-use uuid::Uuid;
-
+use sacn::{
+    error::Error,
+    packet::*,
+    receive::{htp_dmx_merge, DMXData, SacnReceiver},
+    source::SacnSource,
+    SacnResult,
+};
 /// Socket2 used to create sockets for testing.
 use socket2::{Domain, Socket, Type};
+/// UUID library used to handle the UUID's used in the CID fields.
+use uuid::Uuid;
 
 /// For some tests to work multiple instances of the protocol must be on the same network with the same port for example to test multiple simultaneous receivers, this means multiple IP's are needed.
 /// This is achieved by assigning multiple static IP's to the test machine and theses IP's are specified below.
 /// Theses must be changed depending on the network that the test machine is on.
-pub const TEST_NETWORK_INTERFACE_IPV4: [&str; 3] =
-    ["192.168.0.6", "192.168.0.7", "192.168.0.8"];
+pub const TEST_NETWORK_INTERFACE_IPV4: [&str; 3] = ["192.168.0.6", "192.168.0.7", "192.168.0.8"];
 
 pub const TEST_DATA_PARTIAL_CAPACITY_UNIVERSE: [u8; 313] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1,
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 ];
 
 pub const TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE: [u8; 513] = [
-    1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1,
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 ];
 
 pub const TEST_DATA_SINGLE_UNIVERSE: [u8; 513] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1,
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 ];
 
 pub const TEST_DATA_MULTIPLE_ALTERNATIVE_STARTCODE_UNIVERSE: [u8; 714] = [
-    1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 3, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100,
+    1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1,
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 3, 1, 2, 3,
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100,
 ];
 
 pub const TEST_DATA_MULTIPLE_UNIVERSE: [u8; 714] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1,
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 3,
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100,
 ];
 pub const TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE: [u8; 1026] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100,
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1,
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 3,
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+    18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5,
+    6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
 ];
 
 // Note: For this test to work the PC must be capable of connecting to the network on 2 IP's, this was done in windows by adding another static IP so the PC was connecting through
@@ -188,10 +155,7 @@ pub const TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE: [u8; 1026] = [
 #[test]
 #[ignore]
 fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread1_tx = tx.clone();
     let thread2_tx = tx.clone();
@@ -200,10 +164,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
 
     let rcv_thread1 = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -217,10 +178,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
 
     let rcv_thread2 = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -246,14 +204,8 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
 
     src.register_universe(universe).unwrap();
 
-    src.send(
-        &[universe],
-        &TEST_DATA_SINGLE_UNIVERSE,
-        Some(priority),
-        None,
-        None,
-    )
-    .unwrap();
+    src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, None)
+        .unwrap();
 
     let received_result1: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
     let received_result2: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
@@ -261,10 +213,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     rcv_thread1.join().unwrap();
     rcv_thread2.join().unwrap();
 
-    assert!(
-        received_result1.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result1.is_ok(), "Failed: Error when receiving data");
     let received_data1: Vec<DMXData> = received_result1.unwrap();
     assert_eq!(received_data1.len(), 1); // Check only 1 universe received as expected.
     let received_universe1: DMXData = received_data1[0].clone();
@@ -275,10 +224,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
         "Received payload values don't match sent!"
     );
 
-    assert!(
-        received_result2.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result2.is_ok(), "Failed: Error when receiving data");
     let received_data2: Vec<DMXData> = received_result2.unwrap();
     assert_eq!(received_data2.len(), 1); // Check only 1 universe received as expected.
     let received_universe2: DMXData = received_data2[0].clone();
@@ -293,10 +239,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread1_tx = tx.clone();
     let thread2_tx = tx.clone();
@@ -308,10 +251,7 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
 
     let rcv_thread1 = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -326,10 +266,7 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
 
     let rcv_thread2 = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -401,43 +338,27 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
     assert_eq!(received_result1.len(), 1); // Check only 1 universe received as expected.
     assert_eq!(received_result2.len(), 1); // Check only 1 universe received as expected.
 
-    let mut results = [
-        received_result1[0].clone(),
-        received_result2[0].clone()
-    ];
+    let mut results = [received_result1[0].clone(), received_result2[0].clone()];
     results.sort_unstable(); // Ordering of received data is undefined, to make it easier to check sort first.
 
     assert_eq!(results[0].universe, universe1); // Check that the universe 1 received is as expected.
     assert_eq!(results[1].universe, universe2); // Check that the universe 2 received is as expected.
 
-    assert_eq!(
-        results[0].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec()
-    );
-    assert_eq!(
-        results[1].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec()
-    );
+    assert_eq!(results[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec());
+    assert_eq!(results[1].values, TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec());
 }
 
 #[test]
 #[ignore]
 fn test_send_recv_single_universe_unicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
     let universe = 1;
 
     let rcv_thread = thread::spawn(move || {
-        let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT),
-            None,
-        )
-        .unwrap();
+        let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
         dmx_recv.listen_universes(&[universe]).unwrap();
 
@@ -457,24 +378,14 @@ fn test_send_recv_single_universe_unicast_ipv4() {
 
     let dst_ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT);
 
-    src
-        .send(
-            &[universe],
-            &TEST_DATA_SINGLE_UNIVERSE,
-            Some(priority),
-            Some(dst_ip),
-            None,
-        )
+    src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), Some(dst_ip), None)
         .unwrap();
 
     let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
 
     rcv_thread.join().unwrap();
 
-    assert!(
-        received_result.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result.is_ok(), "Failed: Error when receiving data");
 
     let received_data: Vec<DMXData> = received_result.unwrap();
 
@@ -501,20 +412,14 @@ fn test_send_recv_single_universe_multicast_ipv4() {
     const PRIORITY: u8 = 100;
 
     // Allows control of the receiver and sender so that they can be put into the correct state for the test.
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
     let thread_tx = tx.clone();
 
     // A simulated receiver, this is independent from the sender (apart from the communication channel for syncing states).
     let rcv_thread = thread::spawn(move || {
         // The receiver binds to a test IP and the ACN port. This port is the ported used for this protocol so the receiver must bind to it.
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -544,38 +449,23 @@ fn test_send_recv_single_universe_multicast_ipv4() {
 
     // The sender registers the universe for sending and then sends some test data.
     src.register_universe(UNIVERSE).unwrap();
-    src.send(
-        &[UNIVERSE],
-        &TEST_DATA_SINGLE_UNIVERSE,
-        Some(PRIORITY),
-        None,
-        None,
-    )
-    .unwrap();
+    src.send(&[UNIVERSE], &TEST_DATA_SINGLE_UNIVERSE, Some(PRIORITY), None, None)
+        .unwrap();
 
     // The data that the receiver received is sent back using the thread message passing channel.
     let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
     rcv_thread.join().unwrap();
 
     // Check that the receiver received the data without error.
-    assert!(
-        received_result.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result.is_ok(), "Failed: Error when receiving data");
 
     // Check that the data received is as expected.
     let received_data: Vec<DMXData> = received_result.unwrap();
     assert_eq!(received_data.len(), 1); // Check only 1 universe received as expected.
 
     let received_universe: DMXData = received_data[0].clone();
-    assert_eq!(
-        received_universe.priority, PRIORITY,
-        "Received priority doesn't match expected"
-    );
-    assert_eq!(
-        received_universe.universe, UNIVERSE,
-        "Received universe doesn't match expected"
-    );
+    assert_eq!(received_universe.priority, PRIORITY, "Received priority doesn't match expected");
+    assert_eq!(received_universe.universe, UNIVERSE, "Received universe doesn't match expected");
     assert_eq!(
         received_universe.values,
         TEST_DATA_SINGLE_UNIVERSE.to_vec(),
@@ -586,16 +476,12 @@ fn test_send_recv_single_universe_multicast_ipv4() {
 /// A single sender transfers 260 data packets to a single receiver.
 /// Since the sequence number field is a single unsigned byte (highest value 255) this should over flow the sequence number and so therefore this
 /// test checks that the implementations handle this as expected by continuing as normal.
-///
 #[test]
 #[ignore]
 fn test_send_recv_single_universe_overflow_sequence_number_multicast_ipv4() {
     const DATA_PACKETS_TO_SEND: usize = 260;
 
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
@@ -604,10 +490,7 @@ fn test_send_recv_single_universe_overflow_sequence_number_multicast_ipv4() {
     // By having the receiver be 'remote' and then send back to the sender it means the sender can check the data it has sent is correct.
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -632,14 +515,8 @@ fn test_send_recv_single_universe_overflow_sequence_number_multicast_ipv4() {
     src.register_universe(universe).unwrap();
 
     for i in 0..DATA_PACKETS_TO_SEND {
-        src.send(
-            &[universe],
-            &TEST_DATA_SINGLE_UNIVERSE[0..i + 1],
-            None,
-            None,
-            None,
-        )
-        .unwrap(); // Vary the data each packet.
+        src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE[0..i + 1], None, None, None)
+            .unwrap(); // Vary the data each packet.
         let received_data: Vec<DMXData> = rx.recv().unwrap().unwrap(); // Asserts that the data was received successfully without error.
         assert_eq!(received_data.len(), 1); // Check only 1 universe received at a time as expected.
         let received_universe: DMXData = received_data[0].clone();
@@ -664,10 +541,7 @@ fn test_send_recv_single_universe_overflow_sequence_number_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
@@ -675,10 +549,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -703,14 +574,8 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
 
     src.register_universe(universe).unwrap();
 
-    src.send(
-        &[universe],
-        &TEST_DATA_SINGLE_UNIVERSE,
-        Some(priority),
-        None,
-        Some(universe),
-    )
-    .unwrap(); // First packet with higher priority.
+    src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, Some(universe))
+        .unwrap(); // First packet with higher priority.
     src.send(
         &[universe],
         &TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
@@ -725,10 +590,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
 
     rcv_thread.join().unwrap();
 
-    assert!(
-        received_result.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result.is_ok(), "Failed: Error when receiving data");
 
     let received_data: Vec<DMXData> = received_result.unwrap();
 
@@ -752,10 +614,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
@@ -763,10 +622,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -790,14 +646,8 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
 
     src.register_universe(universe).unwrap();
 
-    src.send(
-        &[universe],
-        &TEST_DATA_SINGLE_UNIVERSE,
-        Some(priority),
-        None,
-        Some(universe),
-    )
-    .unwrap(); // First packet
+    src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, Some(universe))
+        .unwrap(); // First packet
     src.send(
         &[universe],
         &TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
@@ -812,10 +662,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
 
     rcv_thread.join().unwrap();
 
-    assert!(
-        received_result.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result.is_ok(), "Failed: Error when receiving data");
 
     let received_data: Vec<DMXData> = received_result.unwrap();
 
@@ -842,10 +689,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
@@ -854,10 +698,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -881,22 +722,10 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
 
     src.register_universe(universe).unwrap();
 
-    src.send(
-        &[universe],
-        &TEST_DATA_SINGLE_UNIVERSE,
-        None,
-        None,
-        Some(universe),
-    )
-    .unwrap(); // First packet, with sync.
-    src.send(
-        &[universe],
-        &TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
-        None,
-        None,
-        None,
-    )
-    .unwrap(); // Second packet, no sync.
+    src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, None, None, Some(universe))
+        .unwrap(); // First packet, with sync.
+    src.send(&[universe], &TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE, None, None, None)
+        .unwrap(); // Second packet, no sync.
 
     src.send_sync_packet(universe, None).unwrap(); // Send a sync packet, if the first packet isn't discarded it should now be passed up.
 
@@ -906,10 +735,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
     rcv_thread.join().unwrap(); // Finished with receiver
 
     // Check that the first lot of data received (which should be the second packet) is as expected.
-    assert!(
-        first_received_result.is_ok(),
-        "Unexpected error when receiving first lot of data"
-    );
+    assert!(first_received_result.is_ok(), "Unexpected error when receiving first lot of data");
     let received_data: Vec<DMXData> = first_received_result.unwrap();
     assert_eq!(received_data.len(), 1); // Check only 1 universe received as expected.
     let received_universe: DMXData = received_data[0].clone();
@@ -952,10 +778,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_recv_two_universe_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
@@ -963,10 +786,7 @@ fn test_send_recv_two_universe_multicast_ipv4() {
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -990,8 +810,7 @@ fn test_send_recv_two_universe_multicast_ipv4() {
     src.register_universes(&universes).unwrap();
 
     // Send 2 universes of data with default priority, no synchronisation and use multicast.
-    src.send(&universes, &TEST_DATA_MULTIPLE_UNIVERSE, None, None, None)
-        .unwrap();
+    src.send(&universes, &TEST_DATA_MULTIPLE_UNIVERSE, None, None, None).unwrap();
 
     // Get the data that was sent to the receiver.
     let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
@@ -1000,14 +819,8 @@ fn test_send_recv_two_universe_multicast_ipv4() {
     // Receiver can be terminated.
     rcv_thread.join().unwrap();
 
-    assert!(
-        received_result.is_ok(),
-        "Failed: Error when receiving 1st universe of data"
-    );
-    assert!(
-        received_result_2.is_ok(),
-        "Failed: Error when receiving 2nd universe of data"
-    );
+    assert!(received_result.is_ok(), "Failed: Error when receiving 1st universe of data");
+    assert!(received_result_2.is_ok(), "Failed: Error when receiving 2nd universe of data");
 
     let received_data: Vec<DMXData> = received_result.unwrap();
     let received_data_2: Vec<DMXData> = received_result_2.unwrap();
@@ -1018,23 +831,14 @@ fn test_send_recv_two_universe_multicast_ipv4() {
     assert_eq!(received_data[0].universe, universes[0]); // Check that the universe received is as expected.
     assert_eq!(received_data_2[0].universe, universes[1]);
 
-    assert_eq!(
-        received_data[0].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec()
-    );
-    assert_eq!(
-        received_data_2[0].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec()
-    );
+    assert_eq!(received_data[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec());
+    assert_eq!(received_data_2[0].values, TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec());
 }
 
 #[test]
 #[ignore]
 fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
@@ -1042,10 +846,7 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(
-                IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-                ACN_SDT_MULTICAST_PORT,
-            ),
+            SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
             None,
         )
         .unwrap();
@@ -1082,10 +883,7 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
 
     rcv_thread.join().unwrap();
 
-    assert!(
-        received_result.is_ok(),
-        "Failed: Error when receiving data"
-    );
+    assert!(received_result.is_ok(), "Failed: Error when receiving data");
 
     let received_data: Vec<DMXData> = received_result.unwrap();
 
@@ -1107,21 +905,14 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_recv_across_universe_multicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
     const UNIVERSES: [u16; 2] = [2, 3];
 
     let rcv_thread = thread::spawn(move || {
-        let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT),
-            None,
-        )
-        .unwrap();
+        let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
         dmx_recv.listen_universes(&UNIVERSES).unwrap();
 
@@ -1132,24 +923,15 @@ fn test_send_recv_across_universe_multicast_ipv4() {
 
     let _ = rx.recv().unwrap(); // Blocks until the receiver says it is ready.
 
-    let ip: SocketAddr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-        ACN_SDT_MULTICAST_PORT + 1,
-    );
+    let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT + 1);
     let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
     let priority = 100;
 
     src.register_universes(&UNIVERSES).unwrap();
 
-    src.send(
-        &UNIVERSES,
-        &TEST_DATA_MULTIPLE_UNIVERSE,
-        Some(priority),
-        None,
-        Some(UNIVERSES[0]),
-    )
-    .unwrap();
+    src.send(&UNIVERSES, &TEST_DATA_MULTIPLE_UNIVERSE, Some(priority), None, Some(UNIVERSES[0]))
+        .unwrap();
     sleep(Duration::from_millis(500)); // Small delay to allow the data packets to get through as per NSI-E1.31-2018 Appendix B.1 recommendation. See other warnings about the possibility of theses tests failing if the network isn't perfect.
     src.send_sync_packet(UNIVERSES[0], None).unwrap();
 
@@ -1157,10 +939,7 @@ fn test_send_recv_across_universe_multicast_ipv4() {
 
     rcv_thread.join().unwrap();
 
-    assert!(
-        sync_pkt_res.is_ok(),
-        "Failed: Error when receiving packets"
-    );
+    assert!(sync_pkt_res.is_ok(), "Failed: Error when receiving packets");
 
     let mut received_data: Vec<DMXData> = sync_pkt_res.unwrap();
 
@@ -1194,21 +973,15 @@ fn test_send_recv_across_universe_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_send_recv_across_universe_unicast_ipv4() {
-    let (tx, rx): (
-        Sender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::channel();
+    let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
 
     let thread_tx = tx.clone();
 
     const UNIVERSES: [u16; 2] = [2, 3];
 
     let rcv_thread = thread::spawn(move || {
-        let mut dmx_recv = SacnReceiver::with_ip(
-            SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT),
-            None,
-        )
-        .unwrap();
+        let mut dmx_recv =
+            SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
         dmx_recv.listen_universes(&UNIVERSES).unwrap();
 
@@ -1219,27 +992,21 @@ fn test_send_recv_across_universe_unicast_ipv4() {
 
     let _ = rx.recv().unwrap(); // Blocks until the receiver says it is ready.
 
-    let ip: SocketAddr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        ACN_SDT_MULTICAST_PORT + 1,
-    );
+    let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), ACN_SDT_MULTICAST_PORT + 1);
     let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
     let priority = 100;
 
     src.register_universes(&UNIVERSES).unwrap();
 
-    src
-        .send(
-            &UNIVERSES,
-            &TEST_DATA_MULTIPLE_UNIVERSE,
-            Some(priority),
-            Some(
-                SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT),
-            ),
-            Some(UNIVERSES[0]),
-        )
-        .unwrap();
+    src.send(
+        &UNIVERSES,
+        &TEST_DATA_MULTIPLE_UNIVERSE,
+        Some(priority),
+        Some(SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), ACN_SDT_MULTICAST_PORT)),
+        Some(UNIVERSES[0]),
+    )
+    .unwrap();
     sleep(Duration::from_millis(500)); // Small delay to allow the data packets to get through as per NSI-E1.31-2018 Appendix B.1 recommendation.
     src.send_sync_packet(
         UNIVERSES[0],
@@ -1251,10 +1018,7 @@ fn test_send_recv_across_universe_unicast_ipv4() {
 
     rcv_thread.join().unwrap();
 
-    assert!(
-        sync_pkt_res.is_ok(),
-        "Failed: Error when receiving packets"
-    );
+    assert!(sync_pkt_res.is_ok(), "Failed: Error when receiving packets");
 
     let mut received_data: Vec<DMXData> = sync_pkt_res.unwrap();
 
@@ -1289,56 +1053,32 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
     let universe_1 = 1;
     let universe_2 = 2;
 
-    let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT),
-        None,
-    )
-    .unwrap();
+    let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
     dmx_recv.listen_universes(&[universe_1]).unwrap();
     dmx_recv.listen_universes(&[universe_2]).unwrap();
 
     let snd_thread_1 = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
         let priority = 100;
 
         src.register_universe(universe_1).unwrap();
 
-        src
-            .send(
-                &[universe_1],
-                &TEST_DATA_SINGLE_UNIVERSE,
-                Some(priority),
-                None,
-                None,
-            )
+        src.send(&[universe_1], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, None)
             .unwrap();
     });
 
     let snd_thread_2 = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            ACN_SDT_MULTICAST_PORT + 2,
-        );
+        let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT + 2);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
         let priority = 100;
 
         src.register_universe(universe_2).unwrap();
 
-        src
-            .send(
-                &[universe_2],
-                &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
-                Some(priority),
-                None,
-                None,
-            )
+        src.send(&[universe_2], &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE, Some(priority), None, None)
             .unwrap();
     });
 
@@ -1366,55 +1106,31 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
 fn test_two_senders_one_recv_same_universe_no_sync_multicast_ipv4() {
     let universe = 1;
 
-    let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT),
-        None,
-    )
-    .unwrap();
+    let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
     dmx_recv.listen_universes(&[universe]).unwrap();
 
     let snd_thread_1 = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
         let priority = 100;
 
         src.register_universe(universe).unwrap();
 
-        src
-            .send(
-                &[universe],
-                &TEST_DATA_SINGLE_UNIVERSE,
-                Some(priority),
-                None,
-                None,
-            )
+        src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, None)
             .unwrap();
     });
 
     let snd_thread_2 = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            ACN_SDT_MULTICAST_PORT + 2,
-        );
+        let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT + 2);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
         let priority = 100;
 
         src.register_universe(universe).unwrap();
 
-        src
-            .send(
-                &[universe],
-                &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
-                Some(priority),
-                None,
-                None,
-            )
+        src.send(&[universe], &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE, Some(priority), None, None)
             .unwrap();
     });
 
@@ -1451,10 +1167,7 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
     let sync_uni = 2;
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -1475,14 +1188,8 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
         src.register_universe(universe).unwrap();
         src.register_universe(sync_uni).unwrap();
 
-        src.send(
-            &[universe],
-            &TEST_DATA_SINGLE_UNIVERSE,
-            Some(priority),
-            None,
-            Some(sync_uni),
-        )
-        .unwrap();
+        src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, Some(sync_uni))
+            .unwrap();
         snd_tx.send(()).unwrap();
     });
 
@@ -1563,10 +1270,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
     let mut snd_threads = Vec::new();
     let mut rcv_threads = Vec::new();
 
-    let (rcv_tx, rcv_rx): (
-        SyncSender<Vec<SacnResult<Vec<DMXData>>>>,
-        Receiver<Vec<SacnResult<Vec<DMXData>>>>,
-    ) = mpsc::sync_channel(0);
+    let (rcv_tx, rcv_rx): (SyncSender<Vec<SacnResult<Vec<DMXData>>>>, Receiver<Vec<SacnResult<Vec<DMXData>>>>) = mpsc::sync_channel(0);
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0); // Used for handshaking, allows syncing the sender states.
 
     assert!(
@@ -1597,8 +1301,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
 
             tx.send(()).unwrap(); // Forces each sender thread to wait till the controlling thread receives which stops sending before the receivers are ready.
 
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
         }));
     }
 
@@ -1608,10 +1311,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
         rcv_threads.push(thread::spawn(move || {
             // Port kept the same so must use multiple IP's.
             let mut dmx_recv = SacnReceiver::with_ip(
-                SocketAddr::new(
-                    IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()),
-                    ACN_SDT_MULTICAST_PORT,
-                ),
+                SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
                 None,
             )
             .unwrap();
@@ -1659,10 +1359,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
         for k in 0..SND_THREADS {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + BASE_UNIVERSE)); // Check that the universe received is as expected.
 
-            assert_eq!(
-                rcv_dmx_datas[k].values, snd_data[k],
-                "Received payload values don't match sent!"
-            );
+            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -1695,10 +1392,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
     let mut snd_threads = Vec::new();
     let mut rcv_threads = Vec::new();
 
-    let (rcv_tx, rcv_rx): (
-        SyncSender<Vec<SacnResult<Vec<DMXData>>>>,
-        Receiver<Vec<SacnResult<Vec<DMXData>>>>,
-    ) = mpsc::sync_channel(0);
+    let (rcv_tx, rcv_rx): (SyncSender<Vec<SacnResult<Vec<DMXData>>>>, Receiver<Vec<SacnResult<Vec<DMXData>>>>) = mpsc::sync_channel(0);
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0); // Used for handshaking, allows syncing the sender states.
 
     assert!(
@@ -1729,8 +1423,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
 
             tx.send(()).unwrap(); // Forces each sender thread to wait till the controlling thread receives which stops sending before the receivers are ready.
 
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
         }));
     }
 
@@ -1740,10 +1433,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
         rcv_threads.push(thread::spawn(move || {
             // Port kept the same so must use multiple IP's.
             let mut dmx_recv = SacnReceiver::with_ip(
-                SocketAddr::new(
-                    IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()),
-                    ACN_SDT_MULTICAST_PORT,
-                ),
+                SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
                 None,
             )
             .unwrap();
@@ -1791,10 +1481,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
         for k in 0..SND_THREADS {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + BASE_UNIVERSE)); // Check that the universe received is as expected.
 
-            assert_eq!(
-                rcv_dmx_datas[k].values, snd_data[k],
-                "Received payload values don't match sent!"
-            );
+            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -1827,10 +1514,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
     let mut snd_threads = Vec::new();
     let mut rcv_threads = Vec::new();
 
-    let (rcv_tx, rcv_rx): (
-        SyncSender<Vec<SacnResult<Vec<DMXData>>>>,
-        Receiver<Vec<SacnResult<Vec<DMXData>>>>,
-    ) = mpsc::sync_channel(0);
+    let (rcv_tx, rcv_rx): (SyncSender<Vec<SacnResult<Vec<DMXData>>>>, Receiver<Vec<SacnResult<Vec<DMXData>>>>) = mpsc::sync_channel(0);
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0); // Used for handshaking, allows syncing the sender states.
 
     assert!(
@@ -1861,8 +1545,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
 
             tx.send(()).unwrap(); // Forces each sender thread to wait till the controlling thread receives which stops sending before the receivers are ready.
 
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
         }));
     }
 
@@ -1872,10 +1555,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
         rcv_threads.push(thread::spawn(move || {
             // Port kept the same so must use multiple IP's.
             let mut dmx_recv = SacnReceiver::with_ip(
-                SocketAddr::new(
-                    IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()),
-                    ACN_SDT_MULTICAST_PORT,
-                ),
+                SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
                 None,
             )
             .unwrap();
@@ -1923,10 +1603,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
         for k in 0..SND_THREADS {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + BASE_UNIVERSE)); // Check that the universe received is as expected.
 
-            assert_eq!(
-                rcv_dmx_datas[k].values, snd_data[k],
-                "Received payload values don't match sent!"
-            );
+            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -1959,10 +1636,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
     let mut snd_threads = Vec::new();
     let mut rcv_threads = Vec::new();
 
-    let (rcv_tx, rcv_rx): (
-        SyncSender<Vec<SacnResult<Vec<DMXData>>>>,
-        Receiver<Vec<SacnResult<Vec<DMXData>>>>,
-    ) = mpsc::sync_channel(0);
+    let (rcv_tx, rcv_rx): (SyncSender<Vec<SacnResult<Vec<DMXData>>>>, Receiver<Vec<SacnResult<Vec<DMXData>>>>) = mpsc::sync_channel(0);
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0); // Used for handshaking, allows syncing the sender states.
 
     assert!(
@@ -1993,8 +1667,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
 
             tx.send(()).unwrap(); // Forces each sender thread to wait till the controlling thread receives which stops sending before the receivers are ready.
 
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
         }));
     }
 
@@ -2004,10 +1677,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
         rcv_threads.push(thread::spawn(move || {
             // Port kept the same so must use multiple IP's.
             let mut dmx_recv = SacnReceiver::with_ip(
-                SocketAddr::new(
-                    IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()),
-                    ACN_SDT_MULTICAST_PORT,
-                ),
+                SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
                 None,
             )
             .unwrap();
@@ -2055,10 +1725,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
         for k in 0..SND_THREADS {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + BASE_UNIVERSE)); // Check that the universe received is as expected.
 
-            assert_eq!(
-                rcv_dmx_datas[k].values, snd_data[k],
-                "Received payload values don't match sent!"
-            );
+            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -2106,10 +1773,7 @@ fn test_universe_discovery_one_universe_one_source_ipv4() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -2196,10 +1860,7 @@ fn test_universe_discovery_interval_ipv4() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -2257,7 +1918,6 @@ fn test_universe_discovery_interval_ipv4() {
 /// Sets up a sender and a receiver, the sender then updates its sending universes multiple times within an ANSI E1.31-2018
 /// E131_UNIVERSE_DISCOVERY_INTERVAL and the receiver asserts that it only receives updates on the interval as expected / compliant
 /// with ANSI E1.31-2018 Section 4.3
-///
 #[test]
 #[ignore]
 fn test_universe_discovery_interval_with_updates_ipv4() {
@@ -2296,10 +1956,7 @@ fn test_universe_discovery_interval_with_updates_ipv4() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -2389,10 +2046,7 @@ fn test_universe_discovery_multiple_universe_one_source_ipv4() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -2485,10 +2139,7 @@ fn test_universe_discovery_multiple_pages_one_source_ipv4() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -2577,10 +2228,7 @@ fn test_universe_discovery_no_universes_ipv4() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -2591,16 +2239,9 @@ fn test_universe_discovery_no_universes_ipv4() {
     match dmx_recv.recv(None) {
         Err(e) => match e {
             Error::SourceDiscovered(src_name) => {
-                assert_eq!(
-                    src_name, SOURCE_NAMES[0],
-                    "Name of source discovered doesn't match expected"
-                );
+                assert_eq!(src_name, SOURCE_NAMES[0], "Name of source discovered doesn't match expected");
                 let sources = dmx_recv.get_discovered_sources();
-                assert_eq!(
-                    sources.len(),
-                    1,
-                    "Number of sources discovered doesn't match expected (1)"
-                );
+                assert_eq!(sources.len(), 1, "Number of sources discovered doesn't match expected (1)");
                 assert_eq!(
                     sources[0].get_all_universes(),
                     Vec::new(),
@@ -2664,18 +2305,14 @@ fn test_receiver_sources_exceeded_3() {
 
             tx.send(()).unwrap(); // Forces each sender thread to wait till the controlling thread receives which stops sending before the receivers are ready.
 
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
 
             fin_tx.send(()).unwrap(); // Forces each sender to wait and not terminate.
         }));
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         SRC_LIMIT,
     )
     .unwrap();
@@ -2704,10 +2341,7 @@ fn test_receiver_sources_exceeded_3() {
             }
         },
         Ok(_) => {
-            assert!(
-                false,
-                "Recv was successful even though source limit was exceeded"
-            );
+            assert!(false, "Recv was successful even though source limit was exceeded");
         }
     }
 
@@ -2763,18 +2397,13 @@ fn test_receiver_source_limit_2() {
 
             // Each source sends twice (meaning 4 packets total), this checks that the receiver isn't using the number of packets as the way to check for the number
             // of sources.
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
         }));
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         SRC_LIMIT,
     )
     .unwrap();
@@ -2834,10 +2463,8 @@ fn test_receiver_source_limit_2_termination_check() {
 
             // Each source sends twice (meaning 4 packets total), this checks that the receiver isn't using the number of packets as the way to check for the number
             // of sources.
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
-            src.send(&[universe], &data, Some(priority), None, None)
-                .unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
+            src.send(&[universe], &data, Some(priority), None, None).unwrap();
 
             if i == 0 {
                 // Forces the first thread not to terminate and to wait. The second thread will finish and terminate the source.
@@ -2847,10 +2474,7 @@ fn test_receiver_source_limit_2_termination_check() {
     }
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
         SRC_LIMIT,
     )
     .unwrap();
@@ -2915,10 +2539,7 @@ fn test_preview_data_2_receiver_1_sender() {
 
     let mut rcv_threads = Vec::new();
 
-    let (rcv_tx, rcv_rx): (
-        SyncSender<SacnResult<Vec<DMXData>>>,
-        Receiver<SacnResult<Vec<DMXData>>>,
-    ) = mpsc::sync_channel(0);
+    let (rcv_tx, rcv_rx): (SyncSender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::sync_channel(0);
 
     // Check that the test setup is correct.
     assert!(
@@ -2932,10 +2553,7 @@ fn test_preview_data_2_receiver_1_sender() {
         rcv_threads.push(thread::spawn(move || {
             // Port kept the same so must use multiple IP's.
             let mut dmx_recv = SacnReceiver::with_ip(
-                SocketAddr::new(
-                    IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()),
-                    ACN_SDT_MULTICAST_PORT,
-                ),
+                SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[i].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
                 None,
             )
             .unwrap();
@@ -3013,14 +2631,12 @@ fn test_preview_data_2_receiver_1_sender() {
     src.register_universe(UNIVERSE).unwrap();
 
     // Send data without the preview flag.
-    src.send(&[UNIVERSE], &NORMAL_DATA, None, None, None)
-        .unwrap();
+    src.send(&[UNIVERSE], &NORMAL_DATA, None, None, None).unwrap();
 
     src.set_preview_mode(true).unwrap();
 
     // Send data with the preview flag.
-    src.send(&[UNIVERSE], &PREVIEW_DATA, None, None, None)
-        .unwrap();
+    src.send(&[UNIVERSE], &PREVIEW_DATA, None, None, None).unwrap();
 
     // Finish with the receive threads.
     for r in rcv_threads {
@@ -3037,10 +2653,8 @@ fn test_source_1_universe_timeout() {
     // Allow the timeout notification to come up to 2.5 seconds too late compared to the expected 2.5 seconds.
     // (2.5s base as per ANSI E1.31-2018 Appendix A E131_NETWORK_DATA_LOSS_TIMEOUT, tolerance as per documentation for recv() method).
     // Both tolerances allow 50 ms for code execution time.
-    let acceptable_lower_bound: Duration =
-        E131_NETWORK_DATA_LOSS_TIMEOUT - Duration::from_millis(50);
-    let acceptable_upper_bound: Duration =
-        2 * E131_NETWORK_DATA_LOSS_TIMEOUT + Duration::from_millis(50);
+    let acceptable_lower_bound: Duration = E131_NETWORK_DATA_LOSS_TIMEOUT - Duration::from_millis(50);
+    let acceptable_upper_bound: Duration = 2 * E131_NETWORK_DATA_LOSS_TIMEOUT + Duration::from_millis(50);
 
     let (tx, rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -3049,36 +2663,24 @@ fn test_source_1_universe_timeout() {
     let universe = 1;
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr =
-            SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT + 1);
+        let ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
         let priority = 100;
 
         src.register_universe(universe).unwrap();
 
-        let dst_ip: SocketAddr =
-            SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT);
+        let dst_ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT);
 
         thread_tx.send(()).unwrap(); // Sender waits till the receiver says it is ready.
 
-        src.send(
-            &[universe],
-            &TEST_DATA_SINGLE_UNIVERSE,
-            Some(priority),
-            Some(dst_ip),
-            None,
-        )
-        .unwrap();
+        src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), Some(dst_ip), None)
+            .unwrap();
 
         // Sender waits till the receiver says it can terminate, this prevents the automatic stream_terminated packets being sent.
         thread_tx.send(()).unwrap();
     });
 
-    let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT),
-        None,
-    )
-    .unwrap();
+    let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
     dmx_recv.listen_universes(&[universe]).unwrap();
 
     // Want to know when the source times out.
@@ -3109,10 +2711,7 @@ fn test_source_1_universe_timeout() {
                 if start_time.elapsed() < acceptable_lower_bound {
                     assert!(false, "Timeout came quicker than expected");
                 }
-                assert_eq!(
-                    timedout_uni, universe,
-                    "Timed out universe doesn't match expected"
-                );
+                assert_eq!(timedout_uni, universe, "Timed out universe doesn't match expected");
                 assert!(true, "Universe timed out as expected");
             }
             Error::Io(ref s) => match s.kind() {
@@ -3143,17 +2742,14 @@ fn test_source_1_universe_timeout() {
 ///
 /// This shows that the timeout mechanism is per universe and not for an entire source as a single universe can timeout while other universe
 /// continue as normal as per ANSI E1.31-2018 Section 6.7.1.
-///
 #[test]
 #[ignore]
 fn test_source_2_universe_1_timeout() {
     // Allow the timeout notification to come up to 2.5 seconds too late compared to the expected 2.5 seconds.
     // (2.5s base as per ANSI E1.31-2018 Appendix A E131_NETWORK_DATA_LOSS_TIMEOUT, tolerance as per documentation for recv() method).
     // Both tolerances allow 50 ms for code execution time.
-    let acceptable_lower_bound: Duration =
-        E131_NETWORK_DATA_LOSS_TIMEOUT - Duration::from_millis(50);
-    let acceptable_upper_bound: Duration =
-        2 * E131_NETWORK_DATA_LOSS_TIMEOUT + Duration::from_millis(50);
+    let acceptable_lower_bound: Duration = E131_NETWORK_DATA_LOSS_TIMEOUT - Duration::from_millis(50);
+    let acceptable_upper_bound: Duration = 2 * E131_NETWORK_DATA_LOSS_TIMEOUT + Duration::from_millis(50);
 
     let (tx, rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0);
 
@@ -3163,16 +2759,13 @@ fn test_source_2_universe_1_timeout() {
     let universe_timeout = 2;
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr =
-            SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT + 1);
+        let ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
         let priority = 100;
 
-        src.register_universes(&[universe_no_timeout, universe_timeout])
-            .unwrap();
+        src.register_universes(&[universe_no_timeout, universe_timeout]).unwrap();
 
-        let dst_ip: SocketAddr =
-            SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT);
+        let dst_ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT);
 
         thread_tx.send(()).unwrap(); // Sender waits till the receiver says it is ready.
 
@@ -3245,14 +2838,8 @@ fn test_source_2_universe_1_timeout() {
         thread_tx.send(()).unwrap();
     });
 
-    let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT),
-        None,
-    )
-    .unwrap();
-    dmx_recv
-        .listen_universes(&[universe_no_timeout, universe_timeout])
-        .unwrap();
+    let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
+    dmx_recv.listen_universes(&[universe_no_timeout, universe_timeout]).unwrap();
 
     // Want to know when the source times out.
     dmx_recv.set_announce_timeout(true);
@@ -3314,10 +2901,7 @@ fn test_source_2_universe_1_timeout() {
             // This will return a WouldBlock/Timedout error if the timeout takes too long.
             Err(e) => {
                 match e {
-                    Error::UniverseTimeout {
-                        src_cid: _,
-                        universe,
-                    } => {
+                    Error::UniverseTimeout { src_cid: _, universe } => {
                         if start_time.elapsed() < acceptable_lower_bound {
                             assert!(false, "Timeout came quicker than expected");
                         }
@@ -3329,8 +2913,7 @@ fn test_source_2_universe_1_timeout() {
                         match dmx_recv.recv(Some(Duration::from_millis(0))) {
                             Err(e) => match e {
                                 Error::Io(ref s) => match s.kind() {
-                                    std::io::ErrorKind::WouldBlock
-                                    | std::io::ErrorKind::TimedOut => {
+                                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
                                         assert!(true, "Other universe hasn't timedout as expected");
                                     }
                                     _ => {
@@ -3349,11 +2932,7 @@ fn test_source_2_universe_1_timeout() {
                     }
                     Error::Io(ref s) => match s.kind() {
                         std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
-                            assert!(
-                                false,
-                                "Timeout took too long to come through: {:?}",
-                                start_time.elapsed()
-                            );
+                            assert!(false, "Timeout took too long to come through: {:?}", start_time.elapsed());
                         }
                         _ => {
                             assert!(false, "Unexpected error returned");
@@ -3366,15 +2945,8 @@ fn test_source_2_universe_1_timeout() {
             }
             Ok(p) => {
                 // Check that only data from the non-timed out universe is received.
-                assert_eq!(
-                    p.len(),
-                    1,
-                    "Data packet universe count doesn't match expected"
-                );
-                assert_eq!(
-                    p[0].universe, universe_no_timeout,
-                    "Data packet universe doesn't match expected"
-                );
+                assert_eq!(p.len(), 1, "Data packet universe count doesn't match expected");
+                assert_eq!(p[0].universe, universe_no_timeout, "Data packet universe doesn't match expected");
                 assert_eq!(
                     p[0].values,
                     TEST_DATA_SINGLE_UNIVERSE.to_vec(),
@@ -3405,64 +2977,39 @@ fn test_send_recv_wrong_multicast_universe() {
     let actual_universe = 2;
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
         let priority = 100;
 
-        src.register_universes(&[multicast_universe, actual_universe])
-            .unwrap();
+        src.register_universes(&[multicast_universe, actual_universe]).unwrap();
 
         // The multicast address for the multicast universe as per ANSI E1.31-2018 Section 9.3.1 Table 9-10.
-        let dst_ip: SocketAddr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(239, 255, 0, 1)),
-            ACN_SDT_MULTICAST_PORT,
-        );
+        let dst_ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(239, 255, 0, 1)), ACN_SDT_MULTICAST_PORT);
 
         // Sender waits till the receiver says it is ready.
         thread_tx.send(()).unwrap();
 
         // Send the second universe using the multicast address for the first universe.
-        src.send(
-            &[actual_universe],
-            &TEST_DATA_SINGLE_UNIVERSE,
-            Some(priority),
-            Some(dst_ip),
-            None,
-        )
-        .unwrap();
+        src.send(&[actual_universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), Some(dst_ip), None)
+            .unwrap();
     });
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
-    dmx_recv
-        .listen_universes(&[multicast_universe, actual_universe])
-        .unwrap();
+    dmx_recv.listen_universes(&[multicast_universe, actual_universe]).unwrap();
 
     // Receiver created successfully so allow the sender to progress.
     rx.recv().unwrap();
 
     // Get the packets of data and check that they are correct.
     let received_data: Vec<DMXData> = dmx_recv.recv(TIMEOUT).unwrap();
-    assert_eq!(
-        received_data.len(),
-        1,
-        "Data packet universe count doesn't match expected"
-    );
+    assert_eq!(received_data.len(), 1, "Data packet universe count doesn't match expected");
 
     // Particularly important that the universe is the actual universe of the data rather than the universe which corresponds to the multicast address.
-    assert_eq!(
-        received_data[0].universe, actual_universe,
-        "Packet universe doesn't match expected"
-    );
+    assert_eq!(received_data[0].universe, actual_universe, "Packet universe doesn't match expected");
     assert_eq!(
         received_data[0].values,
         TEST_DATA_SINGLE_UNIVERSE.to_vec(),
@@ -3477,7 +3024,6 @@ fn test_send_recv_wrong_multicast_universe() {
 /// The receiver checks that the right data packets are received in the right order based on the sync packets sent.
 ///
 /// This shows that multiple synchronisation addresses can be used simultaneously.
-///
 #[test]
 #[ignore]
 fn test_send_recv_multiple_sync_universes() {
@@ -3490,10 +3036,7 @@ fn test_send_recv_multiple_sync_universes() {
     let universes = [1, 2, 3];
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
         src.register_universes(&universes).unwrap();
@@ -3503,14 +3046,8 @@ fn test_send_recv_multiple_sync_universes() {
 
         // Send on all 3 universes, the first universe waits for a sync packet on the second, the second on the third and the third
         // universe waits for a sync packet on its own universe.
-        src.send(
-            &[universes[0]],
-            &TEST_DATA_SINGLE_UNIVERSE,
-            None,
-            None,
-            Some(universes[1]),
-        )
-        .unwrap();
+        src.send(&[universes[0]], &TEST_DATA_SINGLE_UNIVERSE, None, None, Some(universes[1]))
+            .unwrap();
         src.send(
             &[universes[1]],
             &TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
@@ -3533,10 +3070,7 @@ fn test_send_recv_multiple_sync_universes() {
     });
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -3549,15 +3083,8 @@ fn test_send_recv_multiple_sync_universes() {
 
     // First set of data should be the first universe.
     let received_data: Vec<DMXData> = dmx_recv.recv(TIMEOUT).unwrap();
-    assert_eq!(
-        received_data.len(),
-        1,
-        "First set of data universe count doesn't match expected"
-    );
-    assert_eq!(
-        received_data[0].universe, universes[0],
-        "Packet universe doesn't match expected"
-    );
+    assert_eq!(received_data.len(), 1, "First set of data universe count doesn't match expected");
+    assert_eq!(received_data[0].universe, universes[0], "Packet universe doesn't match expected");
     assert_eq!(
         received_data[0].values,
         TEST_DATA_SINGLE_UNIVERSE.to_vec(),
@@ -3566,11 +3093,7 @@ fn test_send_recv_multiple_sync_universes() {
 
     // Second set of data should be the second and third universe.
     let received_data2: Vec<DMXData> = dmx_recv.recv(TIMEOUT).unwrap();
-    assert_eq!(
-        received_data2.len(),
-        2,
-        "Second set of data universe count doesn't match expected"
-    );
+    assert_eq!(received_data2.len(), 2, "Second set of data universe count doesn't match expected");
     if received_data2[0].universe == universes[1] {
         // Allow the data to be in any order as no ordering enforced within a set of data.
         assert_eq!(
@@ -3620,7 +3143,6 @@ fn test_send_recv_multiple_sync_universes() {
 ///
 /// Note that this library does not attempt to implement the force_synchronisation bit behaviour and so therefore always stops universe synchronisation if the
 /// sync packet is not received within the timeout.
-///
 #[test]
 #[ignore]
 fn test_send_sync_timeout() {
@@ -3637,27 +3159,17 @@ fn test_send_sync_timeout() {
     let sync_universe = 2;
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_ip("Source", ip).unwrap();
 
-        src.register_universes(&[data_universe, sync_universe])
-            .unwrap();
+        src.register_universes(&[data_universe, sync_universe]).unwrap();
 
         // Sender waits till the receiver says it is ready.
         thread_tx.send(()).unwrap();
 
         // Sender sends a data packet synchronised to the synchronisation universe.
-        src.send(
-            &[data_universe],
-            &TEST_DATA_SINGLE_UNIVERSE,
-            None,
-            None,
-            Some(sync_universe),
-        )
-        .unwrap();
+        src.send(&[data_universe], &TEST_DATA_SINGLE_UNIVERSE, None, None, Some(sync_universe))
+            .unwrap();
 
         // Sender waits too long to send the sync packet meaning that the synchronisation should have timed out.
         sleep(sender_wait_period);
@@ -3667,16 +3179,11 @@ fn test_send_sync_timeout() {
     });
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
-    dmx_recv
-        .listen_universes(&[data_universe, sync_universe])
-        .unwrap();
+    dmx_recv.listen_universes(&[data_universe, sync_universe]).unwrap();
 
     // Receiver created successfully so allow the sender to progress.
     rx.recv().unwrap();
@@ -3734,23 +3241,15 @@ fn test_ansi_e131_appendix_b_runthrough_ipv4() {
     let sync_universe = 7962;
     let priority = 100;
     let source_name = "Source_A";
-    let data = [
-        0x00, 0xe, 0x0, 0xc, 0x1, 0x7, 0x1, 0x4, 0x8, 0x0, 0xd, 0xa, 0x7, 0xa,
-    ];
-    let data2 = [
-        0x00, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa,
-    ];
+    let data = [0x00, 0xe, 0x0, 0xc, 0x1, 0x7, 0x1, 0x4, 0x8, 0x0, 0xd, 0xa, 0x7, 0xa];
+    let data2 = [0x00, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa];
     let src_cid: Uuid = Uuid::from_bytes(&[
-        0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14,
-        0x3e,
+        0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
     ])
     .unwrap();
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_cid_ip(source_name, src_cid, ip).unwrap();
 
         src.register_universes(&data_universes).unwrap();
@@ -3761,22 +3260,10 @@ fn test_ansi_e131_appendix_b_runthrough_ipv4() {
 
         for _ in 0..SYNC_PACKET_COUNT {
             // Sender sends data packets to the 2 data universes using the same synchronisation address.
-            src.send(
-                &[data_universes[0]],
-                &data,
-                Some(priority),
-                None,
-                Some(sync_universe),
-            )
-            .unwrap();
-            src.send(
-                &[data_universes[1]],
-                &data2,
-                Some(priority),
-                None,
-                Some(sync_universe),
-            )
-            .unwrap();
+            src.send(&[data_universes[0]], &data, Some(priority), None, Some(sync_universe))
+                .unwrap();
+            src.send(&[data_universes[1]], &data2, Some(priority), None, Some(sync_universe))
+                .unwrap();
 
             // Sender observes a slight pause to allow for processing delays (ANSI E1.31-2018 Section 11.2.2).
             sleep(PAUSE_PERIOD);
@@ -3786,17 +3273,12 @@ fn test_ansi_e131_appendix_b_runthrough_ipv4() {
         }
 
         // Sender sends a data packet to the data universe using a zero synchronisation address indicating synchronisation is now over.
-        src.send(&[data_universes[0]], &data, Some(priority), None, None)
-            .unwrap();
-        src.send(&[data_universes[1]], &data2, Some(priority), None, None)
-            .unwrap();
+        src.send(&[data_universes[0]], &data, Some(priority), None, None).unwrap();
+        src.send(&[data_universes[1]], &data2, Some(priority), None, None).unwrap();
     });
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -3818,16 +3300,28 @@ fn test_ansi_e131_appendix_b_runthrough_ipv4() {
                         "Unexpected data within first data packet of a set of synchronised packets"
                     );
 
-                    assert_eq!(p[1].universe, data_universes[1], "Unrecognised universe as second data packet in set of synchronised packets");
-                    assert_eq!(p[1].values, data2, "Unexpected data within second data packet of a set of synchronised packets");
+                    assert_eq!(
+                        p[1].universe, data_universes[1],
+                        "Unrecognised universe as second data packet in set of synchronised packets"
+                    );
+                    assert_eq!(
+                        p[1].values, data2,
+                        "Unexpected data within second data packet of a set of synchronised packets"
+                    );
                 } else if p[0].universe == data_universes[1] {
                     assert_eq!(
                         p[0].values, data2,
                         "Unexpected data within first data packet of a set of synchronised packets"
                     );
 
-                    assert_eq!(p[1].universe, data_universes[0], "Unrecognised universe as second data packet in set of synchronised packets");
-                    assert_eq!(p[1].values, data, "Unexpected data within second data packet of a set of synchronised packets");
+                    assert_eq!(
+                        p[1].universe, data_universes[0],
+                        "Unrecognised universe as second data packet in set of synchronised packets"
+                    );
+                    assert_eq!(
+                        p[1].values, data,
+                        "Unexpected data within second data packet of a set of synchronised packets"
+                    );
                 } else {
                     assert!(false, "Unrecognised universe within data packet");
                 }
@@ -3902,25 +3396,17 @@ fn test_discover_recv_sync_runthrough_ipv4() {
     const SOURCE_NAME: &str = "Test Source";
 
     // The data send on the first and second universes.
-    const DATA: [u8; 16] = [
-        0x00, 0xe, 0x0, 0xc, 0x1, 0x7, 0x1, 0x4, 0x8, 0x0, 0xd, 0xa, 0x7, 0xa, 0x9, 0x8,
-    ];
-    const DATA2: [u8; 16] = [
-        0x00, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa, 0x9, 0x8,
-    ];
+    const DATA: [u8; 16] = [0x00, 0xe, 0x0, 0xc, 0x1, 0x7, 0x1, 0x4, 0x8, 0x0, 0xd, 0xa, 0x7, 0xa, 0x9, 0x8];
+    const DATA2: [u8; 16] = [0x00, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xa, 0x9, 0x8];
 
     // The source CID.
     let src_cid: Uuid = Uuid::from_bytes(&[
-        0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14,
-        0x3e,
+        0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
     ])
     .unwrap();
 
     let snd_thread = thread::spawn(move || {
-        let ip: SocketAddr = SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT + 1,
-        );
+        let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
         let mut src = SacnSource::with_cid_ip(SOURCE_NAME, src_cid, ip).unwrap();
 
         src.register_universes(&DATA_UNIVERSES).unwrap();
@@ -3928,16 +3414,8 @@ fn test_discover_recv_sync_runthrough_ipv4() {
 
         for _ in 0..SYNC_PACKET_COUNT {
             // Sender sends data packets to the 2 data universes using the same synchronisation address.
-            src.send(&[DATA_UNIVERSES[0]], &DATA, None, None, Some(SYNC_UNIVERSE))
-                .unwrap();
-            src.send(
-                &[DATA_UNIVERSES[1]],
-                &DATA2,
-                None,
-                None,
-                Some(SYNC_UNIVERSE),
-            )
-            .unwrap();
+            src.send(&[DATA_UNIVERSES[0]], &DATA, None, None, Some(SYNC_UNIVERSE)).unwrap();
+            src.send(&[DATA_UNIVERSES[1]], &DATA2, None, None, Some(SYNC_UNIVERSE)).unwrap();
 
             // Sender observes a slight pause to allow for processing delays (ANSI E1.31-2018 Section 11.2.2).
             sleep(PAUSE_PERIOD);
@@ -3952,10 +3430,7 @@ fn test_discover_recv_sync_runthrough_ipv4() {
     });
 
     let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(
-            TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[1].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
         None,
     )
     .unwrap();
@@ -3997,10 +3472,7 @@ fn test_discover_recv_sync_runthrough_ipv4() {
         match dmx_recv.recv(None) {
             Err(e) => {
                 match e {
-                    Error::UniverseTerminated {
-                        src_cid: _,
-                        universe: _,
-                    } => {
+                    Error::UniverseTerminated { src_cid: _, universe: _ } => {
                         // A real use-case may also want to not terminate when the source does and instead remain waiting but in this
                         // case the for the test the receiver terminates with the source.
                         break;
@@ -4018,16 +3490,28 @@ fn test_discover_recv_sync_runthrough_ipv4() {
                         "Unexpected data within first data packet of a set of synchronised packets"
                     );
 
-                    assert_eq!(rcv_data[1].universe, DATA_UNIVERSES[1], "Unrecognised universe as second data packet in set of synchronised packets");
-                    assert_eq!(rcv_data[1].values, DATA2, "Unexpected data within second data packet of a set of synchronised packets");
+                    assert_eq!(
+                        rcv_data[1].universe, DATA_UNIVERSES[1],
+                        "Unrecognised universe as second data packet in set of synchronised packets"
+                    );
+                    assert_eq!(
+                        rcv_data[1].values, DATA2,
+                        "Unexpected data within second data packet of a set of synchronised packets"
+                    );
                 } else if rcv_data[0].universe == DATA_UNIVERSES[1] {
                     assert_eq!(
                         rcv_data[0].values, DATA2,
                         "Unexpected data within first data packet of a set of synchronised packets"
                     );
 
-                    assert_eq!(rcv_data[1].universe, DATA_UNIVERSES[0], "Unrecognised universe as second data packet in set of synchronised packets");
-                    assert_eq!(rcv_data[1].values, DATA, "Unexpected data within second data packet of a set of synchronised packets");
+                    assert_eq!(
+                        rcv_data[1].universe, DATA_UNIVERSES[0],
+                        "Unrecognised universe as second data packet in set of synchronised packets"
+                    );
+                    assert_eq!(
+                        rcv_data[1].values, DATA,
+                        "Unexpected data within second data packet of a set of synchronised packets"
+                    );
                 } else {
                     assert!(false, "Unrecognised universe within data packet");
                 }
@@ -4054,10 +3538,7 @@ fn generate_data_packet_raw(
         (E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe),
         "Generated data packet universe out of range"
     );
-    assert!(
-        priority <= E131_MAX_PRIORITY,
-        "Generated data packet priority too high"
-    );
+    assert!(priority <= E131_MAX_PRIORITY, "Generated data packet priority too high");
     assert!(dmx_data.len() <= UNIVERSE_CHANNEL_CAPACITY);
     assert_eq!(source_name.len(), 64);
 
@@ -4207,7 +3688,7 @@ fn test_data_packet_transmit_format() {
                         "\0\0\0\0\0\0\0\0\0\0" +
                         "\0\0\0\0\0\0\0\0\0\0" +
                         "\0\0\0\0";
-    
+
     let sequence = 0;
     let mut dmx_data: Vec<u8> = Vec::new();
     dmx_data.push(0); // Start code
@@ -4247,19 +3728,14 @@ fn test_data_packet_transmit_format() {
 fn test_terminate_packet_transmit_format() {
     let cid = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-    let ip: SocketAddr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        ACN_SDT_MULTICAST_PORT + 1,
-    );
-    let mut source =
-        SacnSource::with_cid_ip("Source", Uuid::from_bytes(&cid).unwrap(), ip).unwrap();
+    let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT + 1);
+    let mut source = SacnSource::with_cid_ip("Source", Uuid::from_bytes(&cid).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
     let recv_socket = Socket::new(Domain::ipv4(), Type::dgram(), None).unwrap();
 
-    let addr: SocketAddr =
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
+    let addr: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
 
     recv_socket.bind(&addr.into()).unwrap();
 
@@ -4276,12 +3752,10 @@ fn test_terminate_packet_transmit_format() {
     source.terminate_stream(1, start_code).unwrap();
     for _ in 0..2 {
         recv_socket.recv_from(&mut recv_buf).unwrap();
-        assert!(
-            match AcnRootLayerProtocol::parse(&recv_buf).unwrap().pdu.data {
-                E131RootLayerData::DataPacket(data) => data.stream_terminated,
-                _ => panic!(),
-            }
-        )
+        assert!(match AcnRootLayerProtocol::parse(&recv_buf).unwrap().pdu.data {
+            E131RootLayerData::DataPacket(data) => data.stream_terminated,
+            _ => panic!(),
+        })
     }
 }
 
@@ -4289,7 +3763,6 @@ fn test_terminate_packet_transmit_format() {
 /// a synchronisation packet and the receive socket receives the packet and checks that the format of the packet is as expected.
 ///
 /// The use of a UDP socket also shows that the protocol uses UDP at the transport layer.
-///
 #[test]
 #[ignore]
 fn test_sync_packet_transmit_format() {
@@ -4305,20 +3778,15 @@ fn test_sync_packet_transmit_format() {
 
     let sync_packet = generate_sync_packet_raw(CID, SYNC_ADDR, SEQUENCE_NUM);
 
-    let ip: SocketAddr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        ACN_SDT_MULTICAST_PORT + 1,
-    );
-    let mut source =
-        SacnSource::with_cid_ip("Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
+    let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT + 1);
+    let mut source = SacnSource::with_cid_ip("Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
     // Create a standard udp receive socket to receive the packet sent by the source.
     let recv_socket = Socket::new(Domain::ipv4(), Type::dgram(), None).unwrap();
 
-    let addr: SocketAddr =
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
+    let addr: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
 
     recv_socket.bind(&addr.into()).unwrap();
 
@@ -4346,7 +3814,6 @@ fn test_sync_packet_transmit_format() {
 /// a discovery packet and the receive socket receives the packet and checks that the format of the packet is as expected.
 ///
 /// The use of a UDP socket also shows that the protocol uses UDP at the transport layer.
-///
 #[test]
 #[ignore]
 fn test_discovery_packet_transmit_format() {
@@ -4354,9 +3821,8 @@ fn test_discovery_packet_transmit_format() {
 
     // Source name = "Controller"
     const SOURCE_NAME: [u8; 64] = [
-        b'C', b'o', b'n', b't', b'r', b'o', b'l', b'l', b'e', b'r', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        b'C', b'o', b'n', b't', b'r', b'o', b'l', b'l', b'e', b'r', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
 
     // Represents 3 16 bit universes.
@@ -4429,33 +3895,22 @@ fn test_discovery_packet_transmit_format() {
         "Example discovery packet length doesn't match expected"
     );
 
-    let ip: SocketAddr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        ACN_SDT_MULTICAST_PORT + 1,
-    );
+    let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT + 1);
 
     // Creates the source.
-    let mut source = SacnSource::with_cid_ip(
-        str::from_utf8(&SOURCE_NAME).unwrap(),
-        Uuid::from_bytes(&CID).unwrap(),
-        ip,
-    )
-    .unwrap();
+    let mut source = SacnSource::with_cid_ip(str::from_utf8(&SOURCE_NAME).unwrap(), Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
     // Create a standard udp receive socket to receive the packet sent by the source.
     let recv_socket = Socket::new(Domain::ipv4(), Type::dgram(), None).unwrap();
 
-    let addr: SocketAddr =
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
+    let addr: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
 
     recv_socket.bind(&addr.into()).unwrap();
 
     // Receiving on the discovery universe shows that the discovery universe is correctly used for discovery packets as per ANSI E1.31-2018 Section 6.2.7.
-    let address = universe_to_ipv4_multicast_addr(E131_DISCOVERY_UNIVERSE)
-        .unwrap()
-        .as_inet();
+    let address = universe_to_ipv4_multicast_addr(E131_DISCOVERY_UNIVERSE).unwrap().as_inet();
 
     recv_socket
         .join_multicast_v4(address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
@@ -4488,7 +3943,6 @@ fn test_discovery_packet_transmit_format() {
 /// a synchronisation packet and the receive socket receives the packet and checks that the format of the packet is as expected.
 ///
 /// The use of a UDP socket also shows that the protocol uses UDP at the transport layer.
-///
 #[test]
 #[ignore]
 fn test_sync_packet_transmit_seq_numbers() {
@@ -4543,20 +3997,15 @@ fn test_sync_packet_transmit_seq_numbers() {
     sync_packet.push(0);
     sync_packet.push(0);
 
-    let ip: SocketAddr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        ACN_SDT_MULTICAST_PORT + 1,
-    );
-    let mut source =
-        SacnSource::with_cid_ip("Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
+    let ip: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT + 1);
+    let mut source = SacnSource::with_cid_ip("Source", Uuid::from_bytes(&CID).unwrap(), ip).unwrap();
 
     source.set_multicast_loop_v4(true).unwrap();
 
     // Create a standard udp receive socket to receive the packet sent by the source.
     let recv_socket = Socket::new(Domain::ipv4(), Type::dgram(), None).unwrap();
 
-    let addr: SocketAddr =
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
+    let addr: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
 
     recv_socket.bind(&addr.into()).unwrap();
 
@@ -4589,7 +4038,7 @@ fn test_sync_packet_transmit_seq_numbers() {
 #[rustfmt::skip]
 #[ignore]
 fn test_track_data_packet_seq_numbers() {
-    /* Packet parameters */
+    // Packet parameters
     const CID: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     const OPTIONS: u8 = 0; // Checks that the options field is transmitted as 0's.
     const PRIORITY: u8 = 150;
@@ -4604,7 +4053,7 @@ fn test_track_data_packet_seq_numbers() {
     dmx_data.push(0); // Start code
     dmx_data.extend(iter::repeat(100).take(255));
 
-    /* The parameters above are set to arbitrary values as they aren't the focus of the test*/
+    // The parameters above are set to arbitrary values as they aren't the focus of the test
 
     // The expected starting sequence number of data packets from the source.
     const START_SEQ_NUM: usize = 0;
@@ -4814,10 +4263,7 @@ fn test_register_terminate_universe() {
     let mut src = SacnSource::with_cid_ip(
         "Test name",
         Uuid::new_v4(),
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
     )
     .unwrap();
 
@@ -4825,19 +4271,11 @@ fn test_register_terminate_universe() {
 
     src.register_universe(universe).unwrap();
 
-    assert_eq!(
-        src.universes().unwrap(),
-        vec!(1),
-        "Universe not registered correctly"
-    );
+    assert_eq!(src.universes().unwrap(), vec!(1), "Universe not registered correctly");
 
     src.terminate_stream(universe, 0).unwrap();
 
-    assert_eq!(
-        src.universes().unwrap(),
-        Vec::new(),
-        "Universe not registered correctly"
-    );
+    assert_eq!(src.universes().unwrap(), Vec::new(), "Universe not registered correctly");
 }
 
 #[test]
@@ -4846,10 +4284,7 @@ fn test_terminate_universe_no_register() {
     let mut src = SacnSource::with_cid_ip(
         "Test name",
         Uuid::new_v4(),
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
     )
     .unwrap();
 
@@ -4878,10 +4313,7 @@ fn test_send_empty() {
     let mut src = SacnSource::with_cid_ip(
         "Test name",
         Uuid::new_v4(),
-        SocketAddr::new(
-            IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()),
-            ACN_SDT_MULTICAST_PORT,
-        ),
+        SocketAddr::new(IpAddr::V4(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap()), ACN_SDT_MULTICAST_PORT),
     )
     .unwrap();
 

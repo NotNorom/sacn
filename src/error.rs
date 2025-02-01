@@ -75,7 +75,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the source name is malformed.
-    ///
     #[error("The given source name was malformed and couldn't be used, msg: {0}")]
     MalformedSourceName(String),
 
@@ -85,7 +84,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the priority is invalid.
-    ///
     #[error("Attempted to perform an action using a priority value that is invalid, msg: {0}")]
     InvalidPriority(String),
 
@@ -95,7 +93,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the sources exceeded error was returned.
-    ///
     #[error("Limit for the number of supported sources has been reached, msg: {0}")]
     SourcesExceededError(String),
 
@@ -103,7 +100,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// source_name: The name of the source discovered.
-    ///
     #[error("A source was discovered by a receiver with the announce_discovery_flag set to true, source name: {0}")]
     SourceDiscovered(String),
 
@@ -111,7 +107,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why/how the universe capacity was exceeded.
-    ///
     #[error("Attempted to exceed the capacity of a single universe, msg: {0}")]
     ExceedUniverseCapacity(String),
 
@@ -121,7 +116,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// 0: Value of illegal universe
-    ///
     #[error("Illegal universe used. Must be in the range [{} - {}], universe: {}", E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE, .0)]
     IllegalUniverse(u16),
 
@@ -130,7 +124,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the error was returned.
-    ///
     #[error("Attempted to use a universe that wasn't first registered for use, msg: {0}")]
     UniverseNotRegistered(String),
 
@@ -138,7 +131,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing the situation where the wrong IpVersion was encountered.
-    ///
     #[error("Ip version (ipv4 or ipv6) used when the other is expected, msg: {0}")]
     IpVersionError(String),
 
@@ -146,7 +138,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing the situation where an unsupported IP version is used.
-    ///
     #[error("Attempted to use an unsupported (not Ipv4 or Ipv6) IP version, msg: {0}")]
     UnsupportedIpVersion(String),
 
@@ -154,7 +145,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the error was returned.
-    ///
     #[error("Attempted to use a sender which has already been terminated, msg: {0}")]
     SenderAlreadyTerminated(String),
 
@@ -162,7 +152,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the error was returned.
-    ///
     #[error("Error when merging DMX data, msg: {0}")]
     DmxMergeError(String),
 
@@ -170,7 +159,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A string describing why the error was returned.
-    ///
     #[error("Packet was received out of sequence and so should be discarded, msg: {0}")]
     OutOfSequence(String),
 
@@ -182,7 +170,6 @@ pub enum Error {
     /// src_cid: The CID of the source which sent the termination packet.
     ///
     /// uni: The universe that the termination packet is for.
-    ///
     #[error("Source cid: {src_cid:?} terminated universe: {universe}")]
     UniverseTerminated { src_cid: Uuid, universe: u16 },
 
@@ -193,7 +180,6 @@ pub enum Error {
     /// src_cid: The CID of the source which timed out.
     ///
     /// uni: The universe that timed out.
-    ///
     #[error("(Source,Universe) timed out: ({src_cid},{universe})")]
     UniverseTimeout { src_cid: Uuid, universe: u16 },
 
@@ -202,7 +188,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A message describing why this error was returned.
-    ///
     #[error("When looking for a specific universe it wasn't found, msg: {0}")]
     UniverseNotFound(String),
 
@@ -211,7 +196,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A message describing why this error was returned / when the source was not found.
-    ///
     #[error("Source not found, msg: {0}")]
     SourceNotFound(String),
 
@@ -220,7 +204,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A message describing why this error was returned / the operation that was not supported.
-    ///
     #[error("Operation attempted is unsupported on the current OS, msg: {0}")]
     OsOperationUnsupported(String),
 
@@ -231,9 +214,6 @@ pub enum Error {
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the SourceCorrupt error was returned.
-    ///
-    #[error(
-        "The sACN source has corrupted due to an internal panic! and should no longer be used, {0}"
-    )]
+    #[error("The sACN source has corrupted due to an internal panic! and should no longer be used, {0}")]
     SourceCorrupt(String),
 }

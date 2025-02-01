@@ -23,22 +23,16 @@
 //!
 //! Note the lack of top level constant strings used in the place of output format strings is due to a limitation in rust where the format string cannot be a
 //! const.
-//!
 
 mod error;
+use std::{env, fs::File, io, io::prelude::*, net::SocketAddr, thread::sleep, time::Duration};
+
 use error::{ExampleError, ExampleResult};
-
-use sacn::error::Error as SacnError;
-use sacn::packet::ACN_SDT_MULTICAST_PORT;
-use sacn::receive::{DMXData, DiscoveredSacnSource, SacnReceiver};
-
-use std::env;
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
-use std::net::SocketAddr;
-use std::thread::sleep;
-use std::time::Duration;
+use sacn::{
+    error::Error as SacnError,
+    packet::ACN_SDT_MULTICAST_PORT,
+    receive::{DMXData, DiscoveredSacnSource, SacnReceiver},
+};
 
 /// The string given by the user to receive data.
 const ACTION_RECV: &str = "r";
@@ -85,8 +79,7 @@ const ACTION_FILE_OUT: &str = "f";
 const ACTION_ANNOUNCE_TERMINATION: &str = "e";
 
 /// The headers used for the top of the file when the FILE_OUT action is used.
-const WRITE_TO_FILE_HEADERS: &str =
-    "Data_ID, Universe, Sync_Addr, Priority, Preview_data?, Payload";
+const WRITE_TO_FILE_HEADERS: &str = "Data_ID, Universe, Sync_Addr, Priority, Preview_data?, Payload";
 
 /// Describes the various commands / command-line arguments available and what they do.
 /// Displayed to the user if they ask for help or enter an unrecognised input.
@@ -153,11 +146,7 @@ fn main() {
 
     let source_limit = None;
 
-    let mut dmx_recv = SacnReceiver::with_ip(
-        SocketAddr::new(interface_ip.parse().unwrap(), ACN_SDT_MULTICAST_PORT),
-        source_limit,
-    )
-    .unwrap();
+    let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(interface_ip.parse().unwrap(), ACN_SDT_MULTICAST_PORT), source_limit).unwrap();
 
     println!("Started");
 
@@ -206,10 +195,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                     // Receive data
                     if split_input.len() < 2 {
                         display_help();
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
-                            "Insufficient parts ( < 2 )",
-                        ))?;
+                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
 
                     // To learn about how to parse strings to ints.
@@ -231,10 +217,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                     // Receive data continuously.
                     if split_input.len() < 3 {
                         display_help();
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
-                            "Insufficient parts ( < 3 )",
-                        ))?;
+                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 3 )"))?;
                     }
 
                     let timeout_secs: u64 = split_input[1].parse().unwrap();
@@ -265,10 +248,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                 ACTION_SLEEP => {
                     if split_input.len() < 2 {
                         display_help();
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
-                            "Insufficient parts ( < 2 )",
-                        ))?;
+                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
                     let millisecs: u64 = split_input[1].parse().unwrap();
                     sleep(Duration::from_millis(millisecs));
@@ -276,10 +256,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                 ACTION_LISTEN_UNIVERSE => {
                     if split_input.len() < 2 {
                         display_help();
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
-                            "Insufficient parts ( < 2 )",
-                        ))?;
+                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
                     let universe: u16 = split_input[1].parse().unwrap();
                     dmx_recv.listen_universes(&[universe])?;
@@ -287,10 +264,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                 ACTION_STOP_LISTEN_UNIVERSE => {
                     if split_input.len() < 2 {
                         display_help();
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
-                            "Insufficient parts ( < 2 )",
-                        ))?;
+                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
                     let universe: u16 = split_input[1].parse().unwrap();
 
@@ -304,7 +278,9 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         }
                         Err(_e) => {
                             Err(std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput, "Preview flag option not 'true'/'false' or otherwise parsable as boolean"))?;
+                                std::io::ErrorKind::InvalidInput,
+                                "Preview flag option not 'true'/'false' or otherwise parsable as boolean",
+                            ))?;
                         }
                     }
                 }
@@ -316,7 +292,9 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         }
                         Err(_e) => {
                             Err(std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput, "Announce discovery option not 'true'/'false' or otherwise parsable as boolean"))?;
+                                std::io::ErrorKind::InvalidInput,
+                                "Announce discovery option not 'true'/'false' or otherwise parsable as boolean",
+                            ))?;
                         }
                     }
                 }
@@ -328,17 +306,16 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         }
                         Err(_e) => {
                             Err(std::io::Error::new(
-                                std::io::ErrorKind::InvalidInput, "Announce stream termination option not 'true'/'false' or otherwise parsable as boolean"))?;
+                                std::io::ErrorKind::InvalidInput,
+                                "Announce stream termination option not 'true'/'false' or otherwise parsable as boolean",
+                            ))?;
                         }
                     }
                 }
                 ACTION_FILE_OUT => {
                     if split_input.len() < 4 {
                         display_help();
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::InvalidInput,
-                            "Insufficient parts ( < 3 )",
-                        ))?;
+                        Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 3 )"))?;
                     }
 
                     let file_path = split_input[1];
@@ -387,7 +364,6 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
 /// data: The data to write to the file.
 ///
 /// data_id: The id used as the first column within the file for the data.
-///
 fn write_to_file(file: &mut Box<File>, data: Vec<DMXData>, data_id: u64) -> ExampleResult<()> {
     for d in data {
         let values_str = create_values_str(d.values)?;
@@ -407,7 +383,6 @@ fn write_to_file(file: &mut Box<File>, data: Vec<DMXData>, data_id: u64) -> Exam
 ///
 /// # Arguments
 /// values: The unsigned 8 bit number values to turn into a string.
-///
 fn create_values_str(values: Vec<u8>) -> ExampleResult<String> {
     let mut res: String = "".to_string();
 
@@ -434,15 +409,11 @@ fn create_values_str(values: Vec<u8>) -> ExampleResult<String> {
 ///
 /// # Arguments
 /// res: The data to display.
-///
 fn print_recv(res: ExampleResult<Vec<DMXData>>) {
     match res {
         Err(e) => match e {
             ExampleError::Sacn(x) => match x {
-                SacnError::UniverseTerminated {
-                    src_cid: _,
-                    universe,
-                } => {
+                SacnError::UniverseTerminated { src_cid: _, universe } => {
                     println!("Universe {universe} Terminated");
                 }
                 z => {
@@ -464,7 +435,6 @@ fn print_recv(res: ExampleResult<Vec<DMXData>>) {
 ///
 /// # Arguments
 /// data: The data to be printed to stdout.
-///
 fn print_data(mut data: Vec<DMXData>) {
     print!("[");
     // Sort the data with lower universes first, this means that even though the data returned from the waiting data can be in any order this means
@@ -484,7 +454,6 @@ fn print_data(mut data: Vec<DMXData>) {
 ///
 /// # Arguments
 /// src: The sources to print to standard out.
-///
 fn print_discovered_sources(srcs: &Vec<DiscoveredSacnSource>) {
     for s in srcs {
         println!("Name: {}, Universes: {:?}", s.name, s.get_all_universes());
@@ -492,7 +461,6 @@ fn print_discovered_sources(srcs: &Vec<DiscoveredSacnSource>) {
 }
 
 /// Displays the usage/help string to stdout.
-///
 fn display_help() {
     println!("{}", get_usage_str());
 }

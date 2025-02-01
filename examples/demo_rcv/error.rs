@@ -6,5 +6,4 @@ pub enum ExampleError {
     Sacn(#[from] sacn::error::Error),
 }
 
-
 pub type ExampleResult<T> = Result<T, ExampleError>;

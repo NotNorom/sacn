@@ -12,27 +12,25 @@
 // Documentation of private or crate local items that effects public items, such as errors from private functions which get passed up to a
 // public function, should be copied into the documentation of the public item so that the public facing documentation is a complete documentation
 // of each public item without relying on referring to private items.
-//
 
-use crate::error::Error;
-use crate::packet::*;
-use crate::SacnResult;
-
-use std::cell::RefCell;
-use std::cmp;
-use std::cmp::min;
-use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread;
-use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
+use std::{
+    cell::RefCell,
+    cmp,
+    cmp::min,
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    sync::{Arc, Mutex, MutexGuard},
+    thread,
+    thread::JoinHandle,
+    time::{Duration, Instant},
+};
 
 /// Socket2 used to create the underlying UDP socket that sACN is sent on.
 use socket2::{Domain, Socket, Type};
-
 /// UUID library used to handle the UUID's used in the CID fields.
 use uuid::Uuid;
+
+use crate::{error::Error, packet::*, SacnResult};
 
 /// The name of the thread which runs periodically to perform various actions such as universe discovery adverts for the source.
 const SND_UPDATE_THREAD_NAME: &str = "rust_sacn_snd_update_thread";
@@ -148,10 +146,7 @@ impl SacnSource {
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
     pub fn with_cid_v4(name: &str, cid: Uuid) -> SacnResult<SacnSource> {
-        let ip = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            ACN_SDT_MULTICAST_PORT,
-        );
+        let ip = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT);
         SacnSource::with_cid_ip(name, cid, ip)
     }
 
@@ -170,10 +165,7 @@ impl SacnSource {
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
     pub fn with_cid_v6(name: &str, cid: Uuid) -> SacnResult<SacnSource> {
-        let ip = SocketAddr::new(
-            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)),
-            ACN_SDT_MULTICAST_PORT,
-        );
+        let ip = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT);
         SacnSource::with_cid_ip(name, cid, ip)
     }
 
@@ -194,7 +186,6 @@ impl SacnSource {
     /// UnsupportedIpVersion: Returned if the SocketAddr is not IPv4 or IPv6.
     ///
     /// MalformedSourceName: Returned if the given source name is longer than the maximum allowed size of E131_SOURCE_NAME_FIELD_LENGTH.
-    ///
     pub fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> SacnResult<SacnSource> {
         if name.len() > E131_SOURCE_NAME_FIELD_LENGTH {
             Err(Error::MalformedSourceName(
@@ -247,7 +238,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn register_universes(&mut self, universes: &[u16]) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.register_universes(universes)
     }
@@ -269,7 +259,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn register_universe(&mut self, universe: u16) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.register_universe(universe)
     }
@@ -313,7 +302,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn send(
         &mut self,
         universes: &[u16],
@@ -322,13 +310,7 @@ impl SacnSource {
         dst_ip: Option<SocketAddr>,
         synchronisation_addr: Option<u16>,
     ) -> SacnResult<()> {
-        unlock_internal_mut(&mut self.internal)?.send(
-            universes,
-            data,
-            priority,
-            dst_ip,
-            synchronisation_addr,
-        )
+        unlock_internal_mut(&mut self.internal)?.send(universes, data, priority, dst_ip, synchronisation_addr)
     }
 
     /// Sends a synchronisation packet to trigger the sending of packets waiting to be sent together.
@@ -352,12 +334,7 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
-    pub fn send_sync_packet(
-        &mut self,
-        universe: u16,
-        dst_ip: Option<SocketAddr>,
-    ) -> SacnResult<()> {
+    pub fn send_sync_packet(&mut self, universe: u16, dst_ip: Option<SocketAddr>) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.send_sync_packet(universe, dst_ip)
     }
 
@@ -372,7 +349,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn terminate_stream(&mut self, universe: u16, start_code: u8) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.terminate_stream(universe, start_code)
     }
@@ -382,7 +358,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn cid(&self) -> SacnResult<Uuid> {
         Ok(*unlock_internal(&self.internal)?.cid())
     }
@@ -395,7 +370,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn set_cid(&mut self, cid: Uuid) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.set_cid(cid);
         Ok(())
@@ -406,7 +380,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn name(&self) -> SacnResult<String> {
         Ok(unlock_internal(&self.internal)?.name().into())
     }
@@ -421,7 +394,6 @@ impl SacnSource {
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
     ///
     /// MalformedSourceName: Returned to indicate that the given source name is longer than the maximum allowed as per E131_SOURCE_NAME_FIELD_LENGTH.
-    ///
     pub fn set_name(&mut self, name: &str) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.set_name(name)
     }
@@ -433,7 +405,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn preview_mode(&self) -> SacnResult<bool> {
         Ok(unlock_internal(&self.internal)?.preview_mode())
     }
@@ -447,7 +418,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn set_preview_mode(&mut self, preview_mode: bool) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.set_preview_mode(preview_mode);
         Ok(())
@@ -458,13 +428,11 @@ impl SacnSource {
     /// # Arguments
     /// val: The new value for the is_sending_discovery flag, if true then source will send periodic universe discovery packets
     /// and if false it won't.
-    ///
     pub fn set_is_sending_discovery(&mut self, val: bool) {
         self.internal.lock().unwrap().set_is_sending_discovery(val);
     }
 
     /// Returns the multicast time to live of the socket.
-    ///
     pub fn multicast_ttl(&self) -> SacnResult<u32> {
         unlock_internal(&self.internal)?.multicast_ttl()
     }
@@ -479,7 +447,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn set_multicast_ttl(&mut self, multicast_ttl: u32) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.set_multicast_ttl(multicast_ttl)
     }
@@ -491,7 +458,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn ttl(&self) -> SacnResult<u32> {
         unlock_internal(&self.internal)?.ttl()
     }
@@ -506,7 +472,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn set_ttl(&mut self, ttl: u32) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.set_ttl(ttl)
     }
@@ -521,7 +486,6 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn set_multicast_loop_v4(&mut self, multicast_loop: bool) -> SacnResult<()> {
         unlock_internal_mut(&mut self.internal)?.set_multicast_loop_v4(multicast_loop)
     }
@@ -531,7 +495,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn multicast_loop(&self) -> SacnResult<bool> {
         unlock_internal(&self.internal)?.multicast_loop()
     }
@@ -541,7 +504,6 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    ///
     pub fn universes(&self) -> SacnResult<Vec<u16>> {
         Ok(unlock_internal(&self.internal)?.universes())
     }
@@ -549,7 +511,6 @@ impl SacnSource {
 
 /// By implementing the Drop trait for SacnSource it means that the user doesn't have to explicitly clean up the source
 /// and if it goes out of reference it will clean itself up and send the required termination packets etc.
-///
 impl Drop for SacnSource {
     fn drop(&mut self) {
         match unlock_internal_mut(&mut self.internal) {
@@ -587,7 +548,6 @@ impl SacnSourceInternal {
     /// Io: Returned if the underlying socket cannot be created or the IP cannot be bound to the underlying socket. See (UdpBuilder::new_v4)[fn.new_v4.UdpBuilder], (UdpBuilder::new_v6)[fn.new_v6.UdpBuilder] and (Socket::bind)[fn.bind.Socket2].
     ///
     /// UnsupportedIpVersion: Returned if the SockAddr is not IPv4 or IPv6.
-    ///
     fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> SacnResult<SacnSourceInternal> {
         let socket = if ip.is_ipv4() {
             Socket::new(Domain::ipv4(), Type::dgram(), None).unwrap()
@@ -632,7 +592,6 @@ impl SacnSourceInternal {
     ///
     /// # Arguments:
     /// val: The new value of the is_sending_discovery flag.
-    ///
     fn set_is_sending_discovery(&mut self, val: bool) {
         self.is_sending_discovery = val;
     }
@@ -646,7 +605,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// See register_universe(fn.register_universe.source) for more details.
-    ///
     fn register_universes(&mut self, universes: &[u16]) -> SacnResult<()> {
         for u in universes {
             self.register_universe(*u)?;
@@ -660,7 +618,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// IllegalUniverse: Returned if the universe is outwith the allowed range, see (is_universe_in_range)[fn.is_universe_in_range.packet].
-    ///
     fn register_universe(&mut self, universe: u16) -> SacnResult<()> {
         is_universe_in_range(universe)?;
 
@@ -686,7 +643,6 @@ impl SacnSourceInternal {
     /// IllegalUniverse: Returned if the universe is outwith the allowed range, see (is_universe_in_range)[fn.is_universe_in_range.packet].
     ///
     /// UniverseNotFound: Returned if the given universe was never registered originally.
-    ///
     fn deregister_universe(&mut self, universe: u16) -> SacnResult<()> {
         is_universe_in_range(universe)?;
 
@@ -711,7 +667,6 @@ impl SacnSourceInternal {
     /// IllegalUniverse: Returned if the universe is outwith the allowed range, see (is_universe_in_range)[fn.is_universe_in_range.packet].
     ///
     /// UniverseNotRegistered: Returned if the universe is not registered on the given SacnSourceInternal.
-    ///
     fn universe_allowed(&self, u: &u16) -> SacnResult<()> {
         is_universe_in_range(*u)?;
 
@@ -760,7 +715,6 @@ impl SacnSourceInternal {
     /// ExceedUniverseCapacity: Returned if the data has a length greater than the maximum allowed within a universe (packet::UNIVERSE_CHANNEL_CAPACITY).
     ///
     /// Io: Returned if the data fails to be sent on the socket, see send_to(fn.send_to.Socket).
-    ///
     fn send(
         &self,
         universes: &[u16],
@@ -771,9 +725,7 @@ impl SacnSourceInternal {
     ) -> SacnResult<()> {
         if !self.running {
             // Indicates that this sender has been terminated.
-            Err(Error::SenderAlreadyTerminated(
-                "Attempted to send".to_string(),
-            ))?;
+            Err(Error::SenderAlreadyTerminated("Attempted to send".to_string()))?;
         }
 
         if data.is_empty() {
@@ -796,16 +748,12 @@ impl SacnSourceInternal {
         }
 
         // + 1 as there must be at least 1 universe required as the data isn't empty then additional universes for any more.
-        let required_universes =
-            (data.len() as f64 / UNIVERSE_CHANNEL_CAPACITY as f64).ceil() as usize;
+        let required_universes = (data.len() as f64 / UNIVERSE_CHANNEL_CAPACITY as f64).ceil() as usize;
 
         if universes.len() < required_universes {
             Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                format!(
-                    "Must provide enough universes to send on, universes provided: {}",
-                    universes.len()
-                ),
+                format!("Must provide enough universes to send on, universes provided: {}", universes.len()),
             ))?;
         }
 
@@ -848,17 +796,12 @@ impl SacnSourceInternal {
     ///                     see (universe_to_ipv4_multicast_addr)[fn.universe_to_ipv4_multicast_addr.packet] and (universe_to_ipv6_multicast_addr)[fn.universe_to_ipv6_multicast_addr.packet].
     ///
     /// Io: Returned if the data fails to be sent on the socket, see send_to(fn.send_to.Socket).
-    ///
-    fn send_universe(
-        &self,
-        universe: u16,
-        data: &[u8],
-        priority: u8,
-        dst_ip: &Option<SocketAddr>,
-        sync_address: u16,
-    ) -> SacnResult<()> {
+    fn send_universe(&self, universe: u16, data: &[u8], priority: u8, dst_ip: &Option<SocketAddr>, sync_address: u16) -> SacnResult<()> {
         if priority > E131_MAX_PRIORITY {
-            Err(Error::InvalidPriority(format!("Priority must be within allowed range of [0-E131_MAX_PRIORITY], priority provided: {}", priority)))?;
+            Err(Error::InvalidPriority(format!(
+                "Priority must be within allowed range of [0-E131_MAX_PRIORITY], priority provided: {}",
+                priority
+            )))?;
         }
 
         if data.len() > UNIVERSE_CHANNEL_CAPACITY {
@@ -939,7 +882,6 @@ impl SacnSourceInternal {
     /// Io: Returned if the packet fails to be sent using the underlying network socket.
     ///
     /// SacnParsePackError: Returned if the sync packet fails to be packed.
-    ///
     fn send_sync_packet(&self, universe: u16, dst_ip: Option<SocketAddr>) -> SacnResult<()> {
         self.universe_allowed(&universe)?;
 
@@ -969,9 +911,7 @@ impl SacnSourceInternal {
                 }),
             },
         };
-        self.socket
-            .send_to(&packet.pack_alloc()?, &ip)
-            .map_err(Error::SendSyncPacket)?;
+        self.socket.send_to(&packet.pack_alloc()?, &ip).map_err(Error::SendSyncPacket)?;
 
         if sequence == 255 {
             sequence = 0;
@@ -997,13 +937,7 @@ impl SacnSourceInternal {
     /// UniverseNotRegistered: Returned if the universe is not registered on the given SacnSourceInternal.
     ///
     /// Io: Returned if the termination packets fail to be sent on the underlying socket.
-    ///
-    fn send_terminate_stream_pkt(
-        &self,
-        universe: u16,
-        dst_ip: Option<SocketAddr>,
-        start_code: u8,
-    ) -> SacnResult<()> {
+    fn send_terminate_stream_pkt(&self, universe: u16, dst_ip: Option<SocketAddr>, start_code: u8) -> SacnResult<()> {
         self.universe_allowed(&universe)?;
 
         let ip = match dst_ip {
@@ -1069,7 +1003,6 @@ impl SacnSourceInternal {
     /// UniverseNotRegistered: Returned if the universe is not registered on this source.
     ///
     /// Io: Returned if the termination packets fail to be sent on the socket.
-    ///
     fn terminate_stream(&mut self, universe: u16, start_code: u8) -> SacnResult<()> {
         for _ in 0..E131_TERMINATE_STREAM_PACKET_COUNT {
             self.send_terminate_stream_pkt(universe, None, start_code)?;
@@ -1088,7 +1021,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors:
     /// Io: Returned if the termination packets fail to be sent on the underlying socket.
-    ///
     fn terminate(&mut self, start_code: u8) -> SacnResult<()> {
         self.running = false;
         let universes = self.universes.clone(); // About to start manipulating self.universes as universes are removed so clone original list.
@@ -1104,7 +1036,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// See (send_universe_discovery_detailed)[fn.send_universe_discovery_detailed.source].
-    ///
     fn send_universe_discovery(&self) -> SacnResult<()> {
         // Given a u16 universe field and self.universes containing no duplicates it means that the maximum total number of universes (65536, ignoring sACN restrictions)
         // divided by the number of universes per page (512) is 128 which therefore fits into the discovery universe 8 bit page field making this cast safe.
@@ -1112,15 +1043,8 @@ impl SacnSourceInternal {
 
         for p in 0..pages_req {
             let start_index = (p as usize) * DISCOVERY_UNI_PER_PAGE;
-            let end_index = min(
-                ((p as usize) + 1) * DISCOVERY_UNI_PER_PAGE,
-                self.universes.len(),
-            );
-            self.send_universe_discovery_detailed(
-                p,
-                pages_req - 1,
-                &self.universes[start_index..end_index],
-            )?;
+            let end_index = min(((p as usize) + 1) * DISCOVERY_UNI_PER_PAGE, self.universes.len());
+            self.send_universe_discovery_detailed(p, pages_req - 1, &self.universes[start_index..end_index])?;
         }
         Ok(())
     }
@@ -1141,30 +1065,22 @@ impl SacnSourceInternal {
     /// Io: Returned if the discovery packet fails to be sent on the socket.
     ///
     /// SacnParsePackError: Returned if the discovery packet cannot be packed to send.
-    ///
-    fn send_universe_discovery_detailed(
-        &self,
-        page: u8,
-        last_page: u8,
-        universes: &[u16],
-    ) -> SacnResult<()> {
+    fn send_universe_discovery_detailed(&self, page: u8, last_page: u8, universes: &[u16]) -> SacnResult<()> {
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
                 cid: self.cid,
-                data: E131RootLayerData::UniverseDiscoveryPacket(
-                    UniverseDiscoveryPacketFramingLayer {
-                        source_name: self.name.as_str().into(),
-                        data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
-                            page,
-                            last_page,
-                            universes: universes.into(),
-                        },
+                data: E131RootLayerData::UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer {
+                    source_name: self.name.as_str().into(),
+                    data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
+                        page,
+                        last_page,
+                        universes: universes.into(),
                     },
-                ),
+                }),
             },
         };
 
-        let ip= if self.addr.is_ipv6() {
+        let ip = if self.addr.is_ipv6() {
             universe_to_ipv6_multicast_addr(E131_DISCOVERY_UNIVERSE)?
         } else {
             universe_to_ipv4_multicast_addr(E131_DISCOVERY_UNIVERSE)?
@@ -1184,7 +1100,6 @@ impl SacnSourceInternal {
     ///
     /// # Arguments
     /// cid: The new CID identifier for this source. It is left to the user to ensure that this is always unique within the network the source is in.
-    ///
     fn set_cid(&mut self, cid: Uuid) {
         self.cid = cid;
     }
@@ -1201,7 +1116,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// MalformedSourceName: Returned to indicate that the given source name is longer than the maximum allowed as per E131_SOURCE_NAME_FIELD_LENGTH.
-    ///
     fn set_name(&mut self, name: &str) -> SacnResult<()> {
         if name.len() > E131_SOURCE_NAME_FIELD_LENGTH {
             Err(Error::MalformedSourceName(
@@ -1223,7 +1137,6 @@ impl SacnSourceInternal {
     /// # Arguments
     /// preview_mode: If true then all data packets from this SacnSourceInternal will have the Preview_Data flag set to true indicating that the data is not
     ///     for live output. If false then the flag will be set to false.
-    ///
     fn set_preview_mode(&mut self, preview_mode: bool) {
         self.preview_data = preview_mode;
     }
@@ -1235,7 +1148,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// Io: Returned if the multicast TTL fails to be set on the underlying socket.
-    ///
     fn set_multicast_ttl(&self, multicast_ttl: u32) -> SacnResult<()> {
         Ok(self.socket.set_multicast_ttl_v4(multicast_ttl)?)
     }
@@ -1244,7 +1156,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// Io: Returned if the TTL cannot be retrieved from the underlying socket.
-    ///
     fn ttl(&self) -> SacnResult<u32> {
         Ok(self.socket.ttl()?)
     }
@@ -1256,13 +1167,11 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// Io: Returned if the TTL fails to be set on the underlying socket.
-    ///
     fn set_ttl(&mut self, ttl: u32) -> SacnResult<()> {
         Ok(self.socket.set_ttl(ttl)?)
     }
 
     /// Returns the multicast time to live of the socket.
-    ///
     fn multicast_ttl(&self) -> SacnResult<u32> {
         Ok(self.socket.multicast_ttl_v4()?)
     }
@@ -1274,7 +1183,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// Io: Returned if the set_multicast_loop option fails to be set on the socket.
-    ///
     fn set_multicast_loop_v4(&self, multicast_loop: bool) -> SacnResult<()> {
         Ok(self.socket.set_multicast_loop_v4(multicast_loop)?)
     }
@@ -1302,18 +1210,13 @@ impl SacnSourceInternal {
 /// # Errors
 /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
 /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-///
-fn unlock_internal(
-    internal: &Arc<Mutex<SacnSourceInternal>>,
-) -> SacnResult<MutexGuard<SacnSourceInternal>> {
+fn unlock_internal(internal: &Arc<Mutex<SacnSourceInternal>>) -> SacnResult<MutexGuard<SacnSourceInternal>> {
     // The PoisonError returned doesn't contain further information and just allows access to the internal potentially inconsistent sender which
     // shouldn't be exposed to the user (as its internal and would have no use).
     // Cannot directly return the PoisonError due to PoisonError using a different error system to other std modules which doesn't work with
     // error_chain.
 
-    internal
-        .lock()
-        .map_err(|_| Error::SourceCorrupt("Mutex poisoned".to_string()))
+    internal.lock().map_err(|_| Error::SourceCorrupt("Mutex poisoned".to_string()))
 }
 
 /// Returns the locked internal SacnSourceInternal used within the SacnSource.
@@ -1328,17 +1231,12 @@ fn unlock_internal(
 /// # Errors
 /// Returns an SourceCorrupt error if the Mutex used to control access to the internal sender is poisoned by a thread encountering
 /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-///
-fn unlock_internal_mut(
-    internal: &mut Arc<Mutex<SacnSourceInternal>>,
-) -> SacnResult<MutexGuard<SacnSourceInternal>> {
+fn unlock_internal_mut(internal: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnResult<MutexGuard<SacnSourceInternal>> {
     // The PoisonError returned doesn't contain further information and just allows access to the internal potentially inconsistent sender which
     // shouldn't be exposed to the user (as its internal and would have no use).
     // Cannot directly return the PoisonError due to PoisonError using a different error system to other std modules which doesn't work with
     // error_chain.
-    internal
-        .lock()
-        .map_err(|_| Error::SourceCorrupt("Mutex poisoned".to_string()))
+    internal.lock().map_err(|_| Error::SourceCorrupt("Mutex poisoned".to_string()))
 }
 
 /// Called periodically by the source update thread.
@@ -1352,12 +1250,10 @@ fn unlock_internal_mut(
 /// Returns a SourceCorrupt error if the internal source mutex has been corrupted, see (unlock_internal)[unlock_internal].
 ///
 /// Returns an error if a discovery packet cannot be sent, see (send_universe_discovery)[fn.send_universe_discovery.source].
-///
 fn perform_periodic_update(src: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnResult<()> {
     let mut unwrap_src = unlock_internal_mut(src)?;
     if unwrap_src.is_sending_discovery
-        && Instant::now().duration_since(unwrap_src.last_discovery_advert_timestamp)
-            > E131_UNIVERSE_DISCOVERY_INTERVAL
+        && Instant::now().duration_since(unwrap_src.last_discovery_advert_timestamp) > E131_UNIVERSE_DISCOVERY_INTERVAL
     {
         unwrap_src.send_universe_discovery()?;
         unwrap_src.last_discovery_advert_timestamp = Instant::now();

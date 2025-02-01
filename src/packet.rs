@@ -52,27 +52,26 @@
 //! # }}
 //! ```
 
-/// Uses the sACN error-chain errors.
-use crate::error::Error;
-use crate::sacn_parse_pack_error::ParsePackError;
-use crate::SacnResult;
-
 /// The core crate is used for string processing during packet parsing/packing as well as to provide access to the Hash trait.
 use core::hash::{self, Hash};
 use core::str;
-
-use std::borrow::Cow;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::vec::Vec;
-use std::{time, time::Duration};
-
-use socket2::SockAddr;
+use std::{
+    borrow::Cow,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    time,
+    time::Duration,
+    vec::Vec,
+};
 
 /// The byteorder crate is used for marshalling data on/off the network in Network Byte Order.
 use byteorder::{ByteOrder, NetworkEndian};
-
+use socket2::SockAddr;
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
 use uuid::Uuid;
+
+/// Uses the sACN error-chain errors.
+use crate::error::Error;
+use crate::{sacn_parse_pack_error::ParsePackError, SacnResult};
 
 /// The maximum number of universes per page in a universe discovery packet.
 pub const DISCOVERY_UNI_PER_PAGE: usize = 512;
@@ -327,7 +326,6 @@ pub const UNIVERSE_DISCOVERY_SOURCE_TIMEOUT: Duration = E131_NETWORK_DATA_LOSS_T
 /// # Errors
 /// IllegalUniverse: Returned if the given universe is outwith the allowed range of universes,
 ///     see (is_universe_in_range)[fn.is_universe_in_range.packet].
-///
 pub fn universe_to_ipv4_multicast_addr(universe: u16) -> SacnResult<SockAddr> {
     is_universe_in_range(universe)?;
 
@@ -335,11 +333,7 @@ pub fn universe_to_ipv4_multicast_addr(universe: u16) -> SacnResult<SockAddr> {
     let low_byte: u8 = (universe & 0xff) as u8;
 
     // As per ANSI E1.31-2018 Section 9.3.1 Table 9-10.
-    Ok(SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(239, 255, high_byte, low_byte)),
-        ACN_SDT_MULTICAST_PORT,
-    )
-    .into())
+    Ok(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(239, 255, high_byte, low_byte)), ACN_SDT_MULTICAST_PORT).into())
 }
 
 /// Converts the given ANSI E1.31-2018 universe into an Ipv6 multicast address with the port set to the acn multicast port as defined
@@ -352,7 +346,6 @@ pub fn universe_to_ipv4_multicast_addr(universe: u16) -> SacnResult<SockAddr> {
 /// # Errors
 /// IllegalUniverse: Returned if the given universe is outwith the allowed range of universes,
 ///     see (is_universe_in_range)[fn.is_universe_in_range.packet].
-///
 pub fn universe_to_ipv6_multicast_addr(universe: u16) -> SacnResult<SockAddr> {
     is_universe_in_range(universe)?;
 
@@ -367,13 +360,9 @@ pub fn universe_to_ipv6_multicast_addr(universe: u16) -> SacnResult<SockAddr> {
 /// Checks if the given universe is a valid universe to send on (within allowed range).
 ///
 /// # Errors
-/// IllegalUniverse: Returned if the universe is outwith the allowed range of universes
-///     [E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE] + E131_DISCOVERY_UNIVERSE.
-///
+/// IllegalUniverse: Returned if the universe is outwith the allowed range of universes.
 pub fn is_universe_in_range(universe: u16) -> SacnResult<()> {
-    if (universe != E131_DISCOVERY_UNIVERSE)
-        && !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe)
-    {
+    if (universe != E131_DISCOVERY_UNIVERSE) && !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&universe) {
         Err(Error::IllegalUniverse(universe))
     } else {
         Ok(())
@@ -395,7 +384,6 @@ fn zeros(buf: &mut [u8], n: usize) {
 ///
 /// # Errors
 /// SourceNameInvalid: Returned if the source name is not null terminated as required by ANSI E1.31-2018 Section 6.2.2
-///
 #[inline]
 fn parse_source_name_str(buf: &[u8]) -> SacnResult<&str> {
     let mut source_name_length = buf.len();
@@ -407,9 +395,9 @@ fn parse_source_name_str(buf: &[u8]) -> SacnResult<&str> {
     }
 
     if source_name_length == buf.len() && buf[buf.len() - 1] != 0 {
-        Err(Error::SacnParsePackError(
-            ParsePackError::SourceNameInvalid("Packet source name not null terminated".to_string()),
-        ))?;
+        Err(Error::SacnParsePackError(ParsePackError::SourceNameInvalid(
+            "Packet source name not null terminated".to_string(),
+        )))?;
     }
 
     Ok(str::from_utf8(&buf[..source_name_length])?)
@@ -526,29 +514,23 @@ struct PduInfo {
 /// ParseInsufficientData: If the length of the buffer is less than the flag, length and vector fields (E131_PDU_LENGTH_FLAGS_LENGTH + vector_length).
 ///
 /// ParsePduInvalidFlags: If the flags parsed don't match the flags expected for an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
-///
 fn pdu_info(buf: &[u8], vector_length: usize) -> SacnResult<PduInfo> {
     if buf.len() < E131_PDU_LENGTH_FLAGS_LENGTH + vector_length {
-        Err(Error::SacnParsePackError(
-            ParsePackError::ParseInsufficientData(
-                "Insufficient data when parsing pdu_info, no flags or length field".to_string(),
-            ),
-        ))?;
+        Err(Error::SacnParsePackError(ParsePackError::ParseInsufficientData(
+            "Insufficient data when parsing pdu_info, no flags or length field".to_string(),
+        )))?;
     }
 
     // Flags
     let flags = buf[0] & 0xf0; // Flags are stored in the top 4 bits.
     if flags != E131_PDU_FLAGS {
-        Err(Error::SacnParsePackError(
-            ParsePackError::ParsePduInvalidFlags(flags),
-        ))?;
+        Err(Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(flags)))?;
     }
     // Length
     let length = (NetworkEndian::read_u16(&buf[0..E131_PDU_LENGTH_FLAGS_LENGTH]) & 0x0fff) as usize;
 
     // Vector
-    let vector =
-        NetworkEndian::read_uint(&buf[E131_PDU_LENGTH_FLAGS_LENGTH..], vector_length) as u32;
+    let vector = NetworkEndian::read_uint(&buf[E131_PDU_LENGTH_FLAGS_LENGTH..], vector_length) as u32;
 
     Ok(PduInfo { length, vector })
 }
@@ -1075,7 +1057,8 @@ pub struct SynchronizationPacketFramingLayer {
 // Theses indexes are only valid within the scope of this part of the protocol (SynchronisationPacketFramingLayer).
 const E131_SYNC_FRAMING_LAYER_VECTOR_FIELD_INDEX: usize = E131_PDU_LENGTH_FLAGS_LENGTH;
 const E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_INDEX: usize = E131_SYNC_FRAMING_LAYER_VECTOR_FIELD_INDEX + E131_FRAMING_LAYER_VECTOR_LENGTH;
-const E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX: usize = E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_INDEX + E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_LENGTH;
+const E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX: usize =
+    E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_INDEX + E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_LENGTH;
 const E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX: usize = E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX + E131_SYNC_ADDR_FIELD_LENGTH;
 const E131_SYNC_FRAMING_LAYER_END_INDEX: usize = E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX + E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_LENGTH;
 
@@ -1084,41 +1067,34 @@ impl Pdu for SynchronizationPacketFramingLayer {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
-            Err(Error::SacnParsePackError(ParsePackError::ParseInsufficientData("Buffer contains insufficient data based on synchronisation packet framing layer pdu length field".to_string())))?;
+            Err(Error::SacnParsePackError(ParsePackError::ParseInsufficientData(
+                "Buffer contains insufficient data based on synchronisation packet framing layer pdu length field".to_string(),
+            )))?;
         }
 
         if vector != VECTOR_E131_EXTENDED_SYNCHRONIZATION {
-            Err(Error::SacnParsePackError(ParsePackError::PduInvalidVector(
-                vector,
-            )))?;
+            Err(Error::SacnParsePackError(ParsePackError::PduInvalidVector(vector)))?;
         }
 
         if length != E131_UNIVERSE_SYNC_PACKET_FRAMING_LAYER_LENGTH {
-            Err(Error::SacnParsePackError(ParsePackError::PduInvalidLength(
-                length,
-            )))?;
+            Err(Error::SacnParsePackError(ParsePackError::PduInvalidLength(length)))?;
         }
 
         // Sequence Number
         let sequence_number = buf[E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_INDEX];
 
         // Synchronization Address
-        let synchronization_address = NetworkEndian::read_u16(
-            &buf[E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX
-                ..E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX],
-        );
+        let synchronization_address =
+            NetworkEndian::read_u16(&buf[E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX..E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX]);
 
-        if !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&synchronization_address)
-        {
-            Err(Error::SacnParsePackError(
-                ParsePackError::ParseInvalidUniverse(
-                    format!(
-                        "Synchronisation address value: {} is outwith the allowed range",
-                        synchronization_address
-                    )
-                    .to_string(),
-                ),
-            ))?;
+        if !(E131_MIN_MULTICAST_UNIVERSE..=E131_MAX_MULTICAST_UNIVERSE).contains(&synchronization_address) {
+            Err(Error::SacnParsePackError(ParsePackError::ParseInvalidUniverse(
+                format!(
+                    "Synchronisation address value: {} is outwith the allowed range",
+                    synchronization_address
+                )
+                .to_string(),
+            )))?;
         }
 
         // Reserved fields (2 bytes right immediately after the synchronisation address) should be ignored by receivers as per
@@ -1132,22 +1108,18 @@ impl Pdu for SynchronizationPacketFramingLayer {
 
     fn pack(&self, buf: &mut [u8]) -> SacnResult<()> {
         if buf.len() < self.len() {
-            Err(Error::SacnParsePackError(
-                ParsePackError::PackBufferInsufficient(
-                    "SynchronizationPacketFramingLayer pack buffer length insufficient".to_string(),
-                ),
-            ))?;
+            Err(Error::SacnParsePackError(ParsePackError::PackBufferInsufficient(
+                "SynchronizationPacketFramingLayer pack buffer length insufficient".to_string(),
+            )))?;
         }
 
         // Flags and Length
-        let flags_and_length =
-            NetworkEndian::read_u16(&[E131_PDU_FLAGS, 0x0]) | (self.len() as u16) & 0x0fff;
+        let flags_and_length = NetworkEndian::read_u16(&[E131_PDU_FLAGS, 0x0]) | (self.len() as u16) & 0x0fff;
         NetworkEndian::write_u16(&mut buf[0..E131_PDU_LENGTH_FLAGS_LENGTH], flags_and_length);
 
         // Vector
         NetworkEndian::write_u32(
-            &mut buf[E131_SYNC_FRAMING_LAYER_VECTOR_FIELD_INDEX
-                ..E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_INDEX],
+            &mut buf[E131_SYNC_FRAMING_LAYER_VECTOR_FIELD_INDEX..E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_INDEX],
             VECTOR_E131_EXTENDED_SYNCHRONIZATION,
         );
 
@@ -1156,15 +1128,13 @@ impl Pdu for SynchronizationPacketFramingLayer {
 
         // Synchronization Address
         NetworkEndian::write_u16(
-            &mut buf[E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX
-                ..E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX],
+            &mut buf[E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX..E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX],
             self.synchronization_address,
         );
 
         // Reserved, transmitted as zeros as per ANSI E1.31-2018 Section 6.3.4.
         zeros(
-            &mut buf
-                [E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX..E131_SYNC_FRAMING_LAYER_END_INDEX],
+            &mut buf[E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX..E131_SYNC_FRAMING_LAYER_END_INDEX],
             E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_LENGTH,
         );
 
@@ -1443,7 +1413,6 @@ macro_rules! impl_universe_discovery_packet_universe_discovery_layer {
 /// ParseInvalidUniverseOrder: If the universes are not sorted in ascending order with no duplicates.
 ///
 /// ParseInsufficientData: If the buffer doesn't contain sufficient bytes and so cannot be parsed into the specified number of u16 universes.
-///
 fn parse_universe_list<'a>(buf: &[u8], length: usize) -> SacnResult<Cow<'a, [u16]>> {
     let mut universes: Vec<u16> = Vec::with_capacity(length);
     let mut i = 0;
@@ -1454,9 +1423,14 @@ fn parse_universe_list<'a>(buf: &[u8], length: usize) -> SacnResult<Cow<'a, [u16
     let mut last_universe: i32 = -1;
 
     if buf.len() < length * E131_UNIVERSE_FIELD_LENGTH {
-        Err(Error::SacnParsePackError(
-            ParsePackError::ParseInsufficientData(
-                format!("The given buffer of length {} bytes cannot be parsed into the given number of universes {}", buf.len(), length).to_string())))?;
+        Err(Error::SacnParsePackError(ParsePackError::ParseInsufficientData(
+            format!(
+                "The given buffer of length {} bytes cannot be parsed into the given number of universes {}",
+                buf.len(),
+                length
+            )
+            .to_string(),
+        )))?;
     }
 
     while i < (length * E131_UNIVERSE_FIELD_LENGTH) {
@@ -1468,9 +1442,13 @@ fn parse_universe_list<'a>(buf: &[u8], length: usize) -> SacnResult<Cow<'a, [u16
             last_universe = u as i32;
             i += E131_UNIVERSE_FIELD_LENGTH; // Jump to the next universe.
         } else {
-            Err(Error::SacnParsePackError(
-                ParsePackError::ParseInvalidUniverseOrder(
-                    format!("Universe {} is out of order, discovery packet universe list must be in accending order!", u).to_string())))?;
+            Err(Error::SacnParsePackError(ParsePackError::ParseInvalidUniverseOrder(
+                format!(
+                    "Universe {} is out of order, discovery packet universe list must be in accending order!",
+                    u
+                )
+                .to_string(),
+            )))?;
         }
     }
 
@@ -1481,8 +1459,9 @@ impl_universe_discovery_packet_universe_discovery_layer!(<'a>);
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
+
+    use super::*;
 
     /// The universe_to tests below check that the conversion from a universe to an IPv6 or IPv4 multicast address is done as
     /// per ANSI E1.31-2018 Section 9.3.1 Table 9-10 (IPv4) and ANSI E1.31-2018 Section 9.3.2 Table 9-11 + Table 9-12.
@@ -1586,12 +1565,7 @@ mod test {
 
         assert_eq!(
             res.as_inet6().unwrap(),
-            SocketAddrV6::new(
-                Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16),
-                ACN_SDT_MULTICAST_PORT,
-                0,
-                0
-            )
+            SocketAddrV6::new(Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16), ACN_SDT_MULTICAST_PORT, 0, 0)
         );
     }
 
@@ -1606,12 +1580,7 @@ mod test {
 
         assert_eq!(
             res.as_inet6().unwrap(),
-            SocketAddrV6::new(
-                Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16),
-                ACN_SDT_MULTICAST_PORT,
-                0,
-                0
-            )
+            SocketAddrV6::new(Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16), ACN_SDT_MULTICAST_PORT, 0, 0)
         );
     }
 
@@ -1621,17 +1590,11 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 =
-            ((E131_MAX_MULTICAST_UNIVERSE / 256) << 8) | (E131_MAX_MULTICAST_UNIVERSE % 256);
+        let low_16: u16 = ((E131_MAX_MULTICAST_UNIVERSE / 256) << 8) | (E131_MAX_MULTICAST_UNIVERSE % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
-            SocketAddrV6::new(
-                Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16),
-                ACN_SDT_MULTICAST_PORT,
-                0,
-                0
-            )
+            SocketAddrV6::new(Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16), ACN_SDT_MULTICAST_PORT, 0, 0)
         );
     }
 
@@ -1641,17 +1604,11 @@ mod test {
 
         assert!(res.as_inet6().unwrap().ip().is_multicast());
 
-        let low_16: u16 =
-            ((E131_MIN_MULTICAST_UNIVERSE / 256) << 8) | (E131_MIN_MULTICAST_UNIVERSE % 256);
+        let low_16: u16 = ((E131_MIN_MULTICAST_UNIVERSE / 256) << 8) | (E131_MIN_MULTICAST_UNIVERSE % 256);
 
         assert_eq!(
             res.as_inet6().unwrap(),
-            SocketAddrV6::new(
-                Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16),
-                ACN_SDT_MULTICAST_PORT,
-                0,
-                0
-            )
+            SocketAddrV6::new(Ipv6Addr::new(0xFF18, 0, 0, 0, 0, 0, 0x8300, low_16), ACN_SDT_MULTICAST_PORT, 0, 0)
         );
     }
 

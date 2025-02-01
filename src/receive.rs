@@ -17,41 +17,38 @@
 // received, if a discovery packet is received but there are more pages the source won't be discovered until all the pages are received.
 // If a page is lost this therefore means the source update / discovery in its entirety will be lost - implementation detail.
 
-/// Socket 2 used for the underlying UDP socket that sACN is sent over.
-use socket2::{Domain, Protocol, SockAddr, Socket, Type};
-
-use crate::packet::{
-    is_universe_in_range, universe_to_ipv4_multicast_addr, universe_to_ipv6_multicast_addr,
-    AcnRootLayerProtocol, DataPacketFramingLayer, E131RootLayer, E131RootLayerData,
-    SynchronizationPacketFramingLayer, UniverseDiscoveryPacketFramingLayer,
-    UniverseDiscoveryPacketUniverseDiscoveryLayer, E131_DISCOVERY_UNIVERSE,
-    E131_NETWORK_DATA_LOSS_TIMEOUT, E131_NO_SYNC_ADDR, E131_SEQ_DIFF_DISCARD_LOWER_BOUND,
-    E131_SEQ_DIFF_DISCARD_UPPER_BOUND, UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
-};
-
-/// Same reasoning as for packet meaning all sacn errors are imported.
-use crate::error::Error;
-
-/// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
-/// This is used for uniquely identifying sources when counting sequence numbers.
-use uuid::Uuid;
-
-use std::borrow::Cow;
-use std::cmp::{max, Ordering};
-use std::collections::HashMap;
-use std::fmt;
-use std::net::{Ipv4Addr, SocketAddr};
-use std::time::{Duration, Instant};
-
 /// Extra net imports required for the IPv6 handling on the linux side.
 #[cfg(not(target_os = "windows"))]
 use std::net::{IpAddr, Ipv6Addr};
+use std::{
+    borrow::Cow,
+    cmp::{max, Ordering},
+    collections::HashMap,
+    fmt,
+    net::{Ipv4Addr, SocketAddr},
+    time::{Duration, Instant},
+};
 
 /// Constants required to detect if an IP is IPv4 or IPv6.
 #[cfg(not(target_os = "windows"))]
 use libc::{AF_INET, AF_INET6};
+/// Socket 2 used for the underlying UDP socket that sACN is sent over.
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+/// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
+/// This is used for uniquely identifying sources when counting sequence numbers.
+use uuid::Uuid;
 
-use crate::SacnResult;
+/// Same reasoning as for packet meaning all sacn errors are imported.
+use crate::error::Error;
+use crate::{
+    packet::{
+        is_universe_in_range, universe_to_ipv4_multicast_addr, universe_to_ipv6_multicast_addr, AcnRootLayerProtocol,
+        DataPacketFramingLayer, E131RootLayer, E131RootLayerData, SynchronizationPacketFramingLayer, UniverseDiscoveryPacketFramingLayer,
+        UniverseDiscoveryPacketUniverseDiscoveryLayer, E131_DISCOVERY_UNIVERSE, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_NO_SYNC_ADDR,
+        E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND, UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
+    },
+    SacnResult,
+};
 
 /// The libc constants required are not available on many windows environments and therefore are hard-coded.
 /// Defined as per https://docs.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-socket
@@ -83,13 +80,11 @@ const ANNOUNCE_SOURCE_DISCOVERY_DEFAULT: bool = false;
 const ANNOUNCE_STREAM_TERMINATION_DEFAULT: bool = false;
 
 /// The default value of the announce_timeout flag.
-///
 const ANNOUNCE_TIMEOUT_DEFAULT: bool = false;
 
 /// The sequence number assigned by the receiver to a new source before it has processed the sequence numbers of any data from that source.
 ///
 /// This should be set to the value before the initial expected sequence number from a source. Can't do this using underflow as forbidden in Rust.
-///
 const INITIAL_SEQUENCE_NUMBER: u8 = 255;
 
 /// If a packet for a universe is waiting to be synchronised and then another packet is received with the same universe and synchronisation address
@@ -98,9 +93,7 @@ const INITIAL_SEQUENCE_NUMBER: u8 = 255;
 ///
 /// This can be changed by providing a new function to handle the situation of the user implementing a custom merge/arbitration algorithm as per
 /// ANSI E1.31-2018 Section 6.2.3.2.
-///
-const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> SacnResult<DMXData> =
-    discard_lowest_priority_then_previous;
+const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> SacnResult<DMXData> = discard_lowest_priority_then_previous;
 
 /// Holds a universes worth of DMX data.
 #[derive(Debug)]
@@ -245,7 +238,6 @@ struct SacnNetworkReceiver {
 ///
 /// The concept of pages is intentionally hidden from the end-user of the library as they are a way of fragmenting large discovery
 /// universe lists so that they can work over the network and don't play any part out-side of the protocol.
-///
 #[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Debug)]
 struct UniversePage {
     /// The page number of this page.
@@ -296,11 +288,13 @@ impl SacnReceiver {
     ///
     /// Will return an error if the created SacnReceiver fails to listen to the E1.31_DISCOVERY_UNIVERSE.
     /// For more details see SacnReceiver::listen_universes().
-    ///
     pub fn with_ip(ip: SocketAddr, source_limit: Option<usize>) -> SacnResult<SacnReceiver> {
         if let Some(x) = source_limit {
             if x == 0 {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Source_limit has a value of Some(0) which would indicate this receiver can never receive from any source"))?;
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Source_limit has a value of Some(0) which would indicate this receiver can never receive from any source",
+                ))?;
             }
         }
         let mut sri = SacnReceiver {
@@ -335,7 +329,6 @@ impl SacnReceiver {
     /// # Errors
     /// Will return an OsOperationUnsupported error if attempting to set the flag to true in an environment that multicast
     /// isn't supported i.e. Ipv6 on Windows.
-    ///
     pub fn set_is_multicast_enabled(&mut self, val: bool) -> SacnResult<()> {
         self.receiver.set_is_multicast_enabled(val)
     }
@@ -343,7 +336,6 @@ impl SacnReceiver {
     /// Returns true if multicast is enabled on this receiver and false if not.
     /// This flag is set when the receiver is created as not all environments currently support IP multicast.
     /// E.g. IPv6 Windows IP Multicast is currently unsupported.
-    ///
     pub fn is_multicast_enabled(&self) -> bool {
         self.receiver.is_multicast_enabled()
     }
@@ -352,7 +344,6 @@ impl SacnReceiver {
     /// This is one way to handle a sources exceeded condition.
     ///
     /// If you want to wipe data awaiting synchronisation then see (clear_all_waiting_data)[clear_all_waiting_data].
-    ///
     pub fn reset_sources(&mut self) {
         self.sequences.clear();
         self.partially_discovered_sources.clear();
@@ -365,7 +356,6 @@ impl SacnReceiver {
     /// and discovered sources see (reset_sources)[reset_sources].
     ///
     /// To clear only a specific universe of waiting data see (clear_waiting_data)[clear_waiting_data].
-    ///
     pub fn clear_all_waiting_data(&mut self) {
         self.waiting_data.clear();
     }
@@ -376,7 +366,6 @@ impl SacnReceiver {
     ///
     /// # Arguments
     /// universe: The universe that the data that is waiting was sent to.
-    ///
     pub fn clear_waiting_data(&mut self, universe: u16) -> bool {
         self.waiting_data.remove(&universe).is_some()
     }
@@ -391,11 +380,7 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// func: The merge function to use. Should take 2 DMXData references as arguments and return a Result<DMXData>.
-    ///
-    pub fn set_merge_fn(
-        &mut self,
-        func: fn(&DMXData, &DMXData) -> SacnResult<DMXData>,
-    ) -> SacnResult<()> {
+    pub fn set_merge_fn(&mut self, func: fn(&DMXData, &DMXData) -> SacnResult<DMXData>) -> SacnResult<()> {
         self.merge_func = func;
         Ok(())
     }
@@ -415,9 +400,6 @@ impl SacnReceiver {
     /// # Errors
     /// Returns an Error::IllegalUniverse error if the given universe is outwith the allowed range of universes,
     /// see (is_universe_in_range)[fn.is_universe_in_range.packet].
-    ///
-    ///
-    ///
     pub fn listen_universes(&mut self, universes: &[u16]) -> SacnResult<()> {
         for u in universes {
             is_universe_in_range(*u)?;
@@ -446,7 +428,6 @@ impl SacnReceiver {
     /// see (is_universe_in_range)[fn.is_universe_in_range.packet].
     ///
     /// Returns UniverseNotFound if the given universe wasn't already being listened to.
-    ///
     pub fn mute_universe(&mut self, universe: u16) -> SacnResult<()> {
         is_universe_in_range(universe)?;
 
@@ -454,8 +435,7 @@ impl SacnReceiver {
             Err(_) => {
                 // Universe isn't found.
                 Err(Error::UniverseNotFound(
-                    "Attempted to mute a universe that wasn't already being listened to"
-                        .to_string(),
+                    "Attempted to mute a universe that wasn't already being listened to".to_string(),
                 ))?
             }
             Ok(i) => {
@@ -517,17 +497,16 @@ impl SacnReceiver {
     /// specified by E131_NETWORK_DATA_LOSS_TIMEOUT (ANSI E1.31-2018 Appendix A).  This may not be detected immediately unless data is received for the timed-out
     /// universe from the source. If it isn't detected immediately it will be detected within an interval of E131_NETWORK_DATA_LOSS_TIMEOUT (assuming code
     /// executes in zero time).
-    ///
     pub fn recv(&mut self, timeout: Option<Duration>) -> SacnResult<Vec<DMXData>> {
-        if self.universes.len() == 1
-            && self.universes[0] == E131_DISCOVERY_UNIVERSE
-            && timeout.is_none()
-            && !self.announce_source_discovery
+        if self.universes.len() == 1 && self.universes[0] == E131_DISCOVERY_UNIVERSE && timeout.is_none() && !self.announce_source_discovery
         {
             // This indicates that the only universe that can be received is the discovery universe.
             // This means that having no timeout may lead to no data ever being received and so this method blocking forever
             // to prevent this likely unintended behaviour throw a universe not registered error.
-            return Err(Error::UniverseNotRegistered("Attempting to receive data with no data universes registered, an infinite timeout and no discovery announcements".to_string()));
+            return Err(Error::UniverseNotRegistered(
+                "Attempting to receive data with no data universes registered, an infinite timeout and no discovery announcements"
+                    .to_string(),
+            ));
         }
 
         self.sequences.check_timeouts(self.announce_timeout)?;
@@ -551,12 +530,11 @@ impl SacnReceiver {
         // Forces the actual timeout used for receiving from the underlying network to never exceed E131_NETWORK_DATA_LOSS_TIMEOUT.
         // This means that the timeouts for the sequence numbers will be checked at least every E131_NETWORK_DATA_LOSS_TIMEOUT even if
         // recv is called with a longer timeout.
-        let actual_timeout =
-            if timeout.is_some() && timeout.unwrap() < E131_NETWORK_DATA_LOSS_TIMEOUT {
-                timeout
-            } else {
-                Some(E131_NETWORK_DATA_LOSS_TIMEOUT)
-            };
+        let actual_timeout = if timeout.is_some() && timeout.unwrap() < E131_NETWORK_DATA_LOSS_TIMEOUT {
+            timeout
+        } else {
+            Some(E131_NETWORK_DATA_LOSS_TIMEOUT)
+        };
 
         self.receiver
             .set_timeout(actual_timeout)
@@ -570,12 +548,9 @@ impl SacnReceiver {
                 let data: E131RootLayerData = pdu.data;
                 let res = match data {
                     E131RootLayerData::DataPacket(d) => self.handle_data_packet(pdu.cid, d)?,
-                    E131RootLayerData::SynchronizationPacket(s) => {
-                        self.handle_sync_packet(pdu.cid, s)?
-                    }
+                    E131RootLayerData::SynchronizationPacket(s) => self.handle_sync_packet(pdu.cid, s)?,
                     E131RootLayerData::UniverseDiscoveryPacket(u) => {
-                        let discovered_src: Option<String> =
-                            self.handle_universe_discovery_packet(u);
+                        let discovered_src: Option<String> = self.handle_universe_discovery_packet(u);
                         if discovered_src.is_some() && self.announce_source_discovery {
                             return Err(Error::SourceDiscovered(discovered_src.unwrap()));
                         } else {
@@ -684,7 +659,6 @@ impl SacnReceiver {
     ///
     /// # Arguments:
     /// new_val: The new value for the announce_source_discovery flag.
-    ///
     pub fn set_announce_source_discovery(&mut self, new_val: bool) {
         self.announce_source_discovery = new_val;
     }
@@ -704,7 +678,6 @@ impl SacnReceiver {
     ///
     /// # Arguments:
     /// new_val: The new value for the announce_timeout flag.
-    ///
     pub fn set_announce_timeout(&mut self, new_val: bool) {
         self.announce_timeout = new_val;
     }
@@ -720,7 +693,6 @@ impl SacnReceiver {
     /// By default this flag is false. This indicates that if a source sends a stream termination packet it will be handled silently by the receiver.
     /// If set to true then a UniverseTermination error will be thrown when attempting to receive if a termination packet is received as per
     /// ANSI E1.31-2018 Section 6.2.6.
-    ///
     pub fn set_announce_stream_termination(&mut self, new_val: bool) {
         self.announce_stream_termination = new_val;
     }
@@ -743,12 +715,7 @@ impl SacnReceiver {
     /// sending on that universe and the announce_stream_termination_flag is set to true.
     ///
     /// Will return an DmxMergeError if there is an issue merging or replacing new and existing waiting data.
-    ///
-    fn handle_data_packet(
-        &mut self,
-        cid: Uuid,
-        data_pkt: DataPacketFramingLayer,
-    ) -> SacnResult<Option<Vec<DMXData>>> {
+    fn handle_data_packet(&mut self, cid: Uuid, data_pkt: DataPacketFramingLayer) -> SacnResult<Option<Vec<DMXData>>> {
         if data_pkt.preview_data && !self.process_preview_data {
             // Don't process preview data unless receiver has process_preview_data flag set.
             return Ok(None);
@@ -835,14 +802,12 @@ impl SacnReceiver {
     /// source_name: The human readable name of the sACN source to remove the universe from.
     ///
     /// universe:    The sACN universe to remove.
-    ///
     fn terminate_stream(&mut self, src_cid: Uuid, source_name: &Cow<'_, str>, universe: u16) {
         // Will only return an error if the source/universe wasn't found which is acceptable because as it
         // comes to the same result.
         let _ = self.sequences.remove_seq_numbers(src_cid, universe);
 
-        if let Some(index) = find_discovered_src(&self.discovered_sources, &source_name.to_string())
-        {
+        if let Some(index) = find_discovered_src(&self.discovered_sources, &source_name.to_string()) {
             self.discovered_sources[index].terminate_universe(universe);
         } else {
             // As with sequence numbers the source might not be found which is acceptable.
@@ -859,12 +824,10 @@ impl SacnReceiver {
     ///
     /// # Errors
     /// Will return an DmxMergeError if there is an issue merging or replacing new and existing waiting data.
-    ///
     fn store_waiting_data(&mut self, data: DMXData) -> SacnResult<()> {
         match self.waiting_data.remove(&data.universe) {
             Some(existing) => {
-                self.waiting_data
-                    .insert(data.universe, ((self.merge_func)(&existing, &data))?);
+                self.waiting_data.insert(data.universe, ((self.merge_func)(&existing, &data))?);
             }
             None => {
                 self.waiting_data.insert(data.universe, data);
@@ -893,12 +856,7 @@ impl SacnReceiver {
     /// # Errors
     /// Returns an OutOfSequence error if a packet is received out of order as detected by the different between
     /// the packets sequence number and the expected sequence number as specified in ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
-    ///
-    fn handle_sync_packet(
-        &mut self,
-        cid: Uuid,
-        sync_pkt: SynchronizationPacketFramingLayer,
-    ) -> SacnResult<Option<Vec<DMXData>>> {
+    fn handle_sync_packet(&mut self, cid: Uuid, sync_pkt: SynchronizationPacketFramingLayer) -> SacnResult<Option<Vec<DMXData>>> {
         if !self.is_listening(&sync_pkt.synchronization_address) {
             return Ok(None); // If not listening for this universe then ignore the packet.
         }
@@ -924,7 +882,6 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// sync_uni: The synchronisation universe of the data that should be retrieved.
-    ///
     fn rtrv_waiting_data(&mut self, sync_uni: u16) -> Vec<DMXData> {
         // Get the universes (used as keys) to remove and then move the corresponding data out of the waiting data and into the result.
         // This prevents having to copy DMXData.
@@ -969,11 +926,7 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// discovery_pkt: The universe discovery part of the universe discovery packet to handle.
-    ///
-    fn handle_universe_discovery_packet(
-        &mut self,
-        discovery_pkt: UniverseDiscoveryPacketFramingLayer,
-    ) -> Option<String> {
+    fn handle_universe_discovery_packet(&mut self, discovery_pkt: UniverseDiscoveryPacketFramingLayer) -> Option<String> {
         let data: UniverseDiscoveryPacketUniverseDiscoveryLayer = discovery_pkt.data;
 
         let page: u8 = data.page;
@@ -987,19 +940,13 @@ impl SacnReceiver {
         };
 
         // See if some pages that belong to the source that this page belongs to have already been received.
-        match find_discovered_src(
-            &self.partially_discovered_sources,
-            &discovery_pkt.source_name.to_string(),
-        ) {
+        match find_discovered_src(&self.partially_discovered_sources, &discovery_pkt.source_name.to_string()) {
             Some(index) => {
                 // Some pages have already been received from this source.
-                self.partially_discovered_sources[index]
-                    .pages
-                    .push(uni_page);
+                self.partially_discovered_sources[index].pages.push(uni_page);
                 self.partially_discovered_sources[index].last_updated = Instant::now();
                 if self.partially_discovered_sources[index].has_all_pages() {
-                    let discovered_src: DiscoveredSacnSource =
-                        self.partially_discovered_sources.remove(index);
+                    let discovered_src: DiscoveredSacnSource = self.partially_discovered_sources.remove(index);
                     self.update_discovered_srcs(discovered_src);
                     return Some(discovery_pkt.source_name.to_string());
                 }
@@ -1058,7 +1005,7 @@ impl Drop for SacnReceiver {
             // The error is therefore ignored as it can't be fixed eitherway as the SacnReceiver has gone out of scope and won't lead to memory un-safety.
             match self.mute_universe(u) {
                 Ok(_) => {}
-                Err(_e) => { /* Ignored */ }
+                Err(_e) => {}
             }
         }
     }
@@ -1070,7 +1017,6 @@ impl Drop for SacnReceiver {
 /// Arguments:
 /// srcs: The Vec of DiscoveredSacnSources to search.
 /// name: The human readable name of the source to find.
-///
 fn find_discovered_src(srcs: &[DiscoveredSacnSource], name: &String) -> Option<usize> {
     srcs.iter().position(|source| source.name == *name)
 }
@@ -1088,7 +1034,6 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an error if the SacnReceiver fails to bind to a socket with the given ip.
     /// For more details see socket2::Socket::new().
-    ///
     fn new(ip: SocketAddr) -> SacnResult<SacnNetworkReceiver> {
         Ok(SacnNetworkReceiver {
             socket: create_win_socket(ip)?,
@@ -1104,7 +1049,6 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
-    ///
     fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
             universe_to_ipv4_multicast_addr(universe)?
@@ -1120,7 +1064,6 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    ///
     fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
             universe_to_ipv4_multicast_addr(universe)?
@@ -1164,9 +1107,7 @@ impl SacnNetworkReceiver {
     /// This will return an error if the SacnReceiver wasn't created using an IPv6 address to bind to.
     fn set_only_v6(&mut self, val: bool) -> SacnResult<()> {
         if self.addr.is_ipv4() {
-            Err(Error::IpVersionError(
-                "No data available in given timeout".to_string(),
-            ))
+            Err(Error::IpVersionError("No data available in given timeout".to_string()))
         } else {
             Ok(self.socket.set_only_v6(val)?)
         }
@@ -1191,11 +1132,7 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    ///
-    fn recv<'a>(
-        &self,
-        buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE],
-    ) -> SacnResult<AcnRootLayerProtocol<'a>> {
+    fn recv<'a>(&self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
         self.socket.recv(&mut buf[0..])?;
 
         Ok(AcnRootLayerProtocol::parse(buf)?)
@@ -1208,7 +1145,6 @@ impl SacnNetworkReceiver {
     ///
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
-    ///
     fn set_timeout(&mut self, timeout: Option<Duration>) -> SacnResult<()> {
         Ok(self.socket.set_read_timeout(timeout)?)
     }
@@ -1231,7 +1167,6 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Io error if the SacnReceiver fails to bind to a socket with the given ip.
     /// For more details see socket2::Socket::new().
-    ///
     fn new(ip: SocketAddr) -> SacnResult<SacnNetworkReceiver> {
         Ok(SacnNetworkReceiver {
             socket: create_unix_socket(ip)?,
@@ -1247,7 +1182,6 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
-    ///
     fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
             universe_to_ipv4_multicast_addr(universe)?
@@ -1263,7 +1197,6 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    ///
     fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
             universe_to_ipv4_multicast_addr(universe)?
@@ -1302,9 +1235,7 @@ impl SacnNetworkReceiver {
     /// This will return an error if the SacnReceiver wasn't created using an IPv6 address to bind to.
     fn set_only_v6(&mut self, val: bool) -> SacnResult<()> {
         if self.addr.is_ipv4() {
-            Err(Error::IpVersionError(
-                "No data available in given timeout".to_string(),
-            ))
+            Err(Error::IpVersionError("No data available in given timeout".to_string()))
         } else {
             Ok(self.socket.set_only_v6(val)?)
         }
@@ -1328,11 +1259,7 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    ///
-    fn recv<'a>(
-        &self,
-        buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE],
-    ) -> SacnResult<AcnRootLayerProtocol<'a>> {
+    fn recv<'a>(&self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
         self.socket.recv(&mut buf[0..])?;
 
         AcnRootLayerProtocol::parse(buf)
@@ -1345,7 +1272,6 @@ impl SacnNetworkReceiver {
     ///
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
-    ///
     fn set_timeout(&mut self, timeout: Option<Duration>) -> SacnResult<()> {
         Ok(self.socket.set_read_timeout(timeout)?)
     }
@@ -1387,12 +1313,9 @@ impl PartialOrd for DMXData {
 ///     - The universes are the same
 ///     - The synchronisation universes are the same
 ///     - The values are all the same
-///
 impl PartialEq for DMXData {
     fn eq(&self, other: &Self) -> bool {
-        self.universe == other.universe
-            && self.sync_uni == other.sync_uni
-            && self.values == other.values
+        self.universe == other.universe && self.sync_uni == other.sync_uni && self.values == other.values
     }
 }
 
@@ -1456,8 +1379,7 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
         socket.set_reuse_port(true)?;
         socket.set_reuse_address(true)?;
 
-        let socket_addr =
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
+        let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
         socket.bind(&socket_addr.into())?;
         Ok(socket)
     } else {
@@ -1467,8 +1389,7 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
         socket.set_reuse_port(true)?;
         socket.set_reuse_address(true)?;
 
-        let socket_addr =
-            SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
+        let socket_addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
         socket.bind(&socket_addr.into())?;
         Ok(socket)
     }
@@ -1485,7 +1406,6 @@ fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
 ///     See join_multicast_v4[fn.join_multicast_v4.Socket] and join_multicast_v6[fn.join_multicast_v6.Socket]
 ///
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
-///
 #[cfg(not(target_os = "windows"))]
 fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
     match i32::from(addr.family()) {
@@ -1502,7 +1422,9 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
                 }
             },
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string(),
+                ))?;
             }
         },
         AF_INET6 => match addr.as_inet6() {
@@ -1510,11 +1432,15 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
                 socket.join_multicast_v6(a.ip(), 0)?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string(),
+                ))?;
             }
         },
         x => {
-            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}").to_string()))?;
+            Err(Error::UnsupportedIpVersion(
+                format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}").to_string(),
+            ))?;
         }
     };
 
@@ -1532,8 +1458,8 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
 ///     See leave_multicast_v4[fn.leave_multicast_v4.Socket] and leave_multicast_v6[fn.leave_multicast_v6.Socket]
 ///
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
-///
 #[cfg(not(target_os = "windows"))]
+fn leave_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr) -> SacnResult<()> {
     match i32::from(addr.family()) {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
         AF_INET => match addr.as_inet() {
@@ -1548,7 +1474,9 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
                 }
             },
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string(),
+                ))?;
             }
         },
         AF_INET6 => match addr.as_inet6() {
@@ -1556,11 +1484,15 @@ fn join_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr)
                 socket.leave_multicast_v6(a.ip(), 0)?;
             }
             None => {
-                return Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()));
+                return Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string(),
+                ));
             }
         },
         x => {
-            return Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}").to_string()));
+            return Err(Error::UnsupportedIpVersion(
+                format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}").to_string(),
+            ));
         }
     };
 
@@ -1608,18 +1540,18 @@ fn create_win_socket(addr: SocketAddr) -> SacnResult<Socket> {
 ///     See join_multicast_v4[fn.join_multicast_v4.Socket] and join_multicast_v6[fn.join_multicast_v6.Socket]
 ///
 /// Will return OsOperationUnsupported error if attempt to leave an Ipv6 multicast group as all Ipv6 multicast operations are currently unsupported in Rust on Windows.
-///
 #[cfg(target_os = "windows")]
 fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
     match addr.family() as i32 {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
         AF_INET => match addr.as_inet() {
             Some(a) => {
-                socket
-                    .join_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
+                socket.join_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string(),
+                ))?;
             }
         },
         AF_INET6 => match addr.as_inet6() {
@@ -1629,11 +1561,15 @@ fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
                 ))?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string(),
+                ))?;
             }
         },
         x => {
-            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}")))?;
+            Err(Error::UnsupportedIpVersion(format!(
+                "IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {x}"
+            )))?;
         }
     };
 
@@ -1653,18 +1589,18 @@ fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
 ///     See leave_multicast_v4[fn.leave_multicast_v4.Socket] and leave_multicast_v6[fn.leave_multicast_v6.Socket]
 ///
 /// Will return OsOperationUnsupported error if attempt to leave an Ipv6 multicast group as all Ipv6 multicast operations are currently unsupported in Rust on Windows.
-///
 #[cfg(target_os = "windows")]
 fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
     match addr.family() as i32 {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
         AF_INET => match addr.as_inet() {
             Some(a) => {
-                socket
-                    .leave_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
+                socket.leave_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET but not actually usable as AF_INET so must be unknown type".to_string(),
+                ))?;
             }
         },
         AF_INET6 => match addr.as_inet6() {
@@ -1674,11 +1610,16 @@ fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
                 ))?;
             }
             None => {
-                Err(Error::UnsupportedIpVersion("IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string()))?;
+                Err(Error::UnsupportedIpVersion(
+                    "IP version recognised as AF_INET6 but not actually usable as AF_INET6 so must be unknown type".to_string(),
+                ))?;
             }
         },
         x => {
-            Err(Error::UnsupportedIpVersion(format!("IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}", x)))?;
+            Err(Error::UnsupportedIpVersion(format!(
+                "IP version not recognised as AF_INET (Ipv4) or AF_INET6 (Ipv6) - family value (as i32): {}",
+                x
+            )))?;
         }
     };
 
@@ -1690,7 +1631,6 @@ fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
 /// Used internally within SequenceNumbering for tracking the last received timestamps of each packet-type, source, universe combination.
 ///
 /// This is then used to workout timeouts to trigger network data loss as per ANSI E1.31-2018 Section 6.7.1.
-///
 #[derive(Copy, Clone)]
 struct TimedStampedSeqNo {
     sequence_number: u8,
@@ -1711,7 +1651,6 @@ impl TimedStampedSeqNo {
 /// Also handles timeouts of sources.
 ///
 /// Abstracts over the internal data-structures/mechanisms used allowing them be changed.
-///
 struct SequenceNumbering {
     /// The sequence numbers used for data packets, keeps a reference of the last sequence number received for each universe.
     /// Sequence numbers are always in the range [0, 255] inclusive.
@@ -1730,7 +1669,6 @@ impl SequenceNumbering {
     /// Creates a new SequenceNumbering for tracking sequence numbers for the various types of packets.
     ///
     /// This implementation uses HashMaps internally to allow O(1) checking and updating of sequence numbers.
-    ///
     fn new() -> SequenceNumbering {
         SequenceNumbering {
             data_sequences: HashMap::new(),
@@ -1739,7 +1677,6 @@ impl SequenceNumbering {
     }
 
     /// Clears the sequence number records completely removing all sources/universes for all types of packet.
-    ///
     fn clear(&mut self) {
         self.data_sequences.clear();
         self.sync_sequences.clear();
@@ -1754,16 +1691,8 @@ impl SequenceNumbering {
     /// announce_timeout: A flag, if true it indicates than a UniverseTimeout error should be thrown if a universe times out on a source.
     ///  
     fn check_timeouts(&mut self, announce_timeout: bool) -> SacnResult<()> {
-        check_timeouts(
-            &mut self.data_sequences,
-            E131_NETWORK_DATA_LOSS_TIMEOUT,
-            announce_timeout,
-        )?;
-        check_timeouts(
-            &mut self.sync_sequences,
-            E131_NETWORK_DATA_LOSS_TIMEOUT,
-            announce_timeout,
-        )
+        check_timeouts(&mut self.data_sequences, E131_NETWORK_DATA_LOSS_TIMEOUT, announce_timeout)?;
+        check_timeouts(&mut self.sync_sequences, E131_NETWORK_DATA_LOSS_TIMEOUT, announce_timeout)
     }
 
     /// Checks the sequence number is correct for a data packet with the given sequence_number and universe from the given source with given cid.
@@ -1785,7 +1714,6 @@ impl SequenceNumbering {
     /// the packets sequence number and the expected sequence number as specified in ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
     ///
     /// Return a SourcesExceededError if the cid of the source is new and would cause the number of sources to exceed the given source_limit.
-    ///
     fn check_data_seq_number(
         &mut self,
         source_limit: Option<usize>,
@@ -1823,7 +1751,6 @@ impl SequenceNumbering {
     /// the packets sequence number and the expected sequence number as specified in ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
     ///
     /// Return a SourcesExceededError if the cid of the source is new and would cause the number of sources to exceed the given source_limit.
-    ///
     fn check_sync_seq_number(
         &mut self,
         source_limit: Option<usize>,
@@ -1850,7 +1777,6 @@ impl SequenceNumbering {
     /// src_cid: The CID of the source to remove the sequence numbers of.
     ///
     /// universe: The universe being sent by the source from which to remove the sequence numbers.
-    ///
     fn remove_seq_numbers(&mut self, src_cid: Uuid, universe: u16) -> SacnResult<()> {
         remove_source_universe_seq(&mut self.data_sequences, src_cid, universe)?;
         remove_source_universe_seq(&mut self.sync_sequences, src_cid, universe)
@@ -1874,7 +1800,6 @@ impl SequenceNumbering {
 /// the packets sequence number and the expected sequence number as specified in ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
 ///
 /// Return a SourcesExceededError if the cid of the source is new and would cause the number of sources to exceed the given source_limit.
-///
 fn check_seq_number(
     src_sequences: &mut HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
     source_limit: Option<usize>,
@@ -1887,11 +1812,7 @@ fn check_seq_number(
     // This is done for all sources/universes rather than just the source that sent the packet because a completely dead (no packets being sent) universe
     // would not be removed otherwise and would continue to take up space. This comes at the cost of increased processing time complexity as each
     // source is checked every time.
-    check_timeouts(
-        src_sequences,
-        E131_NETWORK_DATA_LOSS_TIMEOUT,
-        announce_timeout,
-    )?;
+    check_timeouts(src_sequences, E131_NETWORK_DATA_LOSS_TIMEOUT, announce_timeout)?;
 
     if src_sequences.get(&cid).is_none() {
         // New source not previously received from.
@@ -1937,8 +1858,7 @@ fn check_seq_number(
 
     let seq_diff: isize = (sequence_number as isize) - (expected_seq.sequence_number as isize);
 
-    if seq_diff <= E131_SEQ_DIFF_DISCARD_UPPER_BOUND && seq_diff > E131_SEQ_DIFF_DISCARD_LOWER_BOUND
-    {
+    if seq_diff <= E131_SEQ_DIFF_DISCARD_UPPER_BOUND && seq_diff > E131_SEQ_DIFF_DISCARD_LOWER_BOUND {
         // Reject the out of order packet as per ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
         return Err(Error::OutOfSequence(
             format!(
@@ -1952,10 +1872,7 @@ fn check_seq_number(
     match src_sequences.get_mut(&cid) {
         Some(src) => {
             // Replace the old sequence number with the new and reset the timeout.
-            src.insert(
-                universe,
-                TimedStampedSeqNo::new(sequence_number, Instant::now()),
-            );
+            src.insert(universe, TimedStampedSeqNo::new(sequence_number, Instant::now()));
         }
         None => {
             // See previous node regarding panic previously in this method.
@@ -2041,7 +1958,6 @@ fn check_timeouts(
 /// Returns a SourceNotFound error if the given src_cid isn't in the given collection of sources/sequence-numbers.
 ///
 /// Returns a UniverseNotFound error if the given universe isn't registered to the given source and so cannot be removed.
-///
 fn remove_source_universe_seq(
     src_sequences: &mut HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
     src_cid: Uuid,
@@ -2055,19 +1971,17 @@ fn remove_source_universe_seq(
                         // Remove the source if there are no universes registered to it.
                         match src_sequences.remove(&src_cid) {
                             Some(_x) => Ok(()),
-                            None => {
-                                Err(Error::SourceNotFound(
-                                    "Could not find the source so could not remove it".to_string(),
-                                ))
-                            }
+                            None => Err(Error::SourceNotFound(
+                                "Could not find the source so could not remove it".to_string(),
+                            )),
                         }
                     } else {
                         Ok(())
                     }
                 }
-                None => {
-                    Err(Error::UniverseNotFound("Could not find universe within source in sequence numbers so could not remove it".to_string()))
-                }
+                None => Err(Error::UniverseNotFound(
+                    "Could not find universe within source in sequence numbers so could not remove it".to_string(),
+                )),
             }
         }
         None => Err(Error::SourceNotFound(
@@ -2106,13 +2020,10 @@ pub fn discard_lowest_priority_then_previous(i: &DMXData, n: &DMXData) -> SacnRe
 /// If this doesn't hold an error will be returned.
 /// Other merge functions may allow merging different start codes or not check for them.
 pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
-    if i.values.is_empty()
-        || n.values.is_empty()
-        || i.universe != n.universe
-        || i.values[0] != n.values[0]
-        || i.sync_uni != n.sync_uni
-    {
-        return Err(Error::DmxMergeError("Attempted DMX merge on dmx data with different universes, synchronisation universes or data with no values".to_string()));
+    if i.values.is_empty() || n.values.is_empty() || i.universe != n.universe || i.values[0] != n.values[0] || i.sync_uni != n.sync_uni {
+        return Err(Error::DmxMergeError(
+            "Attempted DMX merge on dmx data with different universes, synchronisation universes or data with no values".to_string(),
+        ));
     }
 
     if i.priority > n.priority {
@@ -2156,34 +2067,31 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use std::{
+        borrow::Cow,
+        net::{IpAddr, Ipv4Addr, SocketAddr},
+        time::Instant,
+    };
 
-    use std::borrow::Cow;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-    use std::time::Instant;
-
-    use crate::packet::{DataPacketDmpLayer, ACN_SDT_MULTICAST_PORT};
     use uuid::Uuid;
 
+    use super::*;
+    use crate::packet::{DataPacketDmpLayer, ACN_SDT_MULTICAST_PORT};
+
     const TEST_DATA_SINGLE_UNIVERSE: [u8; 512] = [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-        16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4,
-        5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-        19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8,
-        9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+        18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 1, 2, 3,
+        4, 5, 6, 7, 8, 9, 10, 11, 12,
     ];
 
     #[test]
@@ -2197,21 +2105,20 @@ mod test {
         let last_page: u8 = 0;
         let universes: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
 
-        let discovery_pkt: UniverseDiscoveryPacketFramingLayer =
-            UniverseDiscoveryPacketFramingLayer {
-                source_name: name.into(),
+        let discovery_pkt: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
+            source_name: name.into(),
 
-                // Universe discovery layer.
-                data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
-                    page,
+            // Universe discovery layer.
+            data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
+                page,
 
-                    // The number of the final page.
-                    last_page,
+                // The number of the final page.
+                last_page,
 
-                    // List of universes.
-                    universes: universes.clone().into(),
-                },
-            };
+                // List of universes.
+                universes: universes.clone().into(),
+            },
+        };
         let res: Option<String> = dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
 
         assert!(res.is_some());
@@ -2245,37 +2152,35 @@ mod test {
             universes_page_2.push(i);
         }
 
-        let discovery_pkt_1: UniverseDiscoveryPacketFramingLayer =
-            UniverseDiscoveryPacketFramingLayer {
-                source_name: name.into(),
+        let discovery_pkt_1: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
+            source_name: name.into(),
 
-                // Universe discovery layer.
-                data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
-                    page: 0,
+            // Universe discovery layer.
+            data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
+                page: 0,
 
-                    // The number of the final page.
-                    last_page,
+                // The number of the final page.
+                last_page,
 
-                    // List of universes.
-                    universes: universes_page_1.clone().into(),
-                },
-            };
+                // List of universes.
+                universes: universes_page_1.clone().into(),
+            },
+        };
 
-        let discovery_pkt_2: UniverseDiscoveryPacketFramingLayer =
-            UniverseDiscoveryPacketFramingLayer {
-                source_name: name.into(),
+        let discovery_pkt_2: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
+            source_name: name.into(),
 
-                // Universe discovery layer.
-                data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
-                    page: 1,
+            // Universe discovery layer.
+            data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
+                page: 1,
 
-                    // The number of the final page.
-                    last_page,
+                // The number of the final page.
+                last_page,
 
-                    // List of universes.
-                    universes: universes_page_2.clone().into(),
-                },
-            };
+                // List of universes.
+                universes: universes_page_2.clone().into(),
+            },
+        };
         let res: Option<String> = dmx_rcv.handle_universe_discovery_packet(discovery_pkt_1);
 
         assert!(res.is_none()); // Should be none because first packet isn't complete as its only the first page.
@@ -2292,14 +2197,8 @@ mod test {
         assert_eq!(dmx_rcv.discovered_sources[0].pages.len(), 2);
         assert_eq!(dmx_rcv.discovered_sources[0].pages[0].page, 0);
         assert_eq!(dmx_rcv.discovered_sources[0].pages[1].page, 1);
-        assert_eq!(
-            dmx_rcv.discovered_sources[0].pages[0].universes,
-            universes_page_1
-        );
-        assert_eq!(
-            dmx_rcv.discovered_sources[0].pages[1].universes,
-            universes_page_2
-        );
+        assert_eq!(dmx_rcv.discovered_sources[0].pages[0].universes, universes_page_1);
+        assert_eq!(dmx_rcv.discovered_sources[0].pages[1].universes, universes_page_2);
     }
 
     #[test]
@@ -2529,11 +2428,7 @@ mod test {
     ///         property_values: Cow::from(&TEST_DATA_SINGLE_UNIVERSE[0..]),
     ///     },
     /// }
-    ///
-    fn generate_data_packet_framing_layer_seq_num<'a>(
-        universe: u16,
-        sequence_number: u8,
-    ) -> DataPacketFramingLayer<'a> {
+    fn generate_data_packet_framing_layer_seq_num<'a>(universe: u16, sequence_number: u8) -> DataPacketFramingLayer<'a> {
         DataPacketFramingLayer {
             source_name: "Source_A".into(),
             priority: 100,
@@ -2556,11 +2451,7 @@ mod test {
     ///     sequence_number: <given sequence number>,
     ///     synchronization_address: <given synchronisation address>
     /// }
-    ///
-    fn generate_sync_packet_framing_layer_seq_num<'a>(
-        sync_address: u16,
-        sequence_number: u8,
-    ) -> SynchronizationPacketFramingLayer {
+    fn generate_sync_packet_framing_layer_seq_num<'a>(sync_address: u16, sequence_number: u8) -> SynchronizationPacketFramingLayer {
         SynchronizationPacketFramingLayer {
             sequence_number,
             synchronization_address: sync_address,
@@ -2582,8 +2473,7 @@ mod test {
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -2593,27 +2483,18 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet).unwrap().is_some(),
             "Receiver incorrectly rejected first data packet"
         );
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet2)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet2).unwrap().is_some(),
             "Receiver incorrectly rejected second data packet"
         );
 
         // Check that the third data packet with the low sequence number is rejected correctly with the expected OutOfSequence error.
         match dmx_rcv.handle_data_packet(src_cid, data_packet3) {
             Err(Error::OutOfSequence(_)) => {
-                assert!(
-                    true,
-                    "Receiver correctly rejected third data packet with correct error"
-                );
+                assert!(true, "Receiver correctly rejected third data packet with correct error");
             }
             Ok(_) => {
                 assert!(false, "Receiver incorrectly accepted third data packet");
@@ -2634,7 +2515,6 @@ mod test {
     ///
     /// This exhaustively checks that only sequence numbers outwith the reject range as specified by ANSI E1.31-2018 Section 6.7.2 are accepted for
     /// data packets specifically.
-    ///
     #[test]
     fn test_data_packet_sequence_number_exhaustive() {
         const UNIVERSE1: u16 = 1;
@@ -2657,8 +2537,7 @@ mod test {
         const REJECT_RANGE_LOWER_BOUND: i16 = -20;
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -2668,33 +2547,23 @@ mod test {
             dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
             // Generate the packets used to put the receiver in a known start state.
-            let data_packet =
-                generate_data_packet_framing_layer_seq_num(UNIVERSE1, LAST_SEQ_NUM - 1);
+            let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE1, LAST_SEQ_NUM - 1);
             let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, LAST_SEQ_NUM);
 
             // Not interested in specific return values from this test, just assert the data is processed successfully.
             assert!(
-                dmx_rcv
-                    .handle_data_packet(src_cid, data_packet)
-                    .unwrap()
-                    .is_some(),
+                dmx_rcv.handle_data_packet(src_cid, data_packet).unwrap().is_some(),
                 "Receiver incorrectly rejected first data packet"
             );
             assert!(
-                dmx_rcv
-                    .handle_data_packet(src_cid, data_packet2)
-                    .unwrap()
-                    .is_some(),
+                dmx_rcv.handle_data_packet(src_cid, data_packet2).unwrap().is_some(),
                 "Receiver incorrectly rejected second data packet"
             );
 
             // The receiver is now setup correctly ready for the test with a known start state that expects the next data packet sequence number
             // to be 2.
 
-            let res = dmx_rcv.handle_data_packet(
-                src_cid,
-                generate_data_packet_framing_layer_seq_num(UNIVERSE1, i),
-            );
+            let res = dmx_rcv.handle_data_packet(src_cid, generate_data_packet_framing_layer_seq_num(UNIVERSE1, i));
 
             let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
 
@@ -2702,31 +2571,17 @@ mod test {
                 Err(Error::OutOfSequence(_)) => {
                     // Data packet was rejected due to sequence number.
                     if (diff <= REJECT_RANGE_UPPER_BOUND) && (diff > REJECT_RANGE_LOWER_BOUND) {
-                        assert!(
-                            true,
-                            "Rejection is correct as per ANSI E1.31-2018 Section 6.7.2"
-                        );
+                        assert!(true, "Rejection is correct as per ANSI E1.31-2018 Section 6.7.2");
                     } else {
-                        assert!(
-                            false,
-                            "Data packet with sequence number: {} was rejected incorrectly",
-                            i
-                        );
+                        assert!(false, "Data packet with sequence number: {} was rejected incorrectly", i);
                     }
                 }
                 Ok(_p) => {
                     // Data packet and therefore sequence number was accepted.
                     if (diff <= REJECT_RANGE_UPPER_BOUND) && (diff > REJECT_RANGE_LOWER_BOUND) {
-                        assert!(
-                            false,
-                            "Data packet with sequence number: {} was accepted incorrectly",
-                            1
-                        );
+                        assert!(false, "Data packet with sequence number: {} was accepted incorrectly", 1);
                     } else {
-                        assert!(
-                            true,
-                            "Acceptance is correct as per ANSI E1.31-2018 Section 6.7.2"
-                        );
+                        assert!(true, "Acceptance is correct as per ANSI E1.31-2018 Section 6.7.2");
                     }
                 }
                 Err(e) => {
@@ -2768,8 +2623,7 @@ mod test {
         const REJECT_RANGE_LOWER_BOUND: i16 = -20;
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -2779,33 +2633,23 @@ mod test {
             dmx_rcv.listen_universes(&[SYNC_ADDR]).unwrap();
 
             // Generate the packets used to put the receiver in a known start state.
-            let sync_packet =
-                generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, LAST_SEQ_NUM - 1);
+            let sync_packet = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, LAST_SEQ_NUM - 1);
             let sync_packet2 = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, LAST_SEQ_NUM);
 
             // Not interested in specific return values from this test, just assert the sync packet is processed successfully.
             assert!(
-                dmx_rcv
-                    .handle_sync_packet(src_cid, sync_packet)
-                    .unwrap()
-                    .is_none(),
+                dmx_rcv.handle_sync_packet(src_cid, sync_packet).unwrap().is_none(),
                 "Receiver incorrectly rejected first sync packet"
             );
             assert!(
-                dmx_rcv
-                    .handle_sync_packet(src_cid, sync_packet2)
-                    .unwrap()
-                    .is_none(),
+                dmx_rcv.handle_sync_packet(src_cid, sync_packet2).unwrap().is_none(),
                 "Receiver incorrectly rejected second sync packet"
             );
 
             // The receiver is now setup correctly ready for the test with a known start state that expects the next sync packet sequence number
             // to be 2.
 
-            let res = dmx_rcv.handle_sync_packet(
-                src_cid,
-                generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, i),
-            );
+            let res = dmx_rcv.handle_sync_packet(src_cid, generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, i));
 
             // Cannot do straight 8 bit arithmetic that relies on underflows/overflows as this is undefined behaviour in rust forbidden by the compiler.
             let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
@@ -2814,31 +2658,17 @@ mod test {
                 Err(Error::OutOfSequence(_)) => {
                     // Sync packet was rejected due to sequence number.
                     if (diff <= REJECT_RANGE_UPPER_BOUND) && (diff > REJECT_RANGE_LOWER_BOUND) {
-                        assert!(
-                            true,
-                            "Rejection is correct as per ANSI E1.31-2018 Section 6.7.2"
-                        );
+                        assert!(true, "Rejection is correct as per ANSI E1.31-2018 Section 6.7.2");
                     } else {
-                        assert!(
-                            false,
-                            "Sync packet with sequence number: {} was rejected incorrectly",
-                            i
-                        );
+                        assert!(false, "Sync packet with sequence number: {} was rejected incorrectly", i);
                     }
                 }
                 Ok(_p) => {
                     // Sync packet and therefore sequence number was accepted.
                     if (diff <= REJECT_RANGE_UPPER_BOUND) && (diff > REJECT_RANGE_LOWER_BOUND) {
-                        assert!(
-                            false,
-                            "Sync packet with sequence number: {} was accepted incorrectly",
-                            i
-                        );
+                        assert!(false, "Sync packet with sequence number: {} was accepted incorrectly", i);
                     } else {
-                        assert!(
-                            true,
-                            "Acceptance is correct as per ANSI E1.31-2018 Section 6.7.2"
-                        );
+                        assert!(true, "Acceptance is correct as per ANSI E1.31-2018 Section 6.7.2");
                     }
                 }
                 Err(e) => {
@@ -2864,8 +2694,7 @@ mod test {
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -2875,27 +2704,18 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the packets are processed successfully.
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet).unwrap().is_none(),
             "Receiver incorrectly rejected first sync packet"
         );
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet2)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet2).unwrap().is_none(),
             "Receiver incorrectly rejected second sync packet"
         );
 
         // Check that the third sync packet with the low sequence number is rejected correctly with the expected OutOfSequence error.
         match dmx_rcv.handle_sync_packet(src_cid, sync_packet3) {
             Err(Error::OutOfSequence(_)) => {
-                assert!(
-                    true,
-                    "Receiver correctly rejected third sync packet with correct error"
-                );
+                assert!(true, "Receiver correctly rejected third sync packet with correct error");
             }
             Ok(_) => {
                 assert!(false, "Receiver incorrectly accepted third sync packet");
@@ -2915,7 +2735,6 @@ mod test {
     /// as per test_sync_packet_sequence_number_below_expected but because of the reset it shouldn't be.
     ///
     /// This checks that the sync packet sequence numbers are reset correctly.
-    ///
     #[test]
     fn test_sync_packet_sequence_number_reset() {
         const UNIVERSE1: u16 = 1;
@@ -2926,8 +2745,7 @@ mod test {
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -2937,17 +2755,11 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the packets are processed successfully.
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet).unwrap().is_none(),
             "Receiver incorrectly rejected first sync packet"
         );
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet2)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet2).unwrap().is_none(),
             "Receiver incorrectly rejected second sync packet"
         );
 
@@ -2955,10 +2767,7 @@ mod test {
 
         // Packet shouldn't be rejected.
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet3)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet3).unwrap().is_none(),
             "Receiver incorrectly rejected third sync packet"
         );
     }
@@ -2968,7 +2777,6 @@ mod test {
     /// as per test_data_packet_sequence_number_below_expected but because of the reset it shouldn't be.
     ///
     /// This checks that the data packet sequence numbers are reset correctly.
-    ///
     #[test]
     fn test_data_packet_sequence_number_reset() {
         const UNIVERSE1: u16 = 1;
@@ -2979,8 +2787,7 @@ mod test {
         dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -2990,17 +2797,11 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet).unwrap().is_some(),
             "Receiver incorrectly rejected first data packet"
         );
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet2)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet2).unwrap().is_some(),
             "Receiver incorrectly rejected second data packet"
         );
 
@@ -3008,10 +2809,7 @@ mod test {
 
         // Packet shouldn't be rejected.
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet3)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet3).unwrap().is_some(),
             "Receiver incorrectly rejected third data packet"
         );
     }
@@ -3021,7 +2819,6 @@ mod test {
     /// The receiver is then passed a sync packet with sequence number 0 which shouldn't be rejected as it is a different packet type.
     ///
     /// Shows sequence numbers are evaluated separately for each packet type as per ANSI E1.31-2018 Section 6.7.2.
-    ///
     #[test]
     fn test_sequence_number_packet_type_independence() {
         const UNIVERSE: u16 = 1;
@@ -3033,8 +2830,7 @@ mod test {
         dmx_rcv.listen_universes(&[UNIVERSE]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -3045,17 +2841,11 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet).unwrap().is_some(),
             "Receiver incorrectly rejected first data packet"
         );
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet2)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet2).unwrap().is_some(),
             "Receiver incorrectly rejected second data packet"
         );
 
@@ -3063,10 +2853,7 @@ mod test {
         // Pass the receiver a sync packet with sequence number 0.
         // If this isn't rejected it shows that the receiver correctly treats different packet types individually.
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet).unwrap().is_none(),
             "Receiver incorrectly rejected synchronisation packet"
         );
     }
@@ -3076,7 +2863,6 @@ mod test {
     /// The receiver is then passed a data packet with sequence number 0 for a different universe which shouldn't be rejected as it is for a different universe.
     ///
     /// Shows sequence numbers are evaluated separately for each universe as per ANSI E1.31-2018 Section 6.7.2.
-    ///
     #[test]
     fn test_data_packet_sequence_number_universe_independence() {
         const UNIVERSE1: u16 = 1;
@@ -3088,8 +2874,7 @@ mod test {
         dmx_rcv.listen_universes(&[UNIVERSE1, UNIVERSE2]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -3099,27 +2884,18 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet).unwrap().is_some(),
             "Receiver incorrectly rejected first data packet"
         );
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet2)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet2).unwrap().is_some(),
             "Receiver incorrectly rejected second data packet"
         );
 
         // At this point the receiver will (as shown by test_data_packet_sequence_number_below_expected) reject a data packet to UNIVERSE1 with sequence number 0
         // however this data packet is for UNIVERSE2 and so therefore should be accepted.
         assert!(
-            dmx_rcv
-                .handle_data_packet(src_cid, data_packet3)
-                .unwrap()
-                .is_some(),
+            dmx_rcv.handle_data_packet(src_cid, data_packet3).unwrap().is_some(),
             "Receiver incorrectly rejected third data packet"
         );
     }
@@ -3130,7 +2906,6 @@ mod test {
     /// a different synchronisation address.
     ///
     /// Shows sequence numbers are evaluated separately for each synchronisation address individually as per ANSI E1.31-2018 Section 6.7.2.
-    ///
     #[test]
     fn test_sync_packet_sequence_number_universe_independence() {
         const SYNC_ADDR_1: u16 = 1;
@@ -3139,13 +2914,10 @@ mod test {
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv
-            .listen_universes(&[SYNC_ADDR_1, SYNC_ADDR_2])
-            .unwrap();
+        dmx_rcv.listen_universes(&[SYNC_ADDR_1, SYNC_ADDR_2]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes(&[
-            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6,
-            0x14, 0x3e,
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ])
         .unwrap();
 
@@ -3155,27 +2927,18 @@ mod test {
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet).unwrap().is_none(),
             "Receiver incorrectly rejected first sync packet"
         );
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet2)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet2).unwrap().is_none(),
             "Receiver incorrectly rejected second sync packet"
         );
 
         // At this point the receiver will (as shown by test_sync_packet_sequence_number_below_expected) reject a sync packet for SYNC_ADDR_1 with sequence number 0
         // however this sync packet is for SYNC_ADDR_2 and so therefore should be accepted.
         assert!(
-            dmx_rcv
-                .handle_sync_packet(src_cid, sync_packet3)
-                .unwrap()
-                .is_none(),
+            dmx_rcv.handle_sync_packet(src_cid, sync_packet3).unwrap().is_none(),
             "Receiver incorrectly rejected third sync packet"
         );
     }
@@ -3200,10 +2963,7 @@ mod test {
                 }
             },
             _ => {
-                assert!(
-                    false,
-                    "SacnReceiver accepted 0 source limit when it shouldn't"
-                );
+                assert!(false, "SacnReceiver accepted 0 source limit when it shouldn't");
             }
         }
     }
@@ -3213,10 +2973,7 @@ mod test {
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
         let dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        assert!(
-            dmx_rcv.is_multicast_enabled(),
-            "Multicast not enabled by default"
-        );
+        assert!(dmx_rcv.is_multicast_enabled(), "Multicast not enabled by default");
     }
 
     #[test]
@@ -3226,10 +2983,7 @@ mod test {
 
         dmx_rcv.set_is_multicast_enabled(false).unwrap();
 
-        assert!(
-            !dmx_rcv.is_multicast_enabled(),
-            "Multicast not disabled correctly"
-        );
+        assert!(!dmx_rcv.is_multicast_enabled(), "Multicast not disabled correctly");
     }
 
     #[test]
@@ -3253,11 +3007,7 @@ mod test {
 
         dmx_rcv.clear_all_waiting_data();
 
-        assert_eq!(
-            dmx_rcv.rtrv_waiting_data(SYNC_ADDR),
-            Vec::new(),
-            "Data was not reset as expected"
-        );
+        assert_eq!(dmx_rcv.rtrv_waiting_data(SYNC_ADDR), Vec::new(), "Data was not reset as expected");
     }
 
     #[test]
@@ -3309,7 +3059,10 @@ mod test {
             )
             .unwrap(); // Checks that no error is produced.
 
-        assert_eq!(res, None, "Sync packet produced output when should have been ignored as for an address that isn't being listened to");
+        assert_eq!(
+            res, None,
+            "Sync packet produced output when should have been ignored as for an address that isn't being listened to"
+        );
     }
 
     /// Tests the equivalence of 2 DMXDatas which are only similar in the aspects used for checking equivalence.
@@ -3345,9 +3098,6 @@ mod test {
             recv_timestamp: Instant::now(),
         };
 
-        assert_eq!(
-            data1, data2,
-            "DMX data not seen as equivalent when should be"
-        );
+        assert_eq!(data1, data2, "DMX data not seen as equivalent when should be");
     }
 }
