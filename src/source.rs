@@ -757,13 +757,13 @@ impl SacnSourceInternal {
             ))?;
         }
 
-        for i in 0..required_universes {
+        for (i, universe) in universes.iter().enumerate().take(required_universes) {
             let start_index = i * UNIVERSE_CHANNEL_CAPACITY;
             // Safety check to make sure that the end index doesn't exceed the data length
             let end_index = cmp::min((i + 1) * UNIVERSE_CHANNEL_CAPACITY, data.len());
 
             self.send_universe(
-                universes[i],
+                *universe,
                 &data[start_index..end_index],
                 priority.unwrap_or(E131_DEFAULT_PRIORITY),
                 &dst_ip,

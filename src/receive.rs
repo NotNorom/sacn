@@ -530,14 +530,10 @@ impl SacnReceiver {
         // Forces the actual timeout used for receiving from the underlying network to never exceed E131_NETWORK_DATA_LOSS_TIMEOUT.
         // This means that the timeouts for the sequence numbers will be checked at least every E131_NETWORK_DATA_LOSS_TIMEOUT even if
         // recv is called with a longer timeout.
-        let actual_timeout = if timeout.is_some() && timeout.unwrap() < E131_NETWORK_DATA_LOSS_TIMEOUT {
-            timeout
-        } else {
-            Some(E131_NETWORK_DATA_LOSS_TIMEOUT)
-        };
+        let actual_timeout = timeout.map_or(E131_NETWORK_DATA_LOSS_TIMEOUT, |value| value.min(E131_NETWORK_DATA_LOSS_TIMEOUT));
 
         self.receiver
-            .set_timeout(actual_timeout)
+            .set_timeout(Some(actual_timeout))
             .map_err(|err| Error::SendTimeoutValue(Box::new(err)))?;
         let start_time = Instant::now();
 
@@ -551,10 +547,10 @@ impl SacnReceiver {
                     E131RootLayerData::SynchronizationPacket(s) => self.handle_sync_packet(pdu.cid, s)?,
                     E131RootLayerData::UniverseDiscoveryPacket(u) => {
                         let discovered_src: Option<String> = self.handle_universe_discovery_packet(u);
-                        if discovered_src.is_some() && self.announce_source_discovery {
-                            return Err(Error::SourceDiscovered(discovered_src.unwrap()));
-                        } else {
-                            None
+
+                        match (discovered_src, self.announce_source_discovery) {
+                            (Some(src), true) => return Err(Error::SourceDiscovered(src)),
+                            _ => None,
                         }
                     }
                 };
@@ -566,9 +562,9 @@ impl SacnReceiver {
                         // To stop recv blocking forever with a non-None timeout due to packets being received consistently (that reset the timeout)
                         // within the receive timeout (e.g. universe discovery packets if the discovery interval < timeout) the timeout needs to be
                         // adjusted to account for the time already taken.
-                        if timeout.is_some() {
+                        if let Some(timeout_duration) = timeout {
                             let elapsed = start_time.elapsed();
-                            match timeout.unwrap().checked_sub(elapsed) {
+                            match timeout_duration.checked_sub(elapsed) {
                                 None => {
                                     // Indicates that elapsed is bigger than timeout so its time to return.
                                     Err(std::io::Error::new(
@@ -591,9 +587,9 @@ impl SacnReceiver {
                         match s.kind() {
                             // Windows and Unix use different error types (WouldBlock/TimedOut) for the same error.
                             std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
-                                if timeout.is_some() {
+                                if let Some(timeout_duration) = timeout {
                                     let elapsed = start_time.elapsed();
-                                    match timeout.unwrap().checked_sub(elapsed) {
+                                    match timeout_duration.checked_sub(elapsed) {
                                         None => {
                                             // Indicates that elapsed is bigger than timeout so its time to return.
                                             if cfg!(target_os = "windows") {
@@ -802,12 +798,12 @@ impl SacnReceiver {
     /// source_name: The human readable name of the sACN source to remove the universe from.
     ///
     /// universe:    The sACN universe to remove.
-    fn terminate_stream(&mut self, src_cid: Uuid, source_name: &Cow<'_, str>, universe: u16) {
+    fn terminate_stream(&mut self, src_cid: Uuid, source_name: &str, universe: u16) {
         // Will only return an error if the source/universe wasn't found which is acceptable because as it
         // comes to the same result.
         let _ = self.sequences.remove_seq_numbers(src_cid, universe);
 
-        if let Some(index) = find_discovered_src(&self.discovered_sources, &source_name.to_string()) {
+        if let Some(index) = find_discovered_src(&self.discovered_sources, source_name) {
             self.discovered_sources[index].terminate_universe(universe);
         } else {
             // As with sequence numbers the source might not be found which is acceptable.
@@ -940,7 +936,7 @@ impl SacnReceiver {
         };
 
         // See if some pages that belong to the source that this page belongs to have already been received.
-        match find_discovered_src(&self.partially_discovered_sources, &discovery_pkt.source_name.to_string()) {
+        match find_discovered_src(&self.partially_discovered_sources, &discovery_pkt.source_name) {
             Some(index) => {
                 // Some pages have already been received from this source.
                 self.partially_discovered_sources[index].pages.push(uni_page);
@@ -1017,7 +1013,7 @@ impl Drop for SacnReceiver {
 /// Arguments:
 /// srcs: The Vec of DiscoveredSacnSources to search.
 /// name: The human readable name of the source to find.
-fn find_discovered_src(srcs: &[DiscoveredSacnSource], name: &String) -> Option<usize> {
+fn find_discovered_src(srcs: &[DiscoveredSacnSource], name: &str) -> Option<usize> {
     srcs.iter().position(|source| source.name == *name)
 }
 
@@ -2049,14 +2045,14 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
     let mut i_val = i_iter.next();
     let mut n_val = n_iter.next();
 
-    while (i_val.is_some()) || (n_val.is_some()) {
-        if i_val.is_none() {
-            r.values.push(*n_val.unwrap());
-        } else if n_val.is_none() {
-            r.values.push(*i_val.unwrap());
-        } else {
-            r.values.push(max(*n_val.unwrap(), *i_val.unwrap()));
-        }
+    loop {
+        let value_to_push = match (i_val, n_val) {
+            (None, None) => break,
+            (None, Some(n)) => n,
+            (Some(i), None) => i,
+            (Some(i), Some(n)) => i.max(n),
+        };
+        r.values.push(*value_to_push);
 
         i_val = i_iter.next();
         n_val = n_iter.next();
@@ -2451,7 +2447,7 @@ mod test {
     ///     sequence_number: <given sequence number>,
     ///     synchronization_address: <given synchronisation address>
     /// }
-    fn generate_sync_packet_framing_layer_seq_num<'a>(sync_address: u16, sequence_number: u8) -> SynchronizationPacketFramingLayer {
+    fn generate_sync_packet_framing_layer_seq_num(sync_address: u16, sequence_number: u8) -> SynchronizationPacketFramingLayer {
         SynchronizationPacketFramingLayer {
             sequence_number,
             synchronization_address: sync_address,
