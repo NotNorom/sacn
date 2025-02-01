@@ -9,6 +9,7 @@ pub mod sync_parse_tests {
 
     /// Uses the sACN error-chain errors.
 
+    #[rustfmt::skip]
     /// A test synchronisation packet as specified as an example in
     /// ANSI E1.31-2018 Appendix B Table B-14: Universe Synchronization Example E1.31 Synchronization Packet.
     const TEST_SYNCHRONIZATION_PACKET: &[u8] = &[
@@ -30,6 +31,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the root layer vector set to a vector for an unknown (not ANSI E1.31-2018) packet.
     const TEST_SYNCHRONIZATION_PACKET_ROOT_LAYER_UNKNOWN_VECTOR: &[u8] = &[
         // Root Layer
@@ -50,6 +52,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the root layer vector set to a vector for a data packet.
     const TEST_SYNCHRONIZATION_PACKET_ROOT_LAYER_DATA_VECTOR: &[u8] = &[
         // Root Layer
@@ -70,6 +73,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the CID set a byte (17 bytes) longer than expected (16 bytes).
     /// As per ANSI E1.31-2018 Section 4.2 Table 4-2.
     const TEST_SYNCHRONIZATION_PACKET_TOO_LONG_CID: &[u8] = &[
@@ -91,6 +95,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the CID set a byte (15 bytes) shorter than expected (16 bytes).
     /// As per ANSI E1.31-2018 Section 4.2 Table 4-2.
     const TEST_SYNCHRONIZATION_PACKET_TOO_SHORT_CID: &[u8] = &[
@@ -112,6 +117,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the framing layer length set shorter than the actual packet is.
     const TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_WRONG_FLAGS: &[u8] = &[
         // Root Layer
@@ -132,6 +138,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the framing layer length set longer than the actual packet is.
     const TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG: &[u8] = &[
         // Root Layer
@@ -152,6 +159,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the framing layer length set shorter than the actual packet is.
     const TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT: &[u8] = &[
         // Root Layer
@@ -172,6 +180,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the framing layer vector set to the vector for a discovery packet.
     const TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_DISCOVERY_VECTOR: &[u8] = &[
         // Root Layer
@@ -192,6 +201,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the framing layer vector set to an unknown vector.
     const TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_UNKNOWN_VECTOR: &[u8] = &[
         // Root Layer
@@ -212,6 +222,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the synchronisation address set higher than the maximum allowed universe/address.
     /// As per ANSI E1.31-2018 Section 6.2.7
     const TEST_SYNCHRONIZATION_PACKET_TOO_HIGH_SYNC_ADDRESS: &[u8] = &[
@@ -233,6 +244,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the synchronisation address set lower than the maximum allowed universe/address (0).
     /// As per ANSI E1.31-2018 Section 6.2.7
     const TEST_SYNCHRONIZATION_PACKET_TOO_LOW_SYNC_ADDRESS: &[u8] = &[
@@ -254,6 +266,7 @@ pub mod sync_parse_tests {
         0, 0,
     ];
 
+    #[rustfmt::skip]
     /// Synchronisation packet with the reserved bytes set to arbitary values.
     /// As per ANSI E1.31-2018 Section 6.3.4 these should be ignored and the packet parsed as normal.
     const TEST_SYNCHRONIZATION_PACKET_ARBITARY_RESERVED: &[u8] = &[

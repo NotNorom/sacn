@@ -17,6 +17,7 @@ const UNIVERSE_DISCOVERY_PACKET_EXPECTED_MIN_SIZE: usize = 120;
 /// The expected maximum size of a universe discovery packet as per ANSI E1.31-2018 Section 6.1.
 const UNIVERSE_DISCOVERY_PACKET_EXPECTED_MAX_SIZE: usize = 1144;
 
+#[rustfmt::skip]
 /// Built up / checked as per:
 /// ANSI E1.31-2018:
 ///     Section 4.3 Table 4-3: E1.31 Universe Discovery Packet Format
@@ -61,6 +62,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET: &[u8] = &[
     0x0, 0x1, 0x2, 0x3, 0x4, 0x5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet with the root layer vector set to a vector unknown to ANSI E1.31-2018.
 const TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_UNKNOWN_VECTOR: &[u8] = &[
     // Root Layer
@@ -100,6 +102,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_UNKNOWN_VECTOR: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet with the root layer vector incorrectly set to the vector for an ANSI E1.31-2018 data packet.
 const TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_DATA_VECTOR: &[u8] = &[
     // Root Layer
@@ -139,6 +142,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_DATA_VECTOR: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet which has its E1.31 Framing Layer flags set incorrectly.
 const TEST_UNIVERSE_DISCOVERY_PACKET_WRONG_FLAGS: &[u8] = &[
     // Root Layer
@@ -178,6 +182,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_WRONG_FLAGS: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet which has a CID field that is a byte too long.
 const TEST_UNIVERSE_DISCOVERY_PACKET_TOO_LONG_CID: &[u8] = &[
     // Root Layer
@@ -217,6 +222,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_TOO_LONG_CID: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet which has a CID field that is a byte too short.
 const TEST_UNIVERSE_DISCOVERY_PACKET_TOO_SHORT_CID: &[u8] = &[
     // Root Layer
@@ -256,6 +262,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_TOO_SHORT_CID: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet which has its E1.31 Framing Layer flags set incorrectly.
 const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_WRONG_FLAGS: &[u8] = &[
     // Root Layer
@@ -295,6 +302,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_WRONG_FLAGS: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet which has its E1.31 Framing Layer length set shorter than it actually is.
 const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT: &[u8] = &[
     // Root Layer
@@ -334,6 +342,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet which has its E1.31 Framing Layer length set longer than it actually is.
 const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG: &[u8] = &[
     // Root Layer
@@ -373,6 +382,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet with the framing vector set incorrectly to the vector for a synchronisation packet.
 const TEST_UNIVERSE_DISCOVERY_PACKET_SYNC_FRAMING_VECTOR: &[u8] = &[
     // Root Layer
@@ -412,6 +422,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_SYNC_FRAMING_VECTOR: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet with the framing vector set to a completely unrecognised value.
 const TEST_UNIVERSE_DISCOVERY_PACKET_UNKNOWN_FRAMING_VECTOR: &[u8] = &[
     // Root Layer
@@ -451,6 +462,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_UNKNOWN_FRAMING_VECTOR: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// Universe discovery packet with the reserved bytes set to values, this should be ignored and the packet 
 /// parsed normally as per ANSI E1.31-2018 Section 6.4.3.
 const TEST_UNIVERSE_DISCOVERY_PACKET_ARBITRARY_RESERVED: &[u8] = &[
@@ -491,6 +503,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_ARBITRARY_RESERVED: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with the discovery layer flags set incorrectly meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.1.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_WRONG_FLAGS: &[u8] = &[
@@ -531,6 +544,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_WRONG_FLAGS: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with the discovery layer length set too short meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.1.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_SHORT: &[u8] = &[
@@ -571,6 +585,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_SHORT: &[u8] = &
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with the discovery layer length set too long meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.1.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_LONG: &[u8] = &[
@@ -611,6 +626,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_LONG: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with the discovery layer vector set to an unknown value meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.2.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_VECTOR_UNKNOWN: &[u8] = &[
@@ -651,6 +667,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_VECTOR_UNKNOWN: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with a page number higher than the last page meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.3, 8.4.
 const TEST_UNIVERSE_DISCOVERY_PACKET_PAGE_HIGHER_THAN_LAST_PAGE: &[u8] = &[
@@ -691,6 +708,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_PAGE_HIGHER_THAN_LAST_PAGE: &[u8] = &[
     0, 1, 2, 3, 4, 5,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with the universes in decending order which means it should be rejected as they should
 /// be sorted in accending order as per ANSI E1.31-2018 Section 8.5.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DECENDING_ORDER: &[u8] = &[
@@ -731,6 +749,7 @@ const TEST_UNIVERSE_DISCOVERY_PACKET_DECENDING_ORDER: &[u8] = &[
     5, 4, 3, 2, 1, 0,
 ];
 
+#[rustfmt::skip]
 /// A universe discovery packet with the universes in a random order which means it should be rejected as they should
 /// be sorted in accending order as per ANSI E1.31-2018 Section 8.5.
 const TEST_UNIVERSE_DISCOVERY_PACKET_RANDOM_ORDER: &[u8] = &[
@@ -1264,6 +1283,7 @@ fn generate_test_universe_discovery_packet(universes_to_generate: u16) -> Vec<u8
     let root_layer_flags_length_upper: u8 = flags_val | root_layer_parts[0];
     let root_layer_flags_length_lower: u8 = root_layer_parts[1];
 
+    #[rustfmt::skip]
     let mut test_universe_discovery_packet = vec!{
     // Root Layer
     // Preamble Size
