@@ -24,750 +24,750 @@ const UNIVERSE_DISCOVERY_PACKET_EXPECTED_MAX_SIZE: usize = 1144;
 ///     Section 6.4 Table 6-7: E1.31 Universe Discovery Packet Framing Layer
 ///     Section 8 Table 8-9: E1.31 Universe Discovery Packet Universe Discovery Layer
 const TEST_UNIVERSE_DISCOVERY_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes, note each universe takes 2 bytes so this represents 3 universes (0x0001, 0x0203, 0x0405) not 6. */
+    // Universes, note each universe takes 2 bytes so this represents 3 universes (0x0001, 0x0203, 0x0405) not 6.
     0x0, 0x1, 0x2, 0x3, 0x4, 0x5,
 ];
 
 /// Universe discovery packet with the root layer vector set to a vector unknown to ANSI E1.31-2018.
 const TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_UNKNOWN_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x01, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet with the root layer vector incorrectly set to the vector for an ANSI E1.31-2018 data packet.
 const TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_DATA_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet which has its E1.31 Framing Layer flags set incorrectly.
 const TEST_UNIVERSE_DISCOVERY_PACKET_WRONG_FLAGS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x60, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet which has a CID field that is a byte too long.
 const TEST_UNIVERSE_DISCOVERY_PACKET_TOO_LONG_CID: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet which has a CID field that is a byte too short.
 const TEST_UNIVERSE_DISCOVERY_PACKET_TOO_SHORT_CID: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet which has its E1.31 Framing Layer flags set incorrectly.
 const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_WRONG_FLAGS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x60, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet which has its E1.31 Framing Layer length set shorter than it actually is.
 const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x57, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet which has its E1.31 Framing Layer length set longer than it actually is.
 const TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x59, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet with the framing vector set incorrectly to the vector for a synchronisation packet.
 const TEST_UNIVERSE_DISCOVERY_PACKET_SYNC_FRAMING_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector, Set to the value for a synchronisation packet */
+    // Vector, Set to the value for a synchronisation packet
     0x00, 0x00, 0x00, 0x01, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet with the framing vector set to a completely unrecognised value.
 const TEST_UNIVERSE_DISCOVERY_PACKET_UNKNOWN_FRAMING_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector, Set to an unknown value*/
+    // Vector, Set to an unknown value
     0x00, 0x00, 0x00, 0x07, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// Universe discovery packet with the reserved bytes set to values, this should be ignored and the packet 
 /// parsed normally as per ANSI E1.31-2018 Section 6.4.3.
 const TEST_UNIVERSE_DISCOVERY_PACKET_ARBITRARY_RESERVED: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved, Set to arbitrary values */
+    // Reserved, Set to arbitrary values
     255, 254, 253, 252, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes (3 universes, 0x0001, 0x0203, 0x0405) */
+    // Universes (3 universes, 0x0001, 0x0203, 0x0405)
     0, 1, 2, 3, 4, 5,
 ];
 
 /// A universe discovery packet with the discovery layer flags set incorrectly meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.1.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_WRONG_FLAGS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x60, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// A universe discovery packet with the discovery layer length set too short meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.1.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_SHORT: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0d, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// A universe discovery packet with the discovery layer length set too long meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.1.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_LONG: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0f, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// A universe discovery packet with the discovery layer vector set to an unknown value meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.2.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_VECTOR_UNKNOWN: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x00, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// A universe discovery packet with a page number higher than the last page meaning the packet should be rejected.
 /// As per ANSI E1.31-2018 Section 8.3, 8.4.
 const TEST_UNIVERSE_DISCOVERY_PACKET_PAGE_HIGHER_THAN_LAST_PAGE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     3,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     0, 1, 2, 3, 4, 5,
 ];
 
 /// A universe discovery packet with the universes in decending order which means it should be rejected as they should
 /// be sorted in accending order as per ANSI E1.31-2018 Section 8.5.
 const TEST_UNIVERSE_DISCOVERY_PACKET_DECENDING_ORDER: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     5, 4, 3, 2, 1, 0,
 ];
 
 /// A universe discovery packet with the universes in a random order which means it should be rejected as they should
 /// be sorted in accending order as per ANSI E1.31-2018 Section 8.5.
 const TEST_UNIVERSE_DISCOVERY_PACKET_RANDOM_ORDER: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     0x70, 0x58, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     0x70, 0x0e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2, 
-    /* Universes */
+    // Universes
     3, 7, 5, 9, 1, 2,
 ];
 
@@ -1265,38 +1265,38 @@ fn generate_test_universe_discovery_packet(universes_to_generate: u16) -> Vec<u8
     let root_layer_flags_length_lower: u8 = root_layer_parts[1];
 
     let mut test_universe_discovery_packet = vec!{
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10, 
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00, 
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     root_layer_flags_length_upper, root_layer_flags_length_lower, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08, 
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    /* E1.31 Framing Layer */
-    /* Flags and Length */
+    // E1.31 Framing Layer
+    // Flags and Length
     framing_layer_flags_length_upper, framing_layer_flags_length_lower, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02, 
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 
-    /* Reserved */
+    // Reserved
     0, 0, 0, 0, 
-    /* Universe Discovery Layer */
-    /* Flags and Length */
+    // Universe Discovery Layer
+    // Flags and Length
     discovery_layer_flags_length_upper, discovery_layer_flags_length_lower,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x01, 
-    /* Page */
+    // Page
     1,
-    /* Last Page */
+    // Last Page
     2
     };
 

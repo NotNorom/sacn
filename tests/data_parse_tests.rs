@@ -22,52 +22,52 @@ use sacn::sacn_parse_pack_error;
 /// A full test data packet as specified as an example in
 /// ANSI E1.31-2018 Appendix B Table B-13: Universe Synchronization Example E1.31 Data Packet.
 const TEST_DATA_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -89,52 +89,52 @@ const TEST_DATA_PACKET: &[u8] = &[
 
 /// A test data packet with less than a full universe of data.
 const TEST_DATA_PACKET_PARTIAL: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x8B, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x70, 0x75,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length = 40 */
+    // DMP Layer
+    // Flags and Length = 40
     0x70, 0x28,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count = 30 */
+    // Property value count = 30
     0x00, 0x1E,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0,   
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
@@ -145,103 +145,103 @@ const TEST_DATA_PACKET_PARTIAL: &[u8] = &[
 
 /// A test data packet with no data (only a startcode). Lengths set as specified in ANSI E1.31-2018 Section 4.1 Table 4-1.
 const TEST_DATA_PACKET_EMPTY: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x70, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x70, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x70, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x00, 0x01,
-    /* One property value in form of startcode */
+    // One property value in form of startcode
     0x00
 ];
 
 /// Uses a pre amble size that is wrong in its least significant byte value.
 const TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_LOWER_BYTE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x11,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -263,52 +263,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_LOWER_BYTE: &[u8] = &[
 
 /// Uses a pre amble size that is wrong in its most significant byte value.
 const TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_UPPER_BYTE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x01, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -330,52 +330,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_UPPER_BYTE: &[u8] = &[
 
 /// Uses a post amble size that is wrong in its most significant byte value.
 const TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_UPPER_BYTE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x01, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -397,52 +397,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_UPPER_BYTE: &[u8] = &[
 
 /// Uses a post amble size that is wrong in its least significant byte value.
 const TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_LOWER_BYTE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x01,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -464,52 +464,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_LOWER_BYTE: &[u8] = &[
 
 /// Uses an incorrect value for the ACN identifier
 const TEST_DATA_PACKET_ROOT_LAYER_WRONG_ACN_IDENTIFIER: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x42, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -531,52 +531,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_WRONG_ACN_IDENTIFIER: &[u8] = &[
 
 /// Data packet with the root layer flags set incorrectly.
 const TEST_DATA_PACKET_ROOT_LAYER_WRONG_FLAGS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x62, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -598,52 +598,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_WRONG_FLAGS: &[u8] = &[
 
 /// Data packet with the root layer length field set lower than the actual length.
 const TEST_DATA_PACKET_ROOT_LAYER_TOO_LOW_LENGTH: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6d, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -665,52 +665,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_TOO_LOW_LENGTH: &[u8] = &[
 
 /// Data packet with the root layer length field set higher than the actual length.
 const TEST_DATA_PACKET_ROOT_LAYER_TOO_HIGH_LENGTH: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6f, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -732,52 +732,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_TOO_HIGH_LENGTH: &[u8] = &[
 
 /// Uses a random value for the ACN vector.
 const TEST_DATA_PACKET_ROOT_LAYER_UNKNOWN_ACN_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x14,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -799,52 +799,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_UNKNOWN_ACN_VECTOR: &[u8] = &[
 
 /// Uses the ACN vector for synchronisation and discovery packets which is incorrect for a data-packet.
 const TEST_DATA_PACKET_ROOT_LAYER_EXTENDED_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x08,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -866,52 +866,52 @@ const TEST_DATA_PACKET_ROOT_LAYER_EXTENDED_VECTOR: &[u8] = &[
 
 /// The CID field is a byte too long.
 const TEST_DATA_PACKET_TOO_LONG_CID: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 0x3e,
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -933,52 +933,52 @@ const TEST_DATA_PACKET_TOO_LONG_CID: &[u8] = &[
 
 /// The CID field is a byte too short.
 const TEST_DATA_PACKET_TOO_SHORT_CID: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14,
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1000,52 +1000,52 @@ const TEST_DATA_PACKET_TOO_SHORT_CID: &[u8] = &[
 
 /// The data-packet framing layer frags set incorrectly.
 const TEST_DATA_PACKET_FRAMING_LAYER_WRONG_FLAGS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x82, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1067,52 +1067,52 @@ const TEST_DATA_PACKET_FRAMING_LAYER_WRONG_FLAGS: &[u8] = &[
 
 /// The data-packet framing layer length set lower than the actual length.
 const TEST_DATA_PACKET_FRAMING_LAYER_LOW_LENGTH: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x50,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1134,52 +1134,52 @@ const TEST_DATA_PACKET_FRAMING_LAYER_LOW_LENGTH: &[u8] = &[
 
 /// The data-packet framing layer length set higher than the actual length.
 const TEST_DATA_PACKET_FRAMING_LAYER_HIGH_LENGTH: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x62,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1201,52 +1201,52 @@ const TEST_DATA_PACKET_FRAMING_LAYER_HIGH_LENGTH: &[u8] = &[
 
 /// The data-packet framing layer vector set to the wrong value for a data packet.
 const TEST_DATA_PACKET_FRAMING_LAYER_WRONG_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x07,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1268,25 +1268,25 @@ const TEST_DATA_PACKET_FRAMING_LAYER_WRONG_VECTOR: &[u8] = &[
 
 /// Data-packet with a source name that is the max possible size (63B + Null terminator) as per ANSI E1.31-2018 Section 6.2 Table 6-5.
 const TEST_DATA_PACKET_MAX_SOURCE_NAME: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r', b'c',
@@ -1300,30 +1300,30 @@ const TEST_DATA_PACKET_MAX_SOURCE_NAME: &[u8] = &[
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1345,25 +1345,25 @@ const TEST_DATA_PACKET_MAX_SOURCE_NAME: &[u8] = &[
 
 /// Data-packet with the source name without null termination meaning it is malformed as per ANSI E1.31-2018 Section 6.2.2
 const TEST_DATA_PACKET_NOT_NULL_TERMINATED_SOURCE_NAME: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r', b'c',
@@ -1377,30 +1377,30 @@ const TEST_DATA_PACKET_NOT_NULL_TERMINATED_SOURCE_NAME: &[u8] = &[
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r', b'c',
     b'S', b'o', b'u', b'r',
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1422,52 +1422,52 @@ const TEST_DATA_PACKET_NOT_NULL_TERMINATED_SOURCE_NAME: &[u8] = &[
 
 /// The data-packet has a priority above the maximum allowed.
 const TEST_DATA_PACKET_TOO_HIGH_PRIORITY: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     E131_MAX_PRIORITY + 1,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1489,52 +1489,52 @@ const TEST_DATA_PACKET_TOO_HIGH_PRIORITY: &[u8] = &[
 
 /// The data-packet has the lowest acceptable priority of 0. This should be parsed correctly.
 const TEST_DATA_PACKET_LOWEST_PRIORITY: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     0,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1557,52 +1557,52 @@ const TEST_DATA_PACKET_LOWEST_PRIORITY: &[u8] = &[
 /// The data-packet has a 0 synchronisation address indicating it isn't synchronised.
 /// This should be parsed correctly.
 const TEST_DATA_PACKET_NO_SYNC_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 0 meaning no synchronisation */
+    // Synchronization Address, 0 meaning no synchronisation
     0x0, 0x0,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1624,52 +1624,52 @@ const TEST_DATA_PACKET_NO_SYNC_PACKET: &[u8] = &[
 
 /// The data-packet has a synchronisation address above the maximum allowed universe as per ANSI E1.31-2018 Section 9.1.1.
 const TEST_DATA_PACKET_TOO_HIGH_SYNC_ADDR_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address = 64000 = E131_MAX_MULTICAST_UNIVERSE + 1 */
+    // Synchronization Address = 64000 = E131_MAX_MULTICAST_UNIVERSE + 1
     0xFA, 0x00,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1692,52 +1692,52 @@ const TEST_DATA_PACKET_TOO_HIGH_SYNC_ADDR_PACKET: &[u8] = &[
 /// The data-packet has the first least significant (bit 0) of the options field set to 1. This should be ignored and the packet otherwise parsed normally.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_0_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0000_0001,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1760,52 +1760,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_0_SET_PACKET: &[u8] = &[
 /// The data-packet has the second least significant (bit 1) of the options field set to 1. This should be ignored and the packet otherwise parsed normally.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_1_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0000_0010,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1828,52 +1828,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_1_SET_PACKET: &[u8] = &[
 /// The data-packet has the third least significant (bit 2) of the options field set to 1. This should be ignored and the packet otherwise parsed normally.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_2_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0000_0100,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1896,52 +1896,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_2_SET_PACKET: &[u8] = &[
 /// The data-packet has the forth least significant (bit 3) of the options field set to 1. This should be ignored and the packet otherwise parsed normally.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_3_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0000_1000,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1964,52 +1964,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_3_SET_PACKET: &[u8] = &[
 /// The data-packet has the fifth least significant (bit 4) of the options field set to 1. This should be ignored and the packet otherwise parsed normally.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_4_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0001_0000,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2032,52 +2032,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_4_SET_PACKET: &[u8] = &[
 /// The data-packet has the sixth least significant (bit 5) of the options field set to 1.
 /// This should be parsed as a Force_Synchronisation option as per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_5_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0010_0000,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2100,52 +2100,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_5_SET_PACKET: &[u8] = &[
 /// The data-packet has the seventh least significant (bit 6) of the options field set to 1.
 /// This should be parsed as a stream_terminated option as per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_6_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b0100_0000,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2168,52 +2168,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_6_SET_PACKET: &[u8] = &[
 /// The data-packet has the eighth least significant (bit 7) of the options field set to 1.
 /// This should be parsed as a preview_data option as per ANSI E1.31-2018 Section 6.2.6.
 const TEST_DATA_PACKET_OPTIONS_BIT_7_SET_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0b1000_0000,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2236,52 +2236,52 @@ const TEST_DATA_PACKET_OPTIONS_BIT_7_SET_PACKET: &[u8] = &[
 /// The data-packet has a universe of E131_MAX_UNIVERSE + 1 meaning it is above the allowed range and should be rejected.
 /// As per ANSI E1.31-2018 Section 9.1.1.
 const TEST_DATA_PACKET_TOO_HIGH_UNIVERSE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe = 64000 = E131_MAX_MULTICAST_UNIVERSE + 1 */
+    // Universe = 64000 = E131_MAX_MULTICAST_UNIVERSE + 1
     0xFA, 0x00,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2304,52 +2304,52 @@ const TEST_DATA_PACKET_TOO_HIGH_UNIVERSE: &[u8] = &[
 /// The data-packet has a universe of 0 meaning it is below the allowed range and should be rejected.
 /// As per ANSI E1.31-2018 Section 9.1.1.
 const TEST_DATA_PACKET_TOO_LOW_UNIVERSE: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0x00, 0x00,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2372,52 +2372,52 @@ const TEST_DATA_PACKET_TOO_LOW_UNIVERSE: &[u8] = &[
 /// The length of the DMP Layer set greater than its actual length meaning it should be rejected.
 /// As per ANSI E1.31-2018 Section 7.1.
 const TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_LENGTH: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0d,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2440,52 +2440,52 @@ const TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_LENGTH: &[u8] = &[
 /// The length of the DMP Layer set lower than its actual length meaning it should be rejected.
 /// As per ANSI E1.31-2018 Section 7.1.
 const TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_LENGTH: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x70, 0x01,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2508,52 +2508,52 @@ const TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_LENGTH: &[u8] = &[
 /// The flags of the DMP layer set incorrectly so should be rejected.
 /// As per ANSI E1.31-2018 Section 7.1.
 const TEST_DATA_PACKET_DMP_LAYER_WRONG_FLAGS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x62, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2576,52 +2576,52 @@ const TEST_DATA_PACKET_DMP_LAYER_WRONG_FLAGS: &[u8] = &[
 /// The vector field of the DMP layer is set incorrectly so should be rejected.
 /// As per ANSI E1.31-2018 Section 7.2.
 const TEST_DATA_PACKET_DMP_LAYER_WRONG_VECTOR: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x07,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2644,52 +2644,52 @@ const TEST_DATA_PACKET_DMP_LAYER_WRONG_VECTOR: &[u8] = &[
 /// The address and data type field of the DMP layer is set incorrectly so should be rejected.
 /// As per ANSI E1.31-2018 Section 7.3.
 const TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_DATA: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa2, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2712,52 +2712,52 @@ const TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_DATA: &[u8] = &[
 /// The address of the first property is set incorrectly so should be rejected.
 /// As per ANSI E1.31-2018 Section 7.4.
 const TEST_DATA_PACKET_DMP_LAYER_WRONG_FIRST_PROPERTY_ADDRESS: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x01,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2780,52 +2780,52 @@ const TEST_DATA_PACKET_DMP_LAYER_WRONG_FIRST_PROPERTY_ADDRESS: &[u8] = &[
 /// The address increment of the DMP layer has been set incorrectly so should be rejected.
 /// As per ANSI E1.31-2018 Section 7.5.
 const TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_INCREMENT: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x02,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2848,52 +2848,52 @@ const TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_INCREMENT: &[u8] = &[
 /// The property count field has been set higher than the amount of data and so therefore should be rejected.
 /// As per ANSI E1.31-2018 Section 7.6.
 const TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_PROPERTY_COUNT: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x02,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2916,52 +2916,52 @@ const TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_PROPERTY_COUNT: &[u8] = &[
 /// The property count field has been set lower than the amount of data and so therefore should be rejected.
 /// As per ANSI E1.31-2018 Section 7.6.
 const TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_PROPERTY_COUNT: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     0,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x00,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2985,52 +2985,52 @@ const TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_PROPERTY_COUNT: &[u8] = &[
 /// This should be parsed successfully as the property values should be ignored.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_TERMINATION_FULL_PROPERTY_VALUES_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol */
+    // Flags and Length Protocol
     0x72, 0x6e, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length */
+    // Data Packet Framing Layer
+    // Flags and Length
     0x72, 0x58,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     E131_STREAM_TERMINATION_OPTION_BIT_MASK,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length */
+    // DMP Layer
+    // Flags and Length
     0x72, 0x0b,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x02, 0x01,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -3054,50 +3054,50 @@ const TEST_TERMINATION_FULL_PROPERTY_VALUES_PACKET: &[u8] = &[
 /// This should be parsed successfully as the property values should be ignored.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_TERMINATION_EMPTY_PROPERTY_VALUES_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol, Length = 109*/
+    // Flags and Length Protocol, Length = 109
     0x70, 0x6D, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length, Length = 87 */
+    // Data Packet Framing Layer
+    // Flags and Length, Length = 87
     0x70, 0x57,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     E131_STREAM_TERMINATION_OPTION_BIT_MASK,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length, Length = 10 */
+    // DMP Layer
+    // Flags and Length, Length = 10
     0x70, 0x0a,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count */
+    // Property value count
     0x00, 0x00,
 ];
 
@@ -3105,52 +3105,52 @@ const TEST_TERMINATION_EMPTY_PROPERTY_VALUES_PACKET: &[u8] = &[
 /// This should be parsed successfully as the property values should be ignored.
 /// As per ANSI E1.31-2018 Section 6.2.6.
 const TEST_TERMINATION_PARTIAL_PROPERTY_VALUES_PACKET: &[u8] = &[
-    /* Root Layer */
-    /* Preamble Size */
+    // Root Layer
+    // Preamble Size
     0x00, 0x10,
-    /* Post-amble Size */
+    // Post-amble Size
     0x00, 0x00,
-    /* ACN Packet Identifier */
+    // ACN Packet Identifier
     0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    /* Flags and Length Protocol, Length = 139 */
+    // Flags and Length Protocol, Length = 139
     0x70, 0x8B, 
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x04,
-    /* CID */
+    // CID
     0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e, 
-    /* Data Packet Framing Layer */
-    /* Flags and Length, Length = 117 */
+    // Data Packet Framing Layer
+    // Flags and Length, Length = 117
     0x70, 0x75,
-    /* Vector */
+    // Vector
     0x00, 0x00, 0x00, 0x02,
-    /* Source Name */
+    // Source Name
     b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
-    /* Priority */
+    // Priority
     100,
-    /* Synchronization Address, 7962 */
+    // Synchronization Address, 7962
     0x1F, 0x1A,
-    /* Sequence Number */
+    // Sequence Number
     154,
-    /* Options */
+    // Options
     E131_STREAM_TERMINATION_OPTION_BIT_MASK,
-    /* Universe */
+    // Universe
     0, 1,
-    /* DMP Layer */
-    /* Flags and Length, Length = 40 */
+    // DMP Layer
+    // Flags and Length, Length = 40
     0x70, 0x28,
-    /* Vector */
+    // Vector
     0x02,
-    /* Address and Data Type */
+    // Address and Data Type
     0xa1, 
-    /* First Property Address */
+    // First Property Address
     0x00, 0x00,
-    /* Address Increment */
+    // Address Increment
     0x00, 0x01,
-    /* Property value count = 30 */
+    // Property value count = 30
     0x00, 0x1E,
-    /* Property values */
+    // Property values
     0, 0, 0, 0, 0,   
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
