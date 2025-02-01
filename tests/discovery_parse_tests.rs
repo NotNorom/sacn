@@ -800,8 +800,8 @@ pub mod discovery_parse_tests {
                         #[cfg(not(feature = "std"))]
                         universes: {
                             let mut universes = Vec::new();
-                            universes.extend_from_slice(&[3, 4, 5]).unwrap();
-                            universes
+                            universes.extend_from_slice(&[3, 4, 5]);
+                            universes.into()
                         },
                     },
                 }),

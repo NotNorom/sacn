@@ -1128,8 +1128,8 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    fn recv<'a>(&self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
-        self.socket.recv(&mut buf[0..])?;
+    fn recv<'a>(&mut self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
+        self.socket.read(buf)?;
 
         Ok(AcnRootLayerProtocol::parse(buf)?)
     }
@@ -1509,13 +1509,13 @@ fn leave_unix_multicast(socket: &Socket, addr: &SockAddr, interface_addr: IpAddr
 #[cfg(target_os = "windows")]
 fn create_win_socket(addr: SocketAddr) -> SacnResult<Socket> {
     if addr.is_ipv4() {
-        let socket = Socket::new(Domain::ipv4(), Type::dgram(), Some(Protocol::udp()))?;
+        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
 
         socket.set_reuse_address(true)?;
         socket.bind(&SockAddr::from(addr))?;
         Ok(socket)
     } else {
-        let socket = Socket::new(Domain::ipv6(), Type::dgram(), Some(Protocol::udp()))?;
+        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))?;
 
         socket.set_reuse_address(true)?;
         socket.bind(&SockAddr::from(addr))?;
@@ -1540,7 +1540,7 @@ fn create_win_socket(addr: SocketAddr) -> SacnResult<Socket> {
 fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
     match addr.family() as i32 {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
-        AF_INET => match addr.as_inet() {
+        AF_INET => match addr.as_socket_ipv4() {
             Some(a) => {
                 socket.join_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
             }
@@ -1550,7 +1550,7 @@ fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
                 ))?;
             }
         },
-        AF_INET6 => match addr.as_inet6() {
+        AF_INET6 => match addr.as_socket_ipv6() {
             Some(_) => {
                 Err(Error::OsOperationUnsupported(
                     "IPv6 multicast is currently unsupported on Windows".to_string(),
@@ -1589,7 +1589,7 @@ fn join_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
 fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
     match addr.family() as i32 {
         // Cast required because AF_INET is defined in libc in terms of a c_int (i32) but addr.family returns using u16.
-        AF_INET => match addr.as_inet() {
+        AF_INET => match addr.as_socket_ipv4() {
             Some(a) => {
                 socket.leave_multicast_v4(a.ip(), &Ipv4Addr::new(0, 0, 0, 0))?;
             }
@@ -1599,7 +1599,7 @@ fn leave_win_multicast(socket: &Socket, addr: SockAddr) -> SacnResult<()> {
                 ))?;
             }
         },
-        AF_INET6 => match addr.as_inet6() {
+        AF_INET6 => match addr.as_socket_ipv6() {
             Some(_) => {
                 Err(Error::OsOperationUnsupported(
                     "IPv6 multicast is currently unsupported on Windows".to_string(),
