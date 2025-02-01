@@ -1,6 +1,3 @@
-extern crate sacn;
-extern crate uuid;
-
 #[cfg(test)]
 pub mod discovery_parse_tests {
 

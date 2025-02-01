@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate afl;
-extern crate sacn;
 
 use sacn::packet::*;
 

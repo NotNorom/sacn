@@ -16,8 +16,6 @@
 //! # Examples
 //!
 //! ```
-//! # extern crate uuid;
-//! # extern crate sacn;
 //! # use uuid::Uuid;
 //! # use sacn::packet::{AcnRootLayerProtocol, E131RootLayer, E131RootLayerData, DataPacketFramingLayer, DataPacketDmpLayer};
 //! # fn main() {

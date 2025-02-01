@@ -7,10 +7,6 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
-extern crate sacn;
-extern crate socket2;
-extern crate uuid;
-
 use std::convert::TryInto; // Used for converting between u8 and u16 representations.
 use std::time::{Duration, Instant}; // Used for converting between bytes and strings.
 use std::{

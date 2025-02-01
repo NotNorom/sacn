@@ -7,9 +7,6 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
-extern crate sacn;
-extern crate uuid;
-
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use sacn::{error::Error, packet::*, source::SacnSource};
