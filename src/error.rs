@@ -29,9 +29,14 @@
 use uuid::Uuid;
 
 use crate::{
-    packet::{E131_MAX_MULTICAST_UNIVERSE, E131_MIN_MULTICAST_UNIVERSE},
+    priority::PriorityError,
     sacn_parse_pack_error::ParsePackError,
+    source::SourceError,
+    universe::{Universe, UniverseError},
 };
+
+extern crate alloc;
+use alloc::string::String;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -41,15 +46,29 @@ pub enum Error {
 
     // Allow standard string library errors to be used with the error-chain system.
     #[error("str error: {0:?}")]
-    Str(#[from] std::str::Utf8Error),
+    Utf8(#[from] core::str::Utf8Error),
 
     // Allow UUID library to be used with error-chain system.
     #[error("uuid error: {0:?}")]
     Uuid(#[from] uuid::Error),
 
-    // All parse/pack errors live within the same chain ('family') of errors as described in sacn_parse_packet_error.
+    /// All parse/pack errors live within the same chain ('family') of errors as described in sacn_parse_packet_error.
     #[error("sacn parse error: {0:?}")]
     SacnParsePackError(#[from] ParsePackError),
+
+    /// Error with source
+    #[error("source error: {0:?}")]
+    SourceError(#[from] SourceError),
+
+    /// Error with universe
+    #[error("universe error: {0:?}")]
+    UniverseError(#[from] UniverseError),
+
+    /// Attempted to perform an action using a priority value that is invalid. For example sending with a priority > 200.
+    /// This is distinct from the SacnParsePackError(ParseInvalidPriority) as it is for a local use of an invalid priority
+    /// rather than receiving an invalid priority from another source.
+    #[error("sync address error: {0:?}")]
+    PriorityError(#[from] PriorityError),
 
     /// Failed to send sync packet
     #[error("Failed to send sync packet")]
@@ -65,27 +84,11 @@ pub enum Error {
 
     /// Synchronisation universe not allowed
     #[error("Synchronisation universe not allowed")]
-    SyncUniverseNotAllowed(#[source] Box<Error>),
+    SyncUniverseNotAllowed(#[source] alloc::boxed::Box<Error>),
 
     /// Failed to sent a timeout value for the receiver
     #[error("Failed to sent a timeout value for the receiver")]
-    SendTimeoutValue(#[source] Box<Error>),
-
-    /// Returned to indicate that an invalid or malformed source name was used.
-    ///
-    /// # Arguments
-    /// msg: A string describing why the source name is malformed.
-    #[error("The given source name was malformed and couldn't be used, msg: {0}")]
-    MalformedSourceName(String),
-
-    /// Attempted to perform an action using a priority value that is invalid. For example sending with a priority > 200.
-    /// This is distinct from the SacnParsePackError(ParseInvalidPriority) as it is for a local use of an invalid priority
-    /// rather than receiving an invalid priority from another source.
-    ///
-    /// # Arguments
-    /// msg: A string describing why the priority is invalid.
-    #[error("Attempted to perform an action using a priority value that is invalid, msg: {0}")]
-    InvalidPriority(String),
+    SendTimeoutValue(#[source] alloc::boxed::Box<Error>),
 
     /// Used to indicate that the limit for the number of supported sources has been reached.
     /// This is based on unique CID values.
@@ -110,22 +113,20 @@ pub enum Error {
     #[error("Attempted to exceed the capacity of a single universe, msg: {0}")]
     ExceedUniverseCapacity(String),
 
-    /// Attempted to use illegal universe. Allowed values are:
-    /// - Range from [`E131_MIN_MULTICAST_UNIVERSE`] to [`E131_MAX_MULTICAST_UNIVERSE`] inclusive
-    /// - [`E131_DISCOVERY_UNIVERSE`](crate::packet::E131_DISCOVERY_UNIVERSE)
-    ///
-    /// # Arguments
-    /// 0: Value of illegal universe
-    #[error("Illegal universe used. Must be in the range [{} - {}], universe: {}", E131_MIN_MULTICAST_UNIVERSE, E131_MAX_MULTICAST_UNIVERSE, .0)]
-    IllegalUniverse(u16),
-
     /// Attempted to use a universe that wasn't first registered for use.
     /// To send from a universe with a sender it must first be registered. This allows universe discovery adverts to include the universe.
     ///
     /// # Arguments
     /// msg: A string describing why the error was returned.
     #[error("Attempted to use a universe that wasn't first registered for use, msg: {0}")]
-    UniverseNotRegistered(String),
+    UniverseNotRegistered(Universe),
+
+    /// Attempted to call [`crate::receive::SacnReceiver::recv``] with only the discovery universe being registered.
+    ///
+    /// This means that having no timeout may lead to no data ever being received and so this method blocking forever
+    /// to prevent this likely unintended behaviour this error is thrown
+    #[error("Attempted to use receive only the discovery universe.")]
+    OnlyDiscoveryUniverseRegistered,
 
     /// Ip version (ipv4 or ipv6) used when the other is expected.
     ///
@@ -171,7 +172,7 @@ pub enum Error {
     ///
     /// uni: The universe that the termination packet is for.
     #[error("Source cid: {src_cid:?} terminated universe: {universe}")]
-    UniverseTerminated { src_cid: Uuid, universe: u16 },
+    UniverseTerminated { src_cid: Uuid, universe: Universe },
 
     /// A source universe timed out as no data was received on that universe within E131_NETWORK_DATA_LOSS_TIMEOUT as per ANSI E1.31-2018 Section 6.7.1.
     ///
@@ -181,7 +182,7 @@ pub enum Error {
     ///
     /// uni: The universe that timed out.
     #[error("(Source,Universe) timed out: ({src_cid},{universe})")]
-    UniverseTimeout { src_cid: Uuid, universe: u16 },
+    UniverseTimeout { src_cid: Uuid, universe: Universe },
 
     /// When looking for a specific universe it wasn't found. This might happen for example if trying to mute a universe on a receiver that
     /// wasn't being listened to.

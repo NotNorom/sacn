@@ -37,8 +37,11 @@ use std::{
 
 use error::ExampleResult;
 use sacn::{
-    packet::{ACN_SDT_MULTICAST_PORT, UNIVERSE_CHANNEL_CAPACITY},
+    e131_definitions::{ACN_SDT_MULTICAST_PORT, UNIVERSE_CHANNEL_CAPACITY},
+    error::Error as SacnError,
+    priority::Priority,
     source::SacnSource,
+    universe::Universe,
 };
 
 /// The start code used in termination packets.
@@ -131,8 +134,8 @@ const TEST_PRESET_HIGH_DATA_RATE_VARIATION_RANGE: f64 = 10.0;
 
 /// The 2 universes used for the acceptance test.
 /// ACCEPT_TEST_UNI_1 contains the backlight fixtures and ACCEPT_TEST_UNI_2 the frontlight fixtures.
-const ACCEPT_TEST_UNI_1: u16 = 1;
-const ACCEPT_TEST_UNI_2: u16 = 2;
+const ACCEPT_TEST_UNI_1: Universe = unsafe { Universe::unchecked_new(1) };
+const ACCEPT_TEST_UNI_2: Universe = unsafe { Universe::unchecked_new(2) };
 
 /// The start addresses for each of the fixtures in the acceptance test (universe 1).
 /// These are the backlights which are the colour changing lights far from the camera.
@@ -288,10 +291,13 @@ fn handle_full_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exam
     }
 
     let universe: u16 = split_input[1].parse().unwrap();
+    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
 
     let sync_uni: u16 = split_input[2].parse().unwrap();
+    let sync_uni = Universe::new(sync_uni).map_err(SacnError::UniverseError)?;
 
     let priority: u8 = split_input[3].parse().unwrap();
+    let priority = Priority::new(priority).map_err(SacnError::PriorityError)?;
 
     let mut data: [u8; 513] = [0; 513];
 
@@ -327,6 +333,7 @@ fn handle_all_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> Examp
     }
 
     let universe: u16 = split_input[1].parse().unwrap();
+    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
 
     let value: u8 = split_input[2].parse().unwrap();
 
@@ -355,6 +362,7 @@ fn handle_all_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> Examp
 /// The rest of the input is expected to be the data to send.
 fn handle_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleResult<bool> {
     let universe: u16 = split_input[1].parse().unwrap();
+    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
 
     if split_input.len() < 4 {
         Err(std::io::Error::new(
@@ -364,8 +372,10 @@ fn handle_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleRe
     }
 
     let sync_uni: u16 = split_input[2].parse().unwrap();
+    let sync_uni = Universe::new(sync_uni).map_err(SacnError::UniverseError)?;
 
     let priority: u8 = split_input[3].parse().unwrap();
+    let priority = Priority::new(priority).map_err(SacnError::PriorityError)?;
 
     let mut data: Vec<u8> = Vec::new();
 
@@ -401,6 +411,7 @@ fn handle_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleRe
 /// The rest of the input is expected to be the data to send.
 fn handle_unicast_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleResult<bool> {
     let universe: u16 = split_input[1].parse().unwrap();
+    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
 
     if split_input.len() < 5 {
         Err(std::io::Error::new(
@@ -410,8 +421,10 @@ fn handle_unicast_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exampl
     }
 
     let sync_uni: u16 = split_input[2].parse().unwrap();
+    let sync_uni = Universe::new(sync_uni).map_err(SacnError::UniverseError)?;
 
     let priority: u8 = split_input[3].parse().unwrap();
+    let priority = Priority::new(priority).expect("in range");
 
     let dst_ip = split_input[4];
 
@@ -464,8 +477,10 @@ fn handle_data_over_time_option(src: &mut SacnSource, split_input: Vec<&str>) ->
     }
 
     let universe: u16 = split_input[1].parse().unwrap();
+    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
     let duration_millis: u64 = split_input[2].parse().unwrap();
     let priority: u8 = split_input[3].parse().unwrap();
+    let priority = Priority::new(priority).map_err(SacnError::PriorityError)?;
 
     let duration: Duration = Duration::from_millis(duration_millis);
 
@@ -509,6 +524,7 @@ fn handle_test_preset_option(src: &mut SacnSource, split_input: Vec<&str>) -> Ex
 
     let preset: usize = split_input[1].parse().unwrap();
     let universe: u16 = split_input[2].parse().unwrap();
+    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
 
     match preset {
         TEST_PRESET_MOVING_CHANNELS => {
@@ -529,6 +545,7 @@ fn handle_test_preset_option(src: &mut SacnSource, split_input: Vec<&str>) -> Ex
             }
 
             let universe_2: u16 = split_input[3].parse().unwrap();
+            let universe_2 = Universe::new(universe_2).map_err(SacnError::UniverseError)?;
 
             run_test_2_universes_distinct_values(src, universe, universe_2, std::u8::MAX / 2, std::u8::MAX, None)?;
         }
@@ -541,6 +558,7 @@ fn handle_test_preset_option(src: &mut SacnSource, split_input: Vec<&str>) -> Ex
             }
 
             let universe_2: u16 = split_input[3].parse().unwrap();
+            let universe_2 = Universe::new(universe_2).map_err(SacnError::UniverseError)?;
             let addr = SocketAddr::new(split_input[4].parse().unwrap(), ACN_SDT_MULTICAST_PORT);
 
             run_test_2_universes_distinct_values(src, universe, universe_2, std::u8::MAX / 2, std::u8::MAX, Some(addr))?;
@@ -576,8 +594,8 @@ fn handle_test_preset_option(src: &mut SacnSource, split_input: Vec<&str>) -> Ex
 /// dst_ip: None to use multicast or Some(addr) to use unicast to a specific address.
 fn run_test_2_universes_distinct_values(
     src: &mut SacnSource,
-    uni_1: u16,
-    uni_2: u16,
+    uni_1: Universe,
+    uni_2: Universe,
     uni1_val: u8,
     uni2_val: u8,
     dst_ip: Option<SocketAddr>,
@@ -605,7 +623,7 @@ fn run_test_2_universes_distinct_values(
 /// src: A mutable reference to the SacnSource to use as the sender in this test.
 ///
 /// universe: The universe to send data on in the test.
-fn run_test_moving_channel_preset(src: &mut SacnSource, universe: u16) -> ExampleResult<()> {
+fn run_test_moving_channel_preset(src: &mut SacnSource, universe: Universe) -> ExampleResult<()> {
     let start_time = Instant::now();
 
     let mut data: [u8; UNIVERSE_CHANNEL_CAPACITY] = [0; UNIVERSE_CHANNEL_CAPACITY];
@@ -633,7 +651,7 @@ fn run_test_moving_channel_preset(src: &mut SacnSource, universe: u16) -> Exampl
 /// src: A mutable reference to the SacnSource to use as the sender in this test.
 ///
 /// universe: The universe to send data on in the test.
-fn run_test_rapid_changes_preset(src: &mut SacnSource, universe: u16) -> ExampleResult<()> {
+fn run_test_rapid_changes_preset(src: &mut SacnSource, universe: Universe) -> ExampleResult<()> {
     let start_time = Instant::now();
 
     let mut counter = 0;
@@ -665,18 +683,24 @@ fn run_test_rapid_changes_preset(src: &mut SacnSource, universe: u16) -> Example
 /// start_universe: The universe to use as the first universe in the test.
 ///
 /// universe_count: The number of universes starting at the start_universe (inclusive) to send data on.
-fn run_test_high_data_rate(src: &mut SacnSource, start_universe: u16, universe_count: u16) -> ExampleResult<()> {
+fn run_test_high_data_rate(src: &mut SacnSource, start_universe: Universe, universe_count: u16) -> ExampleResult<()> {
     let start_time = Instant::now();
 
     let mut counter: f64 = 0.0;
 
     while start_time.elapsed() < TEST_PRESET_DURATION {
-        for universe in start_universe..start_universe + universe_count {
-            let d = ((universe - start_universe) as f64) * (TEST_PRESET_HIGH_DATA_RATE_VARIATION_RANGE * counter.sin());
+        for universe in start_universe.get()..start_universe.get() + universe_count {
+            let d = ((universe - start_universe.get()) as f64) * (TEST_PRESET_HIGH_DATA_RATE_VARIATION_RANGE * counter.sin());
             let mut data: [u8; UNIVERSE_CHANNEL_CAPACITY] = [d as u8; UNIVERSE_CHANNEL_CAPACITY];
             // Use a zero startcode.
             data[0] = 0;
-            src.send(&[universe], &data, None, None, None)?;
+            src.send(
+                &[Universe::new(universe).map_err(SacnError::UniverseError)?],
+                &data,
+                None,
+                None,
+                None,
+            )?;
         }
 
         counter = counter + 0.05;
@@ -1052,6 +1076,7 @@ fn handle_input(src: &mut SacnSource) -> ExampleResult<bool> {
                 ACTION_DATA_OVER_TIME_OPTION => handle_data_over_time_option(src, split_input),
                 ACTION_SYNC_OPTION => {
                     let universe: u16 = split_input[1].parse().unwrap();
+                    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
                     src.send_sync_packet(universe, None)?;
                     Ok(true)
                 }
@@ -1064,12 +1089,14 @@ fn handle_input(src: &mut SacnSource) -> ExampleResult<bool> {
                     }
 
                     let universe: u16 = split_input[1].parse().unwrap();
+                    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
                     let dst_ip = split_input[2];
                     src.send_sync_packet(universe, Some(SocketAddr::from_str(dst_ip).unwrap().into()))?;
                     Ok(true)
                 }
                 ACTION_REGISTER_OPTION => {
                     let universe: u16 = split_input[1].parse().unwrap();
+                    let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
                     src.register_universe(universe)?;
                     Ok(true)
                 }
@@ -1094,6 +1121,7 @@ fn handle_input(src: &mut SacnSource) -> ExampleResult<bool> {
                     if universe == 0 {
                         return Ok(false);
                     } else {
+                        let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
                         src.terminate_stream(universe, TERMINATE_START_CODE)?;
                     }
                     Ok(true)

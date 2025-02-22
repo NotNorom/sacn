@@ -17,17 +17,15 @@
 // received, if a discovery packet is received but there are more pages the source won't be discovered until all the pages are received.
 // If a page is lost this therefore means the source update / discovery in its entirety will be lost - implementation detail.
 
-/// Extra net imports required for the IPv6 handling on the linux side.
 #[cfg(not(target_os = "windows"))]
-use std::net::{IpAddr, Ipv6Addr};
-use std::{
+use core::net::{IpAddr, Ipv6Addr};
+use core::{
     cmp::Ordering,
-    collections::HashMap,
     fmt,
-    io::Read,
     net::{Ipv4Addr, SocketAddr},
-    time::{Duration, Instant},
+    time::Duration,
 };
+use std::{collections::HashMap, io::Read, time::Instant};
 
 /// Constants required to detect if an IP is IPv4 or IPv6.
 #[cfg(not(target_os = "windows"))]
@@ -38,15 +36,18 @@ use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 /// This is used for uniquely identifying sources when counting sequence numbers.
 use uuid::Uuid;
 
-/// Same reasoning as for packet meaning all sacn errors are imported.
-use crate::error::Error;
 use crate::{
-    packet::{
-        is_universe_in_range, universe_to_ipv4_multicast_addr, universe_to_ipv6_multicast_addr, AcnRootLayerProtocol,
-        DataPacketFramingLayer, E131RootLayer, E131RootLayerData, SynchronizationPacketFramingLayer, UniverseDiscoveryPacketFramingLayer,
-        UniverseDiscoveryPacketUniverseDiscoveryLayer, E131_DISCOVERY_UNIVERSE, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_NO_SYNC_ADDR,
-        E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND, UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
+    e131_definitions::{
+        E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
+        UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
     },
+    error::Error,
+    packet::{
+        AcnRootLayerProtocol, DataPacketFramingLayer, E131RootLayer, E131RootLayerData, SynchronizationPacketFramingLayer,
+        UniverseDiscoveryPacketFramingLayer, UniverseDiscoveryPacketUniverseDiscoveryLayer,
+    },
+    priority::Priority,
+    universe::Universe,
     SacnResult,
 };
 
@@ -99,18 +100,18 @@ const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> SacnResult<DMXData> = discar
 #[derive(Debug)]
 pub struct DMXData {
     /// The universe that the data was sent to.
-    pub universe: u16,
+    pub universe: Universe,
 
     /// The actual universe data, if less than 512 values in length then implies trailing 0's to pad to a full-universe of data.
     pub values: Vec<u8>,
 
     /// The universe the data is (or was if now acted upon) waiting for a synchronisation packet from.
     /// 0 indicates it isn't waiting for a universe synchronisation packet.
-    pub sync_uni: u16,
+    pub sync_uni: Option<Universe>,
 
     /// The priority of the data, this may be useful for receivers which want to implement their own implementing merge algorithms.
     /// Must be less than packet::E131_MAX_PRIORITY.
-    pub priority: u8,
+    pub priority: Priority,
 
     /// The unique id of the source of the data, this may be useful for receivers which want to implement their own merge algorithms
     /// which use the identity of the source to decide behaviour.
@@ -131,21 +132,22 @@ pub struct DMXData {
 /// ```
 /// // Example showing creation of a receiver and receiving some data, as there is no sender this receiver then handles the timeout.
 /// use sacn::receive::SacnReceiver;
-/// use sacn::packet::ACN_SDT_MULTICAST_PORT;
+/// use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
+/// use sacn::universe::Universe;
 ///
 /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 /// use std::time::Duration;
 ///
-/// const UNIVERSE1: u16 = 1;
-/// const TIMEOUT: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
+/// let universe1: Universe = Universe::new(1).expect("in range");
+/// let timeout: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
 ///
 /// let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 ///
 /// let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 ///
-/// dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
+/// dmx_rcv.listen_universes(&[universe1]).unwrap();
 ///
-/// match dmx_rcv.recv(TIMEOUT) {
+/// match dmx_rcv.recv(timeout) {
 ///     Err(e) => {
 ///         // Print out the error.
 ///         println!("{:?}", e);
@@ -165,10 +167,10 @@ pub struct SacnReceiver {
     /// Data_universe used as key as oppose to sync universe because multiple packets might be waiting on the same sync universe
     /// and adding data by data universe is at least as common as retrieving data by sync address because in a normal setup
     /// 1 or more bits of data wait for 1 sync.
-    waiting_data: HashMap<u16, DMXData>,
+    waiting_data: HashMap<Universe, DMXData>,
 
     /// Universes that this receiver is currently listening for.
-    universes: Vec<u16>,
+    universes: Vec<Universe>,
 
     /// Sacn sources that have been discovered by this receiver through universe discovery packets.
     discovered_sources: Vec<DiscoveredSacnSource>,
@@ -245,7 +247,7 @@ struct UniversePage {
 
     /// The universes that the source is transmitting that are on this page, this may or may-not be a complete list of all universes being sent
     /// depending on if there are more pages.
-    universes: Vec<u16>,
+    universes: Vec<Universe>,
 }
 
 /// Allows debug ({:?}) printing of the SacnReceiver, used during debugging.
@@ -312,7 +314,7 @@ impl SacnReceiver {
             announce_timeout: ANNOUNCE_TIMEOUT_DEFAULT,
         };
 
-        sri.listen_universes(&[E131_DISCOVERY_UNIVERSE])?;
+        sri.listen_universes(&[Universe::E131_DISCOVERY_UNIVERSE])?;
 
         Ok(sri)
     }
@@ -366,7 +368,7 @@ impl SacnReceiver {
     ///
     /// # Arguments
     /// universe: The universe that the data that is waiting was sent to.
-    pub fn clear_waiting_data(&mut self, universe: u16) -> bool {
+    pub fn clear_waiting_data(&mut self, universe: Universe) -> bool {
         self.waiting_data.remove(&universe).is_some()
     }
 
@@ -396,15 +398,7 @@ impl SacnReceiver {
     /// attempt to join any multicast groups.
     ///
     /// If 1 or more universes in the list are already being listened to this method will have no effect for those universes only.
-    ///
-    /// # Errors
-    /// Returns an Error::IllegalUniverse error if the given universe is outwith the allowed range of universes,
-    /// see (is_universe_in_range)[fn.is_universe_in_range.packet].
-    pub fn listen_universes(&mut self, universes: &[u16]) -> SacnResult<()> {
-        for u in universes {
-            is_universe_in_range(*u)?;
-        }
-
+    pub fn listen_universes(&mut self, universes: &[Universe]) -> SacnResult<()> {
         for u in universes {
             if let Err(i) = self.universes.binary_search(u) {
                 // Value not found, i is the position it should be inserted
@@ -424,13 +418,9 @@ impl SacnReceiver {
     /// Stops listening to the given universe.
     ///
     /// # Errors
-    /// Returns an Error::IllegalUniverse error if the given universe is outwith the allowed range of universes,
-    /// see (is_universe_in_range)[fn.is_universe_in_range.packet].
     ///
     /// Returns UniverseNotFound if the given universe wasn't already being listened to.
-    pub fn mute_universe(&mut self, universe: u16) -> SacnResult<()> {
-        is_universe_in_range(universe)?;
-
+    pub fn mute_universe(&mut self, universe: Universe) -> SacnResult<()> {
         match self.universes.binary_search(&universe) {
             Err(_) => {
                 // Universe isn't found.
@@ -466,7 +456,7 @@ impl SacnReceiver {
     ///
     /// Returns:
     /// True if the universe is being listened to by this receiver, false if not.
-    pub fn is_listening(&self, universe: &u16) -> bool {
+    pub fn is_listening(&self, universe: &Universe) -> bool {
         self.universes.contains(universe)
     }
 
@@ -498,15 +488,12 @@ impl SacnReceiver {
     /// universe from the source. If it isn't detected immediately it will be detected within an interval of E131_NETWORK_DATA_LOSS_TIMEOUT (assuming code
     /// executes in zero time).
     pub fn recv(&mut self, timeout: Option<Duration>) -> SacnResult<Vec<DMXData>> {
-        if self.universes.len() == 1 && self.universes[0] == E131_DISCOVERY_UNIVERSE && timeout.is_none() && !self.announce_source_discovery
+        if self.universes.len() == 1
+            && self.universes[0] == Universe::E131_DISCOVERY_UNIVERSE
+            && timeout.is_none()
+            && !self.announce_source_discovery
         {
-            // This indicates that the only universe that can be received is the discovery universe.
-            // This means that having no timeout may lead to no data ever being received and so this method blocking forever
-            // to prevent this likely unintended behaviour throw a universe not registered error.
-            return Err(Error::UniverseNotRegistered(
-                "Attempting to receive data with no data universes registered, an infinite timeout and no discovery announcements"
-                    .to_string(),
-            ));
+            return Err(Error::OnlyDiscoveryUniverseRegistered);
         }
 
         self.sequences.check_timeouts(self.announce_timeout)?;
@@ -744,7 +731,7 @@ impl SacnReceiver {
             self.announce_timeout,
         )?;
 
-        if data_pkt.synchronization_address == E131_NO_SYNC_ADDR {
+        if data_pkt.synchronization_address.is_none() {
             self.clear_waiting_data(data_pkt.universe);
 
             let vals: Vec<u8> = data_pkt.data.property_values.into_owned();
@@ -762,7 +749,7 @@ impl SacnReceiver {
         } else {
             // As per ANSI E1.31-2018 Appendix B.2 the receiver should listen at the synchronisation address when a data packet is received with a non-zero
             // synchronisation address.
-            self.listen_universes(&[data_pkt.synchronization_address])?;
+            self.listen_universes(&[data_pkt.synchronization_address.unwrap()])?;
 
             let vals: Vec<u8> = data_pkt.data.property_values.into_owned();
             let dmx_data: DMXData = DMXData {
@@ -798,7 +785,7 @@ impl SacnReceiver {
     /// source_name: The human readable name of the sACN source to remove the universe from.
     ///
     /// universe:    The sACN universe to remove.
-    fn terminate_stream(&mut self, src_cid: Uuid, source_name: &str, universe: u16) {
+    fn terminate_stream(&mut self, src_cid: Uuid, source_name: &str, universe: Universe) {
         // Will only return an error if the source/universe wasn't found which is acceptable because as it
         // comes to the same result.
         let _ = self.sequences.remove_seq_numbers(src_cid, universe);
@@ -853,19 +840,19 @@ impl SacnReceiver {
     /// Returns an OutOfSequence error if a packet is received out of order as detected by the different between
     /// the packets sequence number and the expected sequence number as specified in ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
     fn handle_sync_packet(&mut self, cid: Uuid, sync_pkt: SynchronizationPacketFramingLayer) -> SacnResult<Option<Vec<DMXData>>> {
-        if !self.is_listening(&sync_pkt.synchronization_address) {
+        let universe = match sync_pkt.synchronization_address {
+            Some(universe) => universe,
+            None => return Ok(None),
+        };
+
+        if !self.is_listening(&universe) {
             return Ok(None); // If not listening for this universe then ignore the packet.
         }
 
-        self.sequences.check_sync_seq_number(
-            self.source_limit,
-            cid,
-            sync_pkt.sequence_number,
-            sync_pkt.synchronization_address,
-            self.announce_timeout,
-        )?;
+        self.sequences
+            .check_sync_seq_number(self.source_limit, cid, sync_pkt.sequence_number, universe, self.announce_timeout)?;
 
-        let res = self.rtrv_waiting_data(sync_pkt.synchronization_address);
+        let res = self.rtrv_waiting_data(universe);
         if res.is_empty() {
             Ok(None)
         } else {
@@ -878,14 +865,15 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// sync_uni: The synchronisation universe of the data that should be retrieved.
-    fn rtrv_waiting_data(&mut self, sync_uni: u16) -> Vec<DMXData> {
+    fn rtrv_waiting_data(&mut self, sync_uni: Universe) -> Vec<DMXData> {
         // Get the universes (used as keys) to remove and then move the corresponding data out of the waiting data and into the result.
         // This prevents having to copy DMXData.
         // Cannot do both actions at once as cannot modify a data structure while iterating over it.
-        let mut keys: Vec<u16> = Vec::new();
+        let mut keys = Vec::new();
+
         for (uni, data) in &self.waiting_data {
-            if data.sync_uni == sync_uni {
-                keys.push(*uni);
+            if matches!(data.sync_uni, Some(universe) if universe == sync_uni) {
+                keys.push(*uni)
             }
         }
 
@@ -1045,11 +1033,11 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
-    fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
+    fn listen_multicast_universe(&self, universe: Universe) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
-            universe_to_ipv4_multicast_addr(universe)?
+            universe.to_ipv4_multicast_addr()
         } else {
-            universe_to_ipv6_multicast_addr(universe)?
+            universe.to_ipv6_multicast_addr()
         };
 
         Ok(join_win_multicast(&self.socket, multicast_addr)?)
@@ -1060,11 +1048,11 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
+    fn mute_multicast_universe(&mut self, universe: Universe) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
-            universe_to_ipv4_multicast_addr(universe)?
+            universe.to_ipv4_multicast_addr()
         } else {
-            universe_to_ipv6_multicast_addr(universe)?
+            universe.to_ipv6_multicast_addr()
         };
 
         Ok(leave_win_multicast(&self.socket, multicast_addr)?)
@@ -1178,11 +1166,11 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
-    fn listen_multicast_universe(&self, universe: u16) -> SacnResult<()> {
+    fn listen_multicast_universe(&self, universe: Universe) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
-            universe_to_ipv4_multicast_addr(universe)?
+            universe.to_ipv4_multicast_addr()
         } else {
-            universe_to_ipv6_multicast_addr(universe)?
+            universe.to_ipv6_multicast_addr()
         };
 
         join_unix_multicast(&self.socket, &multicast_addr, self.addr.ip())
@@ -1193,11 +1181,11 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    fn mute_multicast_universe(&mut self, universe: u16) -> SacnResult<()> {
+    fn mute_multicast_universe(&mut self, universe: Universe) -> SacnResult<()> {
         let multicast_addr = if self.addr.is_ipv4() {
-            universe_to_ipv4_multicast_addr(universe)?
+            universe.to_ipv4_multicast_addr()
         } else {
-            universe_to_ipv6_multicast_addr(universe)?
+            universe.to_ipv6_multicast_addr()
         };
 
         leave_unix_multicast(&self.socket, &multicast_addr, self.addr.ip())
@@ -1258,7 +1246,7 @@ impl SacnNetworkReceiver {
     fn recv<'a>(&mut self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
         self.socket.read(buf)?;
 
-        AcnRootLayerProtocol::parse(buf)
+        Ok(AcnRootLayerProtocol::parse(buf)?)
     }
 
     /// Set the timeout for the recv operation.
@@ -1337,8 +1325,8 @@ impl DiscoveredSacnSource {
     /// Returns all the universes being send by this SacnSource as discovered through the universe discovery mechanism.
     ///
     /// Intentionally abstracts over the underlying concept of pages as this is purely an E1.31 Universe Discovery concept and is otherwise transparent.
-    pub fn get_all_universes(&self) -> Vec<u16> {
-        let mut uni: Vec<u16> = Vec::new();
+    pub fn get_all_universes(&self) -> Vec<Universe> {
+        let mut uni = Vec::new();
         for p in &self.pages {
             uni.extend_from_slice(&p.universes);
         }
@@ -1346,7 +1334,7 @@ impl DiscoveredSacnSource {
     }
 
     /// Removes the given universe from the list of universes being sent by this discovered source.
-    pub fn terminate_universe(&mut self, universe: u16) {
+    pub fn terminate_universe(&mut self, universe: Universe) {
         for p in &mut self.pages {
             p.universes.retain(|x| *x != universe);
         }
@@ -1366,7 +1354,7 @@ impl DiscoveredSacnSource {
 /// Will return an error if the socket cannot be bound to the given address, see (bind)[fn.bind.Socket2].
 #[cfg(not(target_os = "windows"))]
 fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
-    use crate::packet::ACN_SDT_MULTICAST_PORT;
+    use crate::e131_definitions::ACN_SDT_MULTICAST_PORT;
 
     if addr.is_ipv4() {
         let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
@@ -1652,13 +1640,13 @@ struct SequenceNumbering {
     /// Sequence numbers are always in the range [0, 255] inclusive.
     /// Each type of packet is tracked differently with respect to sequence numbers as per ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
     /// The uuid refers to the source that is sending the data.
-    data_sequences: HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
+    data_sequences: HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
 
     /// The sequence numbers used for synchronisation packets, keeps a reference of the last sequence number received for each universe.
     /// Sequence numbers are always in the range [0, 255] inclusive.
     /// Each type of packet is tracked differently with respect to sequence numbers as per ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
     /// The uuid refers to the source that is sending the data.
-    sync_sequences: HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
+    sync_sequences: HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
 }
 
 impl SequenceNumbering {
@@ -1715,7 +1703,7 @@ impl SequenceNumbering {
         source_limit: Option<usize>,
         cid: Uuid,
         sequence_number: u8,
-        universe: u16,
+        universe: Universe,
         announce_timeout: bool,
     ) -> SacnResult<()> {
         check_seq_number(
@@ -1752,7 +1740,7 @@ impl SequenceNumbering {
         source_limit: Option<usize>,
         cid: Uuid,
         sequence_number: u8,
-        sync_uni: u16,
+        sync_uni: Universe,
         announce_timeout: bool,
     ) -> SacnResult<()> {
         check_seq_number(
@@ -1773,7 +1761,7 @@ impl SequenceNumbering {
     /// src_cid: The CID of the source to remove the sequence numbers of.
     ///
     /// universe: The universe being sent by the source from which to remove the sequence numbers.
-    fn remove_seq_numbers(&mut self, src_cid: Uuid, universe: u16) -> SacnResult<()> {
+    fn remove_seq_numbers(&mut self, src_cid: Uuid, universe: Universe) -> SacnResult<()> {
         remove_source_universe_seq(&mut self.data_sequences, src_cid, universe)?;
         remove_source_universe_seq(&mut self.sync_sequences, src_cid, universe)
     }
@@ -1797,11 +1785,11 @@ impl SequenceNumbering {
 ///
 /// Return a SourcesExceededError if the cid of the source is new and would cause the number of sources to exceed the given source_limit.
 fn check_seq_number(
-    src_sequences: &mut HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
+    src_sequences: &mut HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
     source_limit: Option<usize>,
     cid: Uuid,
     sequence_number: u8,
-    universe: u16,
+    universe: Universe,
     announce_timeout: bool,
 ) -> SacnResult<()> {
     // Check all the timeouts at the start.
@@ -1891,13 +1879,13 @@ fn check_seq_number(
 ///     If the time elapsed since the last received data that is equal to or great than the timeout then the source is said to have timed out.
 ///  
 fn check_timeouts(
-    src_sequences: &mut HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
+    src_sequences: &mut HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
     timeout: Duration,
     announce_timeout: bool,
 ) -> SacnResult<()> {
     if announce_timeout {
         let mut timedout_src_id: Option<Uuid> = None;
-        let mut timedout_uni: Option<u16> = None;
+        let mut timedout_uni: Option<Universe> = None;
         for (src_id, universes) in src_sequences.iter_mut() {
             for (uni, seq_num) in universes.iter() {
                 if seq_num.last_recv.elapsed() >= timeout {
@@ -1955,9 +1943,9 @@ fn check_timeouts(
 ///
 /// Returns a UniverseNotFound error if the given universe isn't registered to the given source and so cannot be removed.
 fn remove_source_universe_seq(
-    src_sequences: &mut HashMap<Uuid, HashMap<u16, TimedStampedSeqNo>>,
+    src_sequences: &mut HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
     src_cid: Uuid,
-    universe: u16,
+    universe: Universe,
 ) -> SacnResult<()> {
     match src_sequences.get_mut(&src_cid) {
         Some(x) => {
@@ -2063,16 +2051,16 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
 
 #[cfg(test)]
 mod test {
-    use std::{
-        borrow::Cow,
-        net::{IpAddr, Ipv4Addr, SocketAddr},
-        time::Instant,
-    };
+    extern crate alloc;
+
+    use alloc::{borrow::Cow, vec};
+    use core::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::time::Instant;
 
     use uuid::Uuid;
 
     use super::*;
-    use crate::packet::{DataPacketDmpLayer, ACN_SDT_MULTICAST_PORT};
+    use crate::{e131_definitions::ACN_SDT_MULTICAST_PORT, packet::DataPacketDmpLayer};
 
     const TEST_DATA_SINGLE_UNIVERSE: [u8; 512] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2099,7 +2087,7 @@ mod test {
         let name = "Test Src 1";
         let page: u8 = 0;
         let last_page: u8 = 0;
-        let universes: Vec<u16> = vec![0, 1, 2, 3, 4, 5];
+        let universes: Vec<Universe> = vec![1, 2, 3, 4, 5].iter().map(|u| Universe::new(*u).expect("in range")).collect();
 
         let discovery_pkt: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
             source_name: name.into(),
@@ -2137,15 +2125,15 @@ mod test {
 
         let name = "Test Src 1";
         let last_page: u8 = 1;
-        let mut universes_page_1: Vec<u16> = Vec::new();
-        let mut universes_page_2: Vec<u16> = Vec::new();
+        let mut universes_page_1 = Vec::new();
+        let mut universes_page_2 = Vec::new();
 
         for i in 1..513 {
-            universes_page_1.push(i);
+            universes_page_1.push(Universe::new(i).expect("in range"));
         }
 
         for i in 513..1024 {
-            universes_page_2.push(i);
+            universes_page_2.push(Universe::new(i).expect("in range"));
         }
 
         let discovery_pkt_1: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
@@ -2203,15 +2191,15 @@ mod test {
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        let sync_uni: u16 = 1;
-        let universe: u16 = 1;
+        let sync_uni = Universe::new(1).expect("in range");
+        let universe = Universe::new(1).expect("in range");
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
             universe,
             values: vals.clone(),
-            sync_uni,
-            priority: 100,
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2223,7 +2211,7 @@ mod test {
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
-        assert_eq!(res[0].sync_uni, sync_uni);
+        assert_eq!(res[0].sync_uni, Some(sync_uni));
         assert_eq!(res[0].values, vals);
     }
 
@@ -2233,25 +2221,26 @@ mod test {
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        let sync_uni: u16 = 1;
-        let universe: u16 = 1;
+        let sync_uni = Universe::new(1).expect("in range");
+        let universe = Universe::new(1).expect("in range");
+        let universe2 = Universe::new(2).expect("in range");
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
             universe,
             values: vals.clone(),
-            sync_uni,
-            priority: 100,
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
         };
 
         let dmx_data2 = DMXData {
-            universe: universe + 1,
+            universe: universe2,
             values: vals.clone(),
-            sync_uni: sync_uni + 1,
-            priority: 100,
+            sync_uni: Some(universe2),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2264,7 +2253,7 @@ mod test {
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
-        assert_eq!(res[0].sync_uni, sync_uni);
+        assert_eq!(res[0].sync_uni, Some(sync_uni));
         assert_eq!(res[0].values, vals);
     }
 
@@ -2274,15 +2263,17 @@ mod test {
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        let sync_uni: u16 = 1;
-        let universe: u16 = 1;
+        let sync_uni = Universe::new(1).expect("in range");
+        let universe = Universe::new(1).expect("in range");
+        let universe2 = Universe::new(2).expect("in range");
+
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
             universe,
             values: vals.clone(),
-            sync_uni,
-            priority: 100,
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2291,10 +2282,10 @@ mod test {
         let vals2: Vec<u8> = vec![0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3];
 
         let dmx_data2 = DMXData {
-            universe: universe + 1,
+            universe: universe2,
             values: vals2.clone(),
-            sync_uni: sync_uni + 1,
-            priority: 100,
+            sync_uni: Some(universe2),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2307,14 +2298,14 @@ mod test {
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
-        assert_eq!(res[0].sync_uni, sync_uni);
+        assert_eq!(res[0].sync_uni, Some(sync_uni));
         assert_eq!(res[0].values, vals);
 
-        let res2: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(sync_uni + 1);
+        let res2: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(Universe::new(2).expect("in range"));
 
         assert_eq!(res2.len(), 1);
-        assert_eq!(res2[0].universe, universe + 1);
-        assert_eq!(res2[0].sync_uni, sync_uni + 1);
+        assert_eq!(res2[0].universe, universe2);
+        assert_eq!(res2[0].sync_uni, Some(universe2));
         assert_eq!(res2[0].values, vals2);
     }
 
@@ -2324,15 +2315,15 @@ mod test {
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        let sync_uni: u16 = 1;
-        let universe: u16 = 1;
+        let sync_uni = Universe::new(1).expect("in range");
+        let universe = Universe::new(1).expect("in range");
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
             universe,
             values: vals.clone(),
-            sync_uni,
-            priority: 100,
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2343,8 +2334,8 @@ mod test {
         let dmx_data2 = DMXData {
             universe,
             values: vals2.clone(),
-            sync_uni,
-            priority: 100,
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2357,7 +2348,7 @@ mod test {
 
         assert_eq!(res2.len(), 1);
         assert_eq!(res2[0].universe, universe);
-        assert_eq!(res2[0].sync_uni, sync_uni);
+        assert_eq!(res2[0].sync_uni, Some(sync_uni));
         assert_eq!(res2[0].values, vals2);
 
         assert_eq!(dmx_rcv.rtrv_waiting_data(sync_uni).len(), 0);
@@ -2369,15 +2360,15 @@ mod test {
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        let sync_uni: u16 = 1;
-        let universe: u16 = 1;
+        let sync_uni = Universe::new(1).expect("in range");
+        let universe = Universe::MIN;
         let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let dmx_data = DMXData {
             universe,
             values: vals.clone(),
-            sync_uni,
-            priority: 120,
+            sync_uni: Some(sync_uni),
+            priority: Priority::new(120).expect("in range"),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2388,8 +2379,8 @@ mod test {
         let dmx_data2 = DMXData {
             universe,
             values: vals2.clone(),
-            sync_uni,
-            priority: 100,
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
             src_cid: None,
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2402,7 +2393,7 @@ mod test {
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
-        assert_eq!(res[0].sync_uni, sync_uni);
+        assert_eq!(res[0].sync_uni, Some(sync_uni));
         assert_eq!(res[0].values, vals);
 
         assert_eq!(dmx_rcv.rtrv_waiting_data(sync_uni).len(), 0);
@@ -2413,7 +2404,7 @@ mod test {
     /// The generated data packet framing layer has structure
     /// DataPacketFramingLayer {
     ///     source_name: "Source_A".into(),
-    ///     priority: 100,
+    ///     priority: Priority::default(),
     ///     synchronization_address: <given sequence number>,
     ///     sequence_number: sequence_number,
     ///     preview_data: false,
@@ -2424,11 +2415,11 @@ mod test {
     ///         property_values: Cow::from(&TEST_DATA_SINGLE_UNIVERSE[0..]),
     ///     },
     /// }
-    fn generate_data_packet_framing_layer_seq_num<'a>(universe: u16, sequence_number: u8) -> DataPacketFramingLayer<'a> {
+    fn generate_data_packet_framing_layer_seq_num<'a>(universe: Universe, sequence_number: u8) -> DataPacketFramingLayer<'a> {
         DataPacketFramingLayer {
             source_name: "Source_A".into(),
-            priority: 100,
-            synchronization_address: 0,
+            priority: Priority::default(),
+            synchronization_address: None,
             sequence_number,
             preview_data: false,
             stream_terminated: false,
@@ -2447,7 +2438,10 @@ mod test {
     ///     sequence_number: <given sequence number>,
     ///     synchronization_address: <given synchronisation address>
     /// }
-    fn generate_sync_packet_framing_layer_seq_num(sync_address: u16, sequence_number: u8) -> SynchronizationPacketFramingLayer {
+    fn generate_sync_packet_framing_layer_seq_num(
+        sync_address: Option<Universe>,
+        sequence_number: u8,
+    ) -> SynchronizationPacketFramingLayer {
         SynchronizationPacketFramingLayer {
             sequence_number,
             synchronization_address: sync_address,
@@ -2461,7 +2455,7 @@ mod test {
     ///  
     #[test]
     fn test_data_packet_sequence_number_below_expected() {
-        const UNIVERSE1: u16 = 1;
+        const UNIVERSE1: Universe = Universe::MIN;
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
@@ -2512,7 +2506,7 @@ mod test {
     /// data packets specifically.
     #[test]
     fn test_data_packet_sequence_number_exhaustive() {
-        const UNIVERSE1: u16 = 1;
+        const UNIVERSE1: Universe = Universe::MIN;
         // The inclusive lower limit used for the sequence numbers tried. Chosen as the minimum value that can fit in an unsigned byte.
         const SEQ_NUM_LOWER_BOUND: u8 = 0;
         // The inclusive upper limit used for the sequence numbers tried. Chosen as the maximum value that can fit in an unsigned byte.
@@ -2597,7 +2591,7 @@ mod test {
     ///  
     #[test]
     fn test_sync_packet_sequence_number_exhaustive() {
-        const SYNC_ADDR: u16 = 1;
+        let sync_addr = Universe::new(1).expect("in range");
         // The inclusive lower limit used for the sequence numbers tried. Chosen as the minimum value that can fit in an unsigned byte.
         const SEQ_NUM_LOWER_BOUND: u8 = 0;
         // The inclusive upper limit used for the sequence numbers tried. Chosen as the maximum value that can fit in an unsigned byte.
@@ -2623,11 +2617,11 @@ mod test {
         for i in SEQ_NUM_LOWER_BOUND..SEQ_NUM_UPPER_BOUND {
             // Create the receiver.
             let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
-            dmx_rcv.listen_universes(&[SYNC_ADDR]).unwrap();
+            dmx_rcv.listen_universes(&[sync_addr.try_into().expect("in range")]).unwrap();
 
             // Generate the packets used to put the receiver in a known start state.
-            let sync_packet = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, LAST_SEQ_NUM - 1);
-            let sync_packet2 = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, LAST_SEQ_NUM);
+            let sync_packet = generate_sync_packet_framing_layer_seq_num(Some(sync_addr), LAST_SEQ_NUM - 1);
+            let sync_packet2 = generate_sync_packet_framing_layer_seq_num(Some(sync_addr), LAST_SEQ_NUM);
 
             // Not interested in specific return values from this test, just assert the sync packet is processed successfully.
             assert!(
@@ -2642,7 +2636,7 @@ mod test {
             // The receiver is now setup correctly ready for the test with a known start state that expects the next sync packet sequence number
             // to be 2.
 
-            let res = dmx_rcv.handle_sync_packet(src_cid, generate_sync_packet_framing_layer_seq_num(SYNC_ADDR, i));
+            let res = dmx_rcv.handle_sync_packet(src_cid, generate_sync_packet_framing_layer_seq_num(Some(sync_addr), i));
 
             // Cannot do straight 8 bit arithmetic that relies on underflows/overflows as this is undefined behaviour in rust forbidden by the compiler.
             let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
@@ -2679,20 +2673,20 @@ mod test {
     ///  
     #[test]
     fn test_sync_packet_sequence_number_below_expected() {
-        const UNIVERSE1: u16 = 1;
+        let universe1 = Universe::new(1).expect("in range");
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
+        dmx_rcv.listen_universes(&[universe1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ]);
 
-        let sync_packet = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 0);
-        let sync_packet2 = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 1);
-        let sync_packet3 = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 0); // This sync packet has a sequence number lower than the expected value of 2 so should be rejected.
+        let sync_packet = generate_sync_packet_framing_layer_seq_num(universe1.into(), 0);
+        let sync_packet2 = generate_sync_packet_framing_layer_seq_num(universe1.into(), 1);
+        let sync_packet3 = generate_sync_packet_framing_layer_seq_num(universe1.into(), 0); // This sync packet has a sequence number lower than the expected value of 2 so should be rejected.
 
         // Not interested in specific return values from this test, just assert the packets are processed successfully.
         assert!(
@@ -2729,20 +2723,20 @@ mod test {
     /// This checks that the sync packet sequence numbers are reset correctly.
     #[test]
     fn test_sync_packet_sequence_number_reset() {
-        const UNIVERSE1: u16 = 1;
+        let universe1 = Universe::new(1).expect("in range");
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
+        dmx_rcv.listen_universes(&[universe1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ]);
 
-        let sync_packet = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 0);
-        let sync_packet2 = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 1);
-        let sync_packet3 = generate_sync_packet_framing_layer_seq_num(UNIVERSE1, 0); // This sync packet has a sequence number lower than the expected value of 2 so should be rejected.
+        let sync_packet = generate_sync_packet_framing_layer_seq_num(universe1.into(), 0);
+        let sync_packet2 = generate_sync_packet_framing_layer_seq_num(universe1.into(), 1);
+        let sync_packet3 = generate_sync_packet_framing_layer_seq_num(universe1.into(), 0); // This sync packet has a sequence number lower than the expected value of 2 so should be rejected.
 
         // Not interested in specific return values from this test, just assert the packets are processed successfully.
         assert!(
@@ -2770,20 +2764,20 @@ mod test {
     /// This checks that the data packet sequence numbers are reset correctly.
     #[test]
     fn test_data_packet_sequence_number_reset() {
-        const UNIVERSE1: u16 = 1;
+        let universe1 = Universe::new(1).expect("in range");
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
+        dmx_rcv.listen_universes(&[universe1]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ]);
 
-        let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 0);
-        let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 1);
-        let data_packet3 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 0); // This data packet has a sequence number lower than the expected value of 2 so should be rejected.
+        let data_packet = generate_data_packet_framing_layer_seq_num(universe1, 0);
+        let data_packet2 = generate_data_packet_framing_layer_seq_num(universe1, 1);
+        let data_packet3 = generate_data_packet_framing_layer_seq_num(universe1, 0); // This data packet has a sequence number lower than the expected value of 2 so should be rejected.
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
@@ -2811,22 +2805,22 @@ mod test {
     /// Shows sequence numbers are evaluated separately for each packet type as per ANSI E1.31-2018 Section 6.7.2.
     #[test]
     fn test_sequence_number_packet_type_independence() {
-        const UNIVERSE: u16 = 1;
+        let universe = Universe::new(1).expect("in range");
 
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv.listen_universes(&[UNIVERSE]).unwrap();
+        dmx_rcv.listen_universes(&[universe]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ]);
 
-        let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE, 0);
-        let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE, 1);
+        let data_packet = generate_data_packet_framing_layer_seq_num(universe, 0);
+        let data_packet2 = generate_data_packet_framing_layer_seq_num(universe, 1);
 
-        let sync_packet = generate_sync_packet_framing_layer_seq_num(UNIVERSE, 0);
+        let sync_packet = generate_sync_packet_framing_layer_seq_num(universe.into(), 0);
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
@@ -2854,21 +2848,21 @@ mod test {
     /// Shows sequence numbers are evaluated separately for each universe as per ANSI E1.31-2018 Section 6.7.2.
     #[test]
     fn test_data_packet_sequence_number_universe_independence() {
-        const UNIVERSE1: u16 = 1;
-        const UNIVERSE2: u16 = 2;
+        let universe1 = Universe::new(1).expect("in range");
+        let universe2 = Universe::new(2).expect("in range");
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv.listen_universes(&[UNIVERSE1, UNIVERSE2]).unwrap();
+        dmx_rcv.listen_universes(&[universe1, universe2]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ]);
 
-        let data_packet = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 0);
-        let data_packet2 = generate_data_packet_framing_layer_seq_num(UNIVERSE1, 1);
-        let data_packet3 = generate_data_packet_framing_layer_seq_num(UNIVERSE2, 0);
+        let data_packet = generate_data_packet_framing_layer_seq_num(universe1, 0);
+        let data_packet2 = generate_data_packet_framing_layer_seq_num(universe1, 1);
+        let data_packet3 = generate_data_packet_framing_layer_seq_num(universe2, 0);
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
@@ -2896,21 +2890,21 @@ mod test {
     /// Shows sequence numbers are evaluated separately for each synchronisation address individually as per ANSI E1.31-2018 Section 6.7.2.
     #[test]
     fn test_sync_packet_sequence_number_universe_independence() {
-        const SYNC_ADDR_1: u16 = 1;
-        const SYNC_ADDR_2: u16 = 2;
+        let sync_addr_1 = Universe::new(1).expect("in range");
+        let sync_addr_2 = Universe::new(2).expect("in range");
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        dmx_rcv.listen_universes(&[SYNC_ADDR_1, SYNC_ADDR_2]).unwrap();
+        dmx_rcv.listen_universes(&[sync_addr_1, sync_addr_2]).unwrap();
 
         let src_cid: Uuid = Uuid::from_bytes([
             0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
         ]);
 
-        let sync_packet = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR_1, 0);
-        let sync_packet2 = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR_1, 1);
-        let sync_packet3 = generate_sync_packet_framing_layer_seq_num(SYNC_ADDR_2, 0);
+        let sync_packet = generate_sync_packet_framing_layer_seq_num(Some(sync_addr_1), 0);
+        let sync_packet2 = generate_sync_packet_framing_layer_seq_num(Some(sync_addr_1), 1);
+        let sync_packet3 = generate_sync_packet_framing_layer_seq_num(Some(sync_addr_2), 0);
 
         // Not interested in specific return values from this test, just assert the data is processed successfully.
         assert!(
@@ -2978,13 +2972,13 @@ mod test {
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
         let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 
-        const SYNC_ADDR: u16 = 1;
+        let sync_addr = Universe::new(1).expect("in range");
 
         let data: DMXData = DMXData {
-            universe: 0,
+            universe: Universe::new(1).expect("in range"), // @todo this used to be 0, not 1.
             values: vec![1, 2, 3],
-            sync_uni: SYNC_ADDR,
-            priority: 100,
+            sync_uni: Some(sync_addr),
+            priority: Priority::default(),
             src_cid: Some(Uuid::new_v4()),
             preview: false,
             recv_timestamp: Instant::now(),
@@ -2994,7 +2988,7 @@ mod test {
 
         dmx_rcv.clear_all_waiting_data();
 
-        assert_eq!(dmx_rcv.rtrv_waiting_data(SYNC_ADDR), Vec::new(), "Data was not reset as expected");
+        assert_eq!(dmx_rcv.rtrv_waiting_data(sync_addr), Vec::new(), "Data was not reset as expected");
     }
 
     #[test]
@@ -3041,7 +3035,7 @@ mod test {
                 Uuid::new_v4(),
                 SynchronizationPacketFramingLayer {
                     sequence_number: 0,
-                    synchronization_address: 1,
+                    synchronization_address: Some(Universe::new(1).expect("in range")),
                 },
             )
             .unwrap(); // Checks that no error is produced.
@@ -3055,33 +3049,33 @@ mod test {
     /// Tests the equivalence of 2 DMXDatas which are only similar in the aspects used for checking equivalence.
     #[test]
     fn test_dmx_data_eq() {
-        const UNIVERSE: u16 = 1;
-        let values: Vec<u8> = vec![1, 2, 3];
-        const SYNC_ADDR: u16 = 1;
-        const PRIORITY: u8 = 100;
-        const PREVIEW: bool = false;
+        let universe = Universe::new(1).expect("in range");
+        let values = vec![1, 2, 3];
+        let sync_addr = Universe::new(1).expect("in range");
+        let priority = Priority::default();
+        let preview = false;
 
         let data1 = DMXData {
-            universe: UNIVERSE,
+            universe,
             values: values.clone(),
-            sync_uni: SYNC_ADDR,
+            sync_uni: Some(sync_addr),
 
             // The below values can be different for 2 DMXData to be taken as equivalent.
-            priority: PRIORITY,
+            priority,
             src_cid: Some(Uuid::new_v4()),
-            preview: PREVIEW,
+            preview,
             recv_timestamp: Instant::now(),
         };
 
         let data2 = DMXData {
-            universe: UNIVERSE,
+            universe,
             values,
-            sync_uni: SYNC_ADDR,
+            sync_uni: Some(sync_addr),
 
             // The below values can be different for 2 DMXData to be taken as equivalent.
-            priority: PRIORITY + 50,
+            priority: Priority::new(150).expect("in range"),
             src_cid: None,
-            preview: !PREVIEW,
+            preview: !preview,
             recv_timestamp: Instant::now(),
         };
 

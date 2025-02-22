@@ -7,6 +7,16 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
+extern crate alloc;
+
+use core::str::Utf8Error;
+
+use crate::{
+    e131_definitions::{DISCOVERY_UNI_PER_PAGE, UNIVERSE_CHANNEL_CAPACITY},
+    priority::PriorityError,
+    universe::UniverseError,
+};
+
 /// The errors used within the SacnLibrary specifically those related to parsing and packeting packets received/sent on the network.
 #[derive(Debug, thiserror::Error)]
 pub enum ParsePackError {
@@ -15,7 +25,7 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to what data was invalid.
     #[error("Error when parsing data into packet, msg: {0}")]
-    ParseInvalidData(String),
+    ParseInvalidData(&'static str),
 
     /// Attempted to parse a priority value that is outwith the allowed range of [0, E131_MAX_PRIORITY].
     /// As per ANSI E1.31-2018 Section 6.2.3
@@ -23,22 +33,14 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the priority valid was invalid.
     #[error("Attempted to parse a priority value that is outwith the allowed range of [0, 200], msg: {0}")]
-    ParseInvalidPriority(String),
+    ParseInvalidPriority(#[from] PriorityError),
 
     /// Attempted to parse a page value that is invalid - e.g. the page value is higher than the last_page value.
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the page was invalid.
     #[error("Error when parsing page value, msg: {0}")]
-    ParseInvalidPage(String),
-
-    /// Attempted to parse a sync address value that is outwith the allowed range of [0, E131_MAX_MULTICAST_UNIVERSE].
-    /// As per ANSI E1.31-2018 Section 9.1.1.
-    ///
-    /// # Arguments
-    /// msg: A message providing further details (if any) as to why the synchronisation address was invalid.
-    #[error("Attempted to parse a sync_addr value that is outwith the allowed range of [0, 63999], msg: {0}")]
-    ParseInvalidSyncAddr(String),
+    ParseInvalidPage(&'static str),
 
     /// Attempted to parse a universe value that is outwith the allowed range of [1, E131_MAX_MULTICAST_UNIVERSE].
     /// As per ANSI E1.31-2018 Section 9.1.1.
@@ -46,7 +48,7 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the universe field was invalid.
     #[error("Attempted to parse a universe value that is outwith the allowed range of [1, 63999], msg: {0}")]
-    ParseInvalidUniverse(String),
+    ParseInvalidUniverse(#[from] UniverseError),
 
     /// Attempted to parse a packet with an invalid ordering of universes.
     /// For example a discovery packet where the universes aren't correctly ordered in assending order.
@@ -54,7 +56,7 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the universe ordering was invalid.
     #[error("Attempted to parse a packet with an invalid ordering of universes, msg: {0}")]
-    ParseInvalidUniverseOrder(String),
+    ParseInvalidUniverseOrder(alloc::string::String),
 
     /// When packing a packet into a buffer invalid data encountered.
     ///
@@ -63,12 +65,18 @@ pub enum ParsePackError {
     #[error("When packing a packet into a buffer invalid data encountered, msg: {0}")]
     PackInvalidData(String),
 
+    #[error("Maximum {DISCOVERY_UNI_PER_PAGE} universes allowed per discovery page, but got {0}")]
+    TooManyDiscoveryUniverses(u16),
+
+    #[error("Too many DMX values. Maximum amount is {}", UNIVERSE_CHANNEL_CAPACITY - 1)]
+    TooManyDMXValues(usize),
+
     /// Supplied buffer is not large enough to pack packet into.
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the pack buffer is insufficient.
     #[error("Supplied buffer is not large enough to pack packet into, msg: {0}")]
-    PackBufferInsufficient(String),
+    PackBufferInsufficient(&'static str),
 
     /// Supplied buffer does not contain enough data.
     ///
@@ -103,19 +111,19 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the uuid (used for CID) couldn't be parsed.
     #[error("Error parsing the received UUID, msg: {0}")]
-    UuidError(String),
+    Uuid(#[from] uuid::Error),
 
     /// Error parsing received UTF8 string.
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the string couldn't be parsed.
     #[error("Error parsing received UTF8 string, msg: {0}")]
-    Utf8Error(String),
+    Utf8(#[from] Utf8Error),
 
     /// Source name in packet was invalid, for example due to not being null terminated.
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the source name was invalid.
     #[error("Attempted to parse invalid source name, msg: {0}")]
-    SourceNameInvalid(String),
+    SourceNameInvalid(&'static str),
 }

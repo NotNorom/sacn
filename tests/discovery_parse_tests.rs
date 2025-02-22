@@ -1,9 +1,13 @@
 #[cfg(test)]
 pub mod discovery_parse_tests {
+    use std::borrow::Cow;
 
-    /// Uses the sACN error-chain errors.
-    use sacn::error::Error;
-    use sacn::{packet::*, sacn_parse_pack_error::ParsePackError};
+    use sacn::{
+        e131_definitions::DISCOVERY_UNI_PER_PAGE,
+        packet::*,
+        sacn_parse_pack_error::ParsePackError,
+        universe::{slice_to_universes, Universe},
+    };
     use uuid::Uuid;
 
     /// The expected minimum size of a universe discovery packet as per ANSI E1.31-2018 Section 6.1.
@@ -795,14 +799,7 @@ pub mod discovery_parse_tests {
                     data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
                         page: 1,
                         last_page: 2,
-                        #[cfg(feature = "std")]
-                        universes: vec![0x0001, 0x0203, 0x0405].into(),
-                        #[cfg(not(feature = "std"))]
-                        universes: {
-                            let mut universes = Vec::new();
-                            universes.extend_from_slice(&[3, 4, 5]);
-                            universes.into()
-                        },
+                        universes: Cow::Borrowed(slice_to_universes(&[0x0001, 0x0203, 0x0405]).expect("in range")),
                     },
                 }),
             },
@@ -820,7 +817,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_root_layer_unknown_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_UNKNOWN_VECTOR) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::PduInvalidVector(_)) => {
+                ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -836,17 +833,10 @@ pub mod discovery_parse_tests {
     #[test]
     fn test_discovery_packet_root_layer_data_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_ROOT_LAYER_DATA_VECTOR) {
-            Err(e) => {
-                match e {
-                    Error::SacnParsePackError(_) => {
-                        // As the packet will be treated as a data packet it is unclear where the parse will fail so only assert that it must fail
-                        // with a parse type error rather than a specific error.
-                        assert!(true, "Expected error family returned");
-                    }
-                    x => {
-                        assert!(false, "Unexpected error type returned: {}", x);
-                    }
-                }
+            Err(_) => {
+                // As the packet will be treated as a data packet it is unclear where the parse will fail so only assert that it must fail
+                // with a parse type error rather than a specific error.
+                assert!(true, "Expected error family returned");
             }
             Ok(_) => {
                 assert!(false, "Malformed packet was parsed when should have been rejected");
@@ -858,7 +848,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_too_short_cid_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_TOO_SHORT_CID) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -874,18 +864,11 @@ pub mod discovery_parse_tests {
     #[test]
     fn test_discovery_packet_too_long_cid_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_TOO_LONG_CID) {
-            Err(e) => {
-                match e {
-                    Error::SacnParsePackError(_) => {
-                        // Difficult to predict / assert what error should be caused by a field being too long as all
-                        // other fields will be shifted and no clear way to know the true end of the CID field.
-                        // Therefore just assert that the packet was detected as malformed rather than a specific error.
-                        assert!(true, "Expected error family returned");
-                    }
-                    x => {
-                        assert!(false, "Unexpected error type returned: {}", x);
-                    }
-                }
+            Err(_) => {
+                // Difficult to predict / assert what error should be caused by a field being too long as all
+                // other fields will be shifted and no clear way to know the true end of the CID field.
+                // Therefore just assert that the packet was detected as malformed rather than a specific error.
+                assert!(true, "Expected error family returned");
             }
             Ok(_) => {
                 assert!(false, "Malformed packet was parsed when should have been rejected");
@@ -897,7 +880,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_wrong_flags_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_WRONG_FLAGS) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(_)) => {
+                ParsePackError::ParsePduInvalidFlags(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -914,7 +897,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_framing_layer_length_too_long_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -931,7 +914,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_framing_layer_length_too_short_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -948,7 +931,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_framing_layer_wrong_flags_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(_)) => {
+                ParsePackError::ParsePduInvalidFlags(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -964,18 +947,11 @@ pub mod discovery_parse_tests {
     #[test]
     fn test_discovery_packet_sync_framing_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_SYNC_FRAMING_VECTOR) {
-            Err(e) => {
-                match e {
-                    Error::SacnParsePackError(_) => {
-                        // Difficult to assert the exact error caused by using the sync vector as the packet will then
-                        // be parsed as a sync packet and could be rejected for multiple reasons.
-                        // The key part is that it is rejected successfully for a parse error.
-                        assert!(true, "Expected error family returned");
-                    }
-                    x => {
-                        assert!(false, "Unexpected error type returned: {}", x);
-                    }
-                }
+            Err(_) => {
+                // Difficult to assert the exact error caused by using the sync vector as the packet will then
+                // be parsed as a sync packet and could be rejected for multiple reasons.
+                // The key part is that it is rejected successfully for a parse error.
+                assert!(true, "Expected error family returned");
             }
             Ok(_) => {
                 assert!(false, "Malformed packet was parsed when should have been rejected");
@@ -987,7 +963,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_unknown_framing_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_UNKNOWN_FRAMING_VECTOR) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::PduInvalidVector(_)) => {
+                ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1024,7 +1000,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_discovery_layer_wrong_flags_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_WRONG_FLAGS) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParsePduInvalidFlags(_)) => {
+                ParsePackError::ParsePduInvalidFlags(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1041,7 +1017,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_discovery_layer_length_too_short_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_SHORT) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1058,7 +1034,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_discovery_layer_length_too_long_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_LENGTH_TOO_LONG) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1075,7 +1051,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_discovery_layer_vector_unknown_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DISCOVERY_LAYER_VECTOR_UNKNOWN) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::PduInvalidVector(_)) => {
+                ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1092,7 +1068,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_page_higher_than_last_page_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_PAGE_HIGHER_THAN_LAST_PAGE) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInvalidPage(_)) => {
+                ParsePackError::ParseInvalidPage(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1109,7 +1085,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_decending_order_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_DECENDING_ORDER) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInvalidUniverseOrder(_)) => {
+                ParsePackError::ParseInvalidUniverseOrder(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1126,7 +1102,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_random_order_parse() {
         match AcnRootLayerProtocol::parse(TEST_UNIVERSE_DISCOVERY_PACKET_RANDOM_ORDER) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::ParseInvalidUniverseOrder(_)) => {
+                ParsePackError::ParseInvalidUniverseOrder(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -1177,43 +1153,44 @@ pub mod discovery_parse_tests {
         let root_layer_flags_length_lower: u8 = root_layer_parts[1];
 
         #[rustfmt::skip]
-    let mut test_universe_discovery_packet = vec!{
-    // Root Layer
-    // Preamble Size
-    0x00, 0x10,
-    // Post-amble Size
-    0x00, 0x00,
-    // ACN Packet Identifier
-    0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-    // Flags and Length Protocol
-    root_layer_flags_length_upper, root_layer_flags_length_lower,
-    // Vector
-    0x00, 0x00, 0x00, 0x08, 
-    // CID
-    0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-    // E1.31 Framing Layer
-    // Flags and Length
-    framing_layer_flags_length_upper, framing_layer_flags_length_lower,
-    // Vector
-    0x00, 0x00, 0x00, 0x02,
-    // Source Name
-    b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    // Reserved
-    0, 0, 0, 0,
-    // Universe Discovery Layer
-    // Flags and Length
-    discovery_layer_flags_length_upper, discovery_layer_flags_length_lower,
-    // Vector
-    0x00, 0x00, 0x00, 0x01,
-    // Page
-    1,
-    // Last Page
-    2
-    };
+        let mut test_universe_discovery_packet = vec!{
+        // Root Layer
+        // Preamble Size
+        0x00, 0x10,
+        // Post-amble Size
+        0x00, 0x00,
+        // ACN Packet Identifier
+        0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
+        // Flags and Length Protocol
+        root_layer_flags_length_upper, root_layer_flags_length_lower,
+        // Vector
+        0x00, 0x00, 0x00, 0x08, 
+        // CID
+        0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
+        // E1.31 Framing Layer
+        // Flags and Length
+        framing_layer_flags_length_upper, framing_layer_flags_length_lower,
+        // Vector
+        0x00, 0x00, 0x00, 0x02,
+        // Source Name
+        b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        // Reserved
+        0, 0, 0, 0,
+        // Universe Discovery Layer
+        // Flags and Length
+        discovery_layer_flags_length_upper, discovery_layer_flags_length_lower,
+        // Vector
+        0x00, 0x00, 0x00, 0x01,
+        // Page
+        1,
+        // Last Page
+        2
+        };
 
-        for i in E131_MIN_MULTICAST_UNIVERSE..E131_MIN_MULTICAST_UNIVERSE + universes_to_generate {
+        let range = Universe::E131_MIN_MULTICAST_UNIVERSE_RAW..Universe::E131_MIN_MULTICAST_UNIVERSE_RAW + universes_to_generate;
+        for i in range {
             let vals = i.to_be_bytes();
             test_universe_discovery_packet.push(vals[0]);
             test_universe_discovery_packet.push(vals[1]);
@@ -1237,7 +1214,7 @@ pub mod discovery_parse_tests {
                     assert_eq!(udpfl.source_name, "Source_A");
                     assert_eq!(udpfl.data.page, 1);
                     assert_eq!(udpfl.data.last_page, 2);
-                    assert_eq!(udpfl.data.universes, Vec::new());
+                    assert!(udpfl.data.universes.is_empty());
                 }
                 _ => {
                     assert!(false, "Packet not parsed as discovery-packet as expected");
@@ -1274,7 +1251,7 @@ pub mod discovery_parse_tests {
     fn test_discovery_packet_above_max_universe_capacity() {
         match AcnRootLayerProtocol::parse(&generate_test_universe_discovery_packet((DISCOVERY_UNI_PER_PAGE as u16) + 1)) {
             Err(e) => match e {
-                Error::SacnParsePackError(ParsePackError::PduInvalidLength(_)) => {
+                ParsePackError::PduInvalidLength(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {

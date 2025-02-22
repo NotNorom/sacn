@@ -29,9 +29,10 @@ use std::{env, fs::File, io, io::prelude::*, net::SocketAddr, thread::sleep, tim
 
 use error::{ExampleError, ExampleResult};
 use sacn::{
+    e131_definitions::ACN_SDT_MULTICAST_PORT,
     error::Error as SacnError,
-    packet::ACN_SDT_MULTICAST_PORT,
     receive::{DMXData, DiscoveredSacnSource, SacnReceiver},
+    universe::Universe,
 };
 
 /// The string given by the user to receive data.
@@ -258,7 +259,8 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         display_help();
                         Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
-                    let universe: u16 = split_input[1].parse().unwrap();
+                    let raw_universe: u16 = split_input[1].parse().unwrap();
+                    let universe = Universe::new(raw_universe).map_err(SacnError::UniverseError)?;
                     dmx_recv.listen_universes(&[universe])?;
                 }
                 ACTION_STOP_LISTEN_UNIVERSE => {
@@ -266,7 +268,8 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         display_help();
                         Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
-                    let universe: u16 = split_input[1].parse().unwrap();
+                    let raw_universe: u16 = split_input[1].parse().unwrap();
+                    let universe = Universe::new(raw_universe).map_err(SacnError::UniverseError)?;
 
                     dmx_recv.mute_universe(universe)?;
                 }
@@ -372,7 +375,12 @@ fn write_to_file(file: &mut Box<File>, data: Vec<DMXData>, data_id: u64) -> Exam
         write!(
             *file,
             "{},{},{},{},{},{}\n",
-            data_id, d.universe, d.sync_uni, d.priority, d.preview, values_str
+            data_id,
+            d.universe,
+            d.sync_uni.map(|u| u.get()).unwrap_or_default(),
+            d.priority,
+            d.preview,
+            values_str
         )?;
     }
 
@@ -443,7 +451,9 @@ fn print_data(mut data: Vec<DMXData>) {
     for d in data {
         print!(
             "{{ Universe(s): {}, Sync_Universe: {}, Values: {:?} }}, ",
-            d.universe, d.sync_uni, d.values
+            d.universe,
+            d.sync_uni.map(|u| u.get()).unwrap_or_default(),
+            d.values
         );
     }
     println!("]");

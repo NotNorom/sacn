@@ -25,22 +25,23 @@
 //! containing all the data which should be acted upon at the same time (so if there are 2 synchronised data packets the array will have length 2).
 //! ```
 //! use sacn::receive::SacnReceiver;
-//! use sacn::packet::ACN_SDT_MULTICAST_PORT;
+//! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
+//! use sacn::universe::Universe;
 //!
 //! use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 //! use std::time::Duration;
 //!
-//! const UNIVERSE1: u16 = 1;
-//! const TIMEOUT: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
+//! let universe1: Universe = Universe::new(1).unwrap();
+//! let timeout: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
 //!
 //! let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT);
 //!
 //! let mut dmx_rcv = SacnReceiver::with_ip(addr, None).unwrap();
 //!
-//! dmx_rcv.listen_universes(&[UNIVERSE1]).unwrap();
+//! dmx_rcv.listen_universes(&[universe1]).unwrap();
 //!
-//! // .recv(TIMEOUT) handles processing synchronised as-well as normal data.
-//! match dmx_rcv.recv(TIMEOUT) {
+//! // .recv(timeout) handles processing synchronised as-well as normal data.
+//! match dmx_rcv.recv(timeout) {
 //!     Err(e) => {
 //!         // Print out the error.
 //!         println!("{:?}", e);
@@ -55,7 +56,7 @@
 //! Creating an sACN receiver and checking for discovered sources through universe discovery.
 //! ```
 //! use sacn::receive::SacnReceiver;
-//! use sacn::packet::ACN_SDT_MULTICAST_PORT;
+//! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 //!
 //! use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 //! use std::time::Duration;
@@ -98,16 +99,18 @@
 //!
 //! ```
 //! use sacn::source::SacnSource;
-//! use sacn::packet::ACN_SDT_MULTICAST_PORT;
+//! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
+//! use sacn::priority::Priority;
+//! use sacn::universe::Universe;
 //! use std::net::{IpAddr, SocketAddr};
 //!
 //! let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 //!
 //! let mut src = SacnSource::with_ip("Source", local_addr).unwrap();
 //!
-//! let universe: u16 = 1;                        // Universe the data is to be sent on.
-//! let sync_uni: Option<u16> = None;             // Don't want the packet to be delayed on the receiver awaiting synchronisation.
-//! let priority: u8 = 100;                       // The priority for the sending data, must be 1-200 inclusive,  None means use default.
+//! let universe: Universe = Universe::new(1).unwrap(); // Universe the data is to be sent on.
+//! let sync_uni: Option<Universe> = None;             // Don't want the packet to be delayed on the receiver awaiting synchronisation.
+//! let priority: Priority = Priority::default();     // The priority for the sending data, must be 1-200 inclusive,  None means use default.
 //! let dst_ip: Option<SocketAddr> = None;        // Sending the data using IP multicast so don't have a destination IP.
 //!
 //! src.register_universe(universe).unwrap(); // Register with the source that will be sending on the given universe.
@@ -121,7 +124,9 @@
 //!
 //! ```
 //! use sacn::source::SacnSource;
-//! use sacn::packet::ACN_SDT_MULTICAST_PORT;
+//! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
+//! use sacn::priority::Priority;
+//! use sacn::universe::Universe;
 //!
 //! use std::net::{IpAddr, SocketAddr};
 //! use std::thread::sleep;
@@ -131,9 +136,9 @@
 //!
 //! let mut src = SacnSource::with_ip("Source", local_addr).unwrap();
 //!
-//! let universe: u16 = 1;                        // Universe the data is to be sent on.
-//! let sync_uni: Option<u16> = Some(1);          // Data packets use a synchronisation address of 1.
-//! let priority: u8 = 100;                       // The priority for the sending data, must be 1-200 inclusive,  None means use default.
+//! let universe: Universe = Universe::new(1).unwrap(); // Universe the data is to be sent on.
+//! let sync_uni: Option<Universe> = Some(universe);    // Data packets use a synchronisation address of 1.
+//! let priority: Priority = Priority::default();                       // The priority for the sending data, must be 1-200 inclusive,  None means use default.
 //! let dst_ip: Option<SocketAddr> = None;        // Sending the data using IP multicast so don't have a destination IP.
 //!
 //! src.register_universe(universe).unwrap(); // Register with the source that will be sending on the given universe.
@@ -154,7 +159,9 @@
 //!
 //! ```
 //! use sacn::source::SacnSource;
-//! use sacn::packet::ACN_SDT_MULTICAST_PORT;
+//! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
+//! use sacn::priority::Priority;
+//! use sacn::universe::Universe;
 //!
 //! use std::net::{IpAddr, SocketAddr};
 //! use std::thread::sleep;
@@ -164,9 +171,9 @@
 //!
 //! let mut src = SacnSource::with_ip("Source", local_addr).unwrap();
 //!
-//! let universe: u16 = 1;                        // Universe the data is to be sent on.
-//! let sync_uni: Option<u16> = None;             // Data packets are unsynchronised in this example but unicast transmission supports synchronised and unsynchronised sending.
-//! let priority: Option<u8> = Some(100);                       // The priority for the sending data, must be 1-200 inclusive,  None means use default.
+//! let universe: Universe = Universe::new(1).unwrap();                       // Universe the data is to be sent on.
+//! let sync_uni: Option<Universe> = None;             // Data packets are unsynchronised in this example but unicast transmission supports synchronised and unsynchronised sending.
+//! let priority: Option<Priority> = Some(Priority::default());                       // The priority for the sending data, must be 1-200 inclusive,  None means use default.
 //!
 //! // To send using unicast the dst_ip argument is set to a Some() value with the address to send the data to. By default the port should be the
 //! // ACN_SDT_MULTICAST_PORT but this can be configured differently if required in a specific situation. Change this address to the correct address for your
@@ -203,5 +210,9 @@ pub mod source;
 
 /// The receive module handles the receiving of sACN on the network.
 pub mod receive;
+
+pub mod e131_definitions;
+pub mod priority;
+pub mod universe;
 
 pub type SacnResult<T> = Result<T, error::Error>;

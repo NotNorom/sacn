@@ -9,10 +9,13 @@
 
 #[cfg(test)]
 pub mod data_parse_tests {
-
-    /// Uses the sACN error-chain errors.
-    use sacn::sacn_parse_pack_error;
-    use sacn::{error::Error, packet::*};
+    use sacn::{
+        e131_definitions::E131_STREAM_TERMINATION_OPTION_BIT_MASK,
+        packet::{AcnRootLayerProtocol, DataPacketDmpLayer, DataPacketFramingLayer, E131RootLayer, E131RootLayerData},
+        priority::Priority,
+        sacn_parse_pack_error::ParsePackError,
+        universe::Universe,
+    };
     use uuid::Uuid;
 
     #[rustfmt::skip]
@@ -1463,7 +1466,7 @@ pub mod data_parse_tests {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
         // Priority
-        E131_MAX_PRIORITY + 1,
+        Priority::E131_MAX_PRIORITY_RAW + 1,
         // Synchronization Address, 7962
         0x1F, 0x1A,
         // Sequence Number
@@ -3215,13 +3218,13 @@ pub mod data_parse_tests {
                 cid: Uuid::from_slice(&TEST_DATA_PACKET_EMPTY[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "Source_A".into(),
-                    priority: 100,
-                    synchronization_address: 7962,
+                    priority: Priority::default(),
+                    synchronization_address: Some(Universe::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: 1,
+                    universe: Universe::new(1).expect("in range"),
                     data: DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_EMPTY[125..].into(),
                     },
@@ -3244,13 +3247,13 @@ pub mod data_parse_tests {
                 cid: Uuid::from_slice(&TEST_DATA_PACKET_PARTIAL[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "Source_A".into(),
-                    priority: 100,
-                    synchronization_address: 7962,
+                    priority: Priority::default(),
+                    synchronization_address: Some(Universe::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: 1,
+                    universe: Universe::new(1).expect("in range"),
                     data: DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_PARTIAL[125..].into(),
                     },
@@ -3273,13 +3276,13 @@ pub mod data_parse_tests {
                 cid: Uuid::from_slice(&TEST_DATA_PACKET[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "Source_A".into(),
-                    priority: 100,
-                    synchronization_address: 7962,
+                    priority: Priority::default(),
+                    synchronization_address: Some(Universe::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: 1,
+                    universe: Universe::new(1).expect("in range"),
                     data: DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET[125..638].into(),
                     },
@@ -3299,7 +3302,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_wrong_preample_lower_byte_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_LOWER_BYTE) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3316,7 +3319,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_wrong_preample_upper_byte_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_WRONG_PREAMBLE_SIZE_UPPER_BYTE) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3333,7 +3336,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_wrong_postample_lower_byte_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_LOWER_BYTE) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3350,7 +3353,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_wrong_postample_upper_byte_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_WRONG_POSTAMBLE_SIZE_UPPER_BYTE) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3367,7 +3370,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_root_layer_wrong_flags() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_WRONG_FLAGS) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_)) => {
+                ParsePackError::ParsePduInvalidFlags(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3384,7 +3387,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_root_layer_too_low_length() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_TOO_LOW_LENGTH) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3401,7 +3404,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_root_layer_too_high_length() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_TOO_HIGH_LENGTH) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3418,7 +3421,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_wrong_acn_identifier_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_WRONG_ACN_IDENTIFIER) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3435,7 +3438,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_unknown_acn_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_UNKNOWN_ACN_VECTOR) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::PduInvalidVector(_)) => {
+                ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error returned");
                 }
                 _ => {
@@ -3451,17 +3454,10 @@ pub mod data_parse_tests {
     #[test]
     fn test_malformed_data_packet_extended_acn_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_ROOT_LAYER_EXTENDED_VECTOR) {
-            Err(e) => {
-                match e {
-                    Error::SacnParsePackError(_) => {
-                        // As this is a byzantine type error because the packet is otherwise correct except the vector is the wrong vector type the exact
-                        // parse error isn't enforced but the packet must still be rejected.
-                        assert!(true, "Malformed packet successfully rejected");
-                    }
-                    _ => {
-                        assert!(false, "Unexpected error type returned");
-                    }
-                }
+            Err(_) => {
+                // As this is a byzantine type error because the packet is otherwise correct except the vector is the wrong vector type the exact
+                // parse error isn't enforced but the packet must still be rejected.
+                assert!(true, "Malformed packet successfully rejected");
             }
             Ok(_) => {
                 assert!(false, "Malformed packet was parsed when should have been rejected");
@@ -3472,17 +3468,10 @@ pub mod data_parse_tests {
     #[test]
     fn test_malformed_data_packet_too_long_cid_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_TOO_LONG_CID) {
-            Err(e) => {
-                match e {
-                    Error::SacnParsePackError(_) => {
-                        // The exact error in this case is not defined as other fields will be effected as all the data
-                        // is shifted, therefore just check for any parse error.
-                        assert!(true, "Malformed packet successfully rejected");
-                    }
-                    _ => {
-                        assert!(false, "Unexpected error type returned");
-                    }
-                }
+            Err(_) => {
+                // The exact error in this case is not defined as other fields will be effected as all the data
+                // is shifted, therefore just check for any parse error.
+                assert!(true, "Malformed packet successfully rejected");
             }
             Ok(_) => {
                 assert!(false, "Malformed packet was parsed when should have been rejected");
@@ -3494,7 +3483,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_too_short_cid_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_TOO_SHORT_CID) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3511,7 +3500,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_framing_layer_wrong_flags_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_FRAMING_LAYER_WRONG_FLAGS) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_)) => {
+                ParsePackError::ParsePduInvalidFlags(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3528,7 +3517,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_framing_layer_low_length_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_FRAMING_LAYER_LOW_LENGTH) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3545,7 +3534,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_framing_layer_high_length_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_FRAMING_LAYER_HIGH_LENGTH) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3562,7 +3551,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_framing_layer_wrong_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_FRAMING_LAYER_WRONG_VECTOR) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::PduInvalidVector(_)) => {
+                ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3582,13 +3571,13 @@ pub mod data_parse_tests {
                 cid: Uuid::from_slice(&TEST_DATA_PACKET_MAX_SOURCE_NAME[22..38]).unwrap(),
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: "SourcSourcSourcSourcSourcSourcSourcSourcSourcSourcSourcSourcSou".into(),
-                    priority: 100,
-                    synchronization_address: 7962,
+                    priority: Priority::default(),
+                    synchronization_address: Some(Universe::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: 1,
+                    universe: Universe::new(1).expect("in range"),
                     data: DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_MAX_SOURCE_NAME[125..638].into(),
                     },
@@ -3608,7 +3597,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_source_name_not_null_terminated_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_NOT_NULL_TERMINATED_SOURCE_NAME) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::SourceNameInvalid(_)) => {
+                ParsePackError::SourceNameInvalid(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3625,7 +3614,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_too_high_priority_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_TOO_HIGH_PRIORITY) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidPriority(_)) => {
+                ParsePackError::ParseInvalidPriority(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3647,8 +3636,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 0);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::MIN);
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3692,8 +3681,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 0);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, None);
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3732,7 +3721,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_too_high_sync_addr_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_TOO_HIGH_SYNC_ADDR_PACKET) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidSyncAddr(_)) => {
+                ParsePackError::ParseInvalidUniverse(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -3754,8 +3743,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3799,8 +3788,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3844,8 +3833,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3889,8 +3878,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3934,8 +3923,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3979,8 +3968,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -4024,8 +4013,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
@@ -4069,8 +4058,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -4109,7 +4098,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_too_high_universe_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_TOO_HIGH_UNIVERSE) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidUniverse(_)) => {
+                ParsePackError::ParseInvalidUniverse(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4126,7 +4115,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_too_low_universe_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_TOO_LOW_UNIVERSE) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidUniverse(_)) => {
+                ParsePackError::ParseInvalidUniverse(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4143,7 +4132,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_too_high_length_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_LENGTH) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4160,7 +4149,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_too_low_length_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_LENGTH) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4177,7 +4166,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_wrong_flags_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_WRONG_FLAGS) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParsePduInvalidFlags(_)) => {
+                ParsePackError::ParsePduInvalidFlags(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4194,7 +4183,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_wrong_vector_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_WRONG_VECTOR) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::PduInvalidVector(_)) => {
+                ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4211,7 +4200,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_wrong_address_data_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_DATA) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4228,7 +4217,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_wrong_first_property_address_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_WRONG_FIRST_PROPERTY_ADDRESS) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4245,7 +4234,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_wrong_address_increment_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_WRONG_ADDRESS_INCREMENT) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInvalidData(_)) => {
+                ParsePackError::ParseInvalidData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4262,7 +4251,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_too_high_property_count_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_TOO_HIGH_PROPERTY_COUNT) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4279,7 +4268,7 @@ pub mod data_parse_tests {
     fn test_malformed_data_packet_dmp_layer_too_low_property_count_parse() {
         match AcnRootLayerProtocol::parse(TEST_DATA_PACKET_DMP_LAYER_TOO_LOW_PROPERTY_COUNT) {
             Err(e) => match e {
-                Error::SacnParsePackError(sacn_parse_pack_error::ParsePackError::ParseInsufficientData(_)) => {
+                ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
                 }
                 x => {
@@ -4301,8 +4290,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
@@ -4346,8 +4335,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
@@ -4381,8 +4370,8 @@ pub mod data_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A");
-                    assert_eq!(dpfl.priority, 100);
-                    assert_eq!(dpfl.synchronization_address, 7962);
+                    assert_eq!(dpfl.priority, Priority::default());
+                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
