@@ -1,5 +1,10 @@
-use core::{fmt::Display, num::NonZeroU16, ptr::slice_from_raw_parts, write};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use core::{
+    fmt::Display,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    num::NonZeroU16,
+    ptr::slice_from_raw_parts,
+    write,
+};
 
 use socket2::SockAddr;
 
@@ -149,13 +154,14 @@ impl Universe {
 #[repr(transparent)]
 pub struct UniverseSlice<'a>(&'a [Universe]);
 
-impl<'a> std::ops::Deref for UniverseSlice<'a> {
+impl<'a> core::ops::Deref for UniverseSlice<'a> {
     type Target = &'a [Universe];
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
+
 impl<'a> From<UniverseSlice<'a>> for &'a [u16] {
     fn from(value: UniverseSlice) -> Self {
         unsafe { &*slice_from_raw_parts(value.0.as_ptr() as *const u16, value.0.len()) }
