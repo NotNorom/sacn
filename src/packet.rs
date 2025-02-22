@@ -18,23 +18,25 @@
 //! ```
 //! # use uuid::Uuid;
 //! # use sacn::packet::{AcnRootLayerProtocol, E131RootLayer, E131RootLayerData, DataPacketFramingLayer, DataPacketDmpLayer};
+//! # use sacn::priority::Priority;
+//! # use sacn::universe::Universe;
+//! # use core::str::FromStr;
 //! # fn main() {
-//! #[cfg(feature = "std")]
 //! # {
 //! let packet = AcnRootLayerProtocol {
 //!     pdu: E131RootLayer {
 //!         cid: Uuid::new_v4(),
 //!         data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
-//!             source_name: "Source_A".into(),
-//!             priority: 100,
-//!             synchronization_address: 7962,
+//!             source_name: FromStr::from_str("Source_A").unwrap(),
+//!             priority: Priority::default(),
+//!             synchronization_address: Some(Universe::new(7962).unwrap()),
 //!             sequence_number: 154,
 //!             preview_data: false,
 //!             stream_terminated: false,
 //!             force_synchronization: false,
-//!             universe: 1,
+//!             universe: Universe::new(1).unwrap(),
 //!             data: DataPacketDmpLayer {
-//!                 property_values: vec![0, 1, 2, 3].into(),
+//!                 property_values: heapless::Vec::from_slice(&[0, 1, 2, 3]).unwrap(),
 //!             },
 //!         }),
 //!     },
@@ -52,18 +54,10 @@
 
 /// The core crate is used for string processing during packet parsing/packing as well as to provide access to the Hash trait.
 use core::hash::{self, Hash};
-use core::str;
-
-extern crate alloc;
-use alloc::{
-    borrow::Cow,
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
 
 /// The byteorder crate is used for marshalling data on/off the network in Network Byte Order.
 use byteorder::{ByteOrder, NetworkEndian};
+use heapless::{String, Vec};
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
 use uuid::Uuid;
 
@@ -82,11 +76,11 @@ use crate::{
         E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_LENGTH, E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_LENGTH,
         E131_UNIVERSE_DISCOVERY_FRAMING_LAYER_MIN_LENGTH, E131_UNIVERSE_DISCOVERY_LAYER_MAX_LENGTH,
         E131_UNIVERSE_DISCOVERY_LAYER_MIN_LENGTH, E131_UNIVERSE_FIELD_LENGTH, E131_UNIVERSE_SYNC_PACKET_FRAMING_LAYER_LENGTH,
-        UNIVERSE_CHANNEL_CAPACITY, VECTOR_DMP_SET_PROPERTY, VECTOR_E131_DATA_PACKET, VECTOR_E131_EXTENDED_DISCOVERY,
+        MAXIMUM_PACKET_SIZE, UNIVERSE_CHANNEL_CAPACITY, VECTOR_DMP_SET_PROPERTY, VECTOR_E131_DATA_PACKET, VECTOR_E131_EXTENDED_DISCOVERY,
         VECTOR_E131_EXTENDED_SYNCHRONIZATION, VECTOR_ROOT_E131_DATA, VECTOR_ROOT_E131_EXTENDED, VECTOR_UNIVERSE_DISCOVERY_UNIVERSE_LIST,
     },
     priority::Priority,
-    sacn_parse_pack_error::ParsePackError,
+    sacn_parse_pack_error::{InsufficientData, InvalidData, ParsePackError},
     universe::Universe,
 };
 
@@ -106,7 +100,7 @@ fn zeros(buf: &mut [u8], n: usize) {
 /// # Errors
 /// SourceNameInvalid: Returned if the source name is not null terminated as required by ANSI E1.31-2018 Section 6.2.2
 #[inline]
-fn parse_source_name_str(buf: &[u8]) -> Result<&str, ParsePackError> {
+fn parse_source_name_str(buf: &[u8]) -> Result<String<E131_SOURCE_NAME_FIELD_LENGTH>, ParsePackError> {
     let mut source_name_length = buf.len();
     for (i, b) in buf.iter().enumerate() {
         if *b == 0 {
@@ -119,23 +113,22 @@ fn parse_source_name_str(buf: &[u8]) -> Result<&str, ParsePackError> {
         Err(ParsePackError::SourceNameInvalid("Packet source name not null terminated"))?;
     }
 
-    Ok(str::from_utf8(&buf[..source_name_length])?)
+    let vec = heapless::Vec::from_slice(&buf[..source_name_length]).map_err(|_| ParsePackError::SourceNameInvalid("too long"))?;
+    Ok(heapless::String::from_utf8(vec)?)
 }
 
 /// Root layer protocol of the Architecture for Control Networks (ACN) protocol.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct AcnRootLayerProtocol<'a> {
+pub struct AcnRootLayerProtocol {
     /// The PDU this packet carries.
-    pub pdu: E131RootLayer<'a>,
+    pub pdu: E131RootLayer,
 }
 
-impl AcnRootLayerProtocol<'_> {
+impl AcnRootLayerProtocol {
     /// Parse the packet from the given buffer.
     pub fn parse(buf: &[u8]) -> Result<AcnRootLayerProtocol, ParsePackError> {
         if buf.len() < (E131_PREAMBLE_SIZE as usize) {
-            Err(ParsePackError::ParseInsufficientData(
-                "Insufficient data for ACN root layer preamble".to_string(),
-            ))?;
+            Err(InsufficientData::TooShortForPreamble)?;
         }
 
         // Preamble Size
@@ -159,24 +152,22 @@ impl AcnRootLayerProtocol<'_> {
         })
     }
 
-    /// Packs the packet into heap allocated memory.
-    pub fn pack_alloc(&self) -> Result<Vec<u8>, ParsePackError> {
-        let mut buf = Vec::with_capacity(self.len());
+    /// Packs the packet into a new allocated Vec on the stack.
+    pub fn pack_alloc(&self) -> Result<heapless::Vec<u8, MAXIMUM_PACKET_SIZE>, ParsePackError> {
+        let mut buf = heapless::Vec::new();
         self.pack_vec(&mut buf)?;
         Ok(buf)
     }
 
     /// Packs the packet into the given vector.
-    ///
-    /// Grows the vector `buf` if necessary.
-    pub fn pack_vec(&self, buf: &mut Vec<u8>) -> Result<(), ParsePackError> {
-        buf.clear();
-        buf.reserve_exact(self.len());
-
-        // @todo why???
-        unsafe {
-            buf.set_len(self.len());
+    pub fn pack_vec(&self, buf: &mut heapless::Vec<u8, MAXIMUM_PACKET_SIZE>) -> Result<(), ParsePackError> {
+        if buf.capacity() < self.len() {
+            return Err(ParsePackError::PackBufferInsufficient("fuck"));
         }
+
+        buf.clear();
+        buf.resize_default(MAXIMUM_PACKET_SIZE).expect("set len to exactly its capacity");
+
         self.pack(buf)
     }
 
@@ -233,9 +224,7 @@ struct PduInfo {
 /// ParsePduInvalidFlags: If the flags parsed don't match the flags expected for an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
 fn pdu_info(buf: &[u8], vector_length: usize) -> Result<PduInfo, ParsePackError> {
     if buf.len() < E131_PDU_LENGTH_FLAGS_LENGTH + vector_length {
-        Err(ParsePackError::ParseInsufficientData(
-            "Insufficient data when parsing pdu_info, no flags or length field".to_string(),
-        ))?;
+        Err(InsufficientData::PduInfoTooShort)?;
     }
 
     // Flags
@@ -262,34 +251,32 @@ trait Pdu: Sized {
 
 /// Payload of the Root Layer PDU.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub enum E131RootLayerData<'a> {
+pub enum E131RootLayerData {
     /// DMX data packet.
-    DataPacket(DataPacketFramingLayer<'a>),
+    DataPacket(DataPacketFramingLayer),
 
     /// Synchronization packet.
     SynchronizationPacket(SynchronizationPacketFramingLayer),
 
     /// Universe discovery packet.
-    UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer<'a>),
+    UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer),
 }
 
 /// Root layer protocol data unit (PDU).
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct E131RootLayer<'a> {
+pub struct E131RootLayer {
     /// Sender UUID.
     pub cid: Uuid,
     /// Data carried by the Root Layer PDU.
-    pub data: E131RootLayerData<'a>,
+    pub data: E131RootLayerData,
 }
 
-impl<'a> Pdu for E131RootLayer<'a> {
-    fn parse(buf: &[u8]) -> Result<E131RootLayer<'a>, ParsePackError> {
+impl<'a> Pdu for E131RootLayer {
+    fn parse(buf: &[u8]) -> Result<E131RootLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_ROOT_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
-            Err(ParsePackError::ParseInsufficientData(
-                "Buffer contains insufficient data based on ACN root layer pdu length field".to_string(),
-            ))?;
+            Err(InsufficientData::BufferTooShortBasedOnRootLayer)?;
         }
 
         if vector != VECTOR_ROOT_E131_DATA && vector != VECTOR_ROOT_E131_EXTENDED {
@@ -306,9 +293,7 @@ impl<'a> Pdu for E131RootLayer<'a> {
                 let data_buf = &buf[E131_CID_END_INDEX..length];
                 let PduInfo { length, vector } = pdu_info(data_buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
                 if buf.len() < length {
-                    Err(ParsePackError::ParseInsufficientData(
-                        "Buffer contains insufficient data based on E131 framing layer pdu length field".to_string(),
-                    ))?;
+                    Err(InsufficientData::BufferTooShortBasedOnE131FramingLayer)?;
                 }
 
                 match vector {
@@ -377,9 +362,9 @@ impl<'a> Pdu for E131RootLayer<'a> {
 
 /// Framing layer PDU for sACN data packets.
 #[derive(Eq, PartialEq, Debug)]
-pub struct DataPacketFramingLayer<'a> {
+pub struct DataPacketFramingLayer {
     /// The name of the source.
-    pub source_name: Cow<'a, str>,
+    pub source_name: String<E131_SOURCE_NAME_FIELD_LENGTH>,
 
     /// Priority of this data packet.
     pub priority: Priority,
@@ -403,7 +388,7 @@ pub struct DataPacketFramingLayer<'a> {
     pub universe: Universe,
 
     /// DMP layer containing the DMX data.
-    pub data: DataPacketDmpLayer<'a>,
+    pub data: DataPacketDmpLayer,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -417,14 +402,12 @@ const OPTIONS_FIELD_INDEX: usize = SEQ_NUM_INDEX + E131_SEQ_NUM_FIELD_LENGTH;
 const UNIVERSE_INDEX: usize = OPTIONS_FIELD_INDEX + E131_OPTIONS_FIELD_LENGTH;
 const DATA_INDEX: usize = UNIVERSE_INDEX + E131_UNIVERSE_FIELD_LENGTH;
 
-impl<'a> Pdu for DataPacketFramingLayer<'a> {
-    fn parse(buf: &[u8]) -> Result<DataPacketFramingLayer<'a>, ParsePackError> {
+impl<'a> Pdu for DataPacketFramingLayer {
+    fn parse(buf: &[u8]) -> Result<DataPacketFramingLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
-            Err(ParsePackError::ParseInsufficientData(
-                "Buffer contains insufficient data based on data packet framing layer pdu length field".to_string(),
-            ))?;
+            Err(InsufficientData::BufferTooShortBasedOnDataFramingLayer)?;
         }
 
         if vector != VECTOR_E131_DATA_PACKET {
@@ -432,7 +415,7 @@ impl<'a> Pdu for DataPacketFramingLayer<'a> {
         }
 
         // Source Name
-        let source_name = String::from(parse_source_name_str(&buf[SOURCE_NAME_INDEX..PRIORITY_INDEX])?);
+        let source_name = parse_source_name_str(&buf[SOURCE_NAME_INDEX..PRIORITY_INDEX])?;
 
         // Priority
         let priority = buf[PRIORITY_INDEX].try_into()?;
@@ -461,7 +444,7 @@ impl<'a> Pdu for DataPacketFramingLayer<'a> {
         let data = DataPacketDmpLayer::parse(&buf[DATA_INDEX..length])?;
 
         Ok(DataPacketFramingLayer {
-            source_name: source_name.into(),
+            source_name,
             priority,
             synchronization_address,
             sequence_number,
@@ -549,7 +532,7 @@ impl<'a> Pdu for DataPacketFramingLayer<'a> {
     }
 }
 
-impl Clone for DataPacketFramingLayer<'_> {
+impl Clone for DataPacketFramingLayer {
     fn clone(&self) -> Self {
         DataPacketFramingLayer {
             source_name: self.source_name.clone(),
@@ -565,7 +548,7 @@ impl Clone for DataPacketFramingLayer<'_> {
     }
 }
 
-impl Hash for DataPacketFramingLayer<'_> {
+impl Hash for DataPacketFramingLayer {
     #[inline]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         (*self.source_name).hash(state);
@@ -584,9 +567,9 @@ impl Hash for DataPacketFramingLayer<'_> {
 ///
 /// Used for sACN data packets.
 #[derive(Eq, PartialEq, Debug)]
-pub struct DataPacketDmpLayer<'a> {
+pub struct DataPacketDmpLayer {
     /// DMX data property values (DMX start coder + 512 slots).
-    pub property_values: Cow<'a, [u8]>,
+    pub property_values: Vec<u8, UNIVERSE_CHANNEL_CAPACITY>,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -599,14 +582,12 @@ const ADDRESS_INCREMENT_FIELD_INDEX: usize = FIRST_PRIORITY_FIELD_INDEX + E131_D
 const PROPERTY_VALUE_COUNT_FIELD_INDEX: usize = ADDRESS_INCREMENT_FIELD_INDEX + E131_DATA_PACKET_DMP_LAYER_ADDRESS_INCREMENT_FIELD_LENGTH;
 const PROPERTY_VALUES_FIELD_INDEX: usize = PROPERTY_VALUE_COUNT_FIELD_INDEX + E131_DATA_PACKET_DMP_LAYER_PROPERTY_VALUE_COUNT_FIELD_LENGTH;
 
-impl<'a> Pdu for DataPacketDmpLayer<'a> {
-    fn parse(buf: &[u8]) -> Result<DataPacketDmpLayer<'a>, ParsePackError> {
+impl<'a> Pdu for DataPacketDmpLayer {
+    fn parse(buf: &[u8]) -> Result<DataPacketDmpLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_DATA_PACKET_DMP_LAYER_VECTOR_FIELD_LENGTH)?;
         if buf.len() < length {
-            Err(ParsePackError::ParseInsufficientData(
-                "Buffer contains insufficient data based on data packet dmp layer pdu length field".to_string(),
-            ))?;
+            Err(InsufficientData::BufferTooShortBasedOnDataDmpLayer)?;
         }
 
         if vector != u32::from(VECTOR_DMP_SET_PROPERTY) {
@@ -637,12 +618,10 @@ impl<'a> Pdu for DataPacketDmpLayer<'a> {
 
         // Check that the property value count matches the expected count based on the pdu length given previously.
         if property_value_count as usize + PROPERTY_VALUES_FIELD_INDEX != length {
-            Err(
-                ParsePackError::ParseInsufficientData(
-                    format!("Invalid data packet dmp layer property value count, pdu length indicates {} property values, property value count field indicates {} property values",
-                        length , property_value_count)
-                )
-            )?;
+            Err(InsufficientData::InvalidDmpLayerPropertyCount {
+                should_be: length,
+                actual: property_value_count as usize,
+            })?;
         }
 
         // Property values
@@ -652,9 +631,7 @@ impl<'a> Pdu for DataPacketDmpLayer<'a> {
             Err(ParsePackError::ParseInvalidData("only 512 DMX slots allowed"))?;
         }
 
-        let mut property_values = Vec::with_capacity(property_values_length);
-
-        property_values.extend_from_slice(&buf[PROPERTY_VALUES_FIELD_INDEX..length]);
+        let property_values = Vec::from_slice(&buf[PROPERTY_VALUES_FIELD_INDEX..length]).expect("should be enough capacity");
 
         Ok(DataPacketDmpLayer {
             property_values: property_values.into(),
@@ -663,7 +640,7 @@ impl<'a> Pdu for DataPacketDmpLayer<'a> {
 
     fn pack(&self, buf: &mut [u8]) -> Result<(), ParsePackError> {
         if self.property_values.len() > UNIVERSE_CHANNEL_CAPACITY {
-            Err(ParsePackError::PackInvalidData("only 512 DMX values allowed".to_string()))?;
+            Err(InvalidData::TooManyDmxValues)?;
         }
 
         if buf.len() < self.len() {
@@ -724,7 +701,7 @@ impl<'a> Pdu for DataPacketDmpLayer<'a> {
     }
 }
 
-impl Clone for DataPacketDmpLayer<'_> {
+impl Clone for DataPacketDmpLayer {
     fn clone(&self) -> Self {
         DataPacketDmpLayer {
             property_values: self.property_values.clone(),
@@ -732,7 +709,7 @@ impl Clone for DataPacketDmpLayer<'_> {
     }
 }
 
-impl Hash for DataPacketDmpLayer<'_> {
+impl Hash for DataPacketDmpLayer {
     #[inline]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         (*self.property_values).hash(state);
@@ -766,9 +743,7 @@ impl Pdu for SynchronizationPacketFramingLayer {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
-            Err(ParsePackError::ParseInsufficientData(
-                "Buffer contains insufficient data based on synchronisation packet framing layer pdu length field".to_string(),
-            ))?;
+            Err(InsufficientData::BufferTooShortBasedOnSyncFramingLayer)?;
         }
 
         if vector != VECTOR_E131_EXTENDED_SYNCHRONIZATION {
@@ -851,12 +826,12 @@ impl Pdu for SynchronizationPacketFramingLayer {
 
 /// Framing layer PDU for sACN universe discovery packets.
 #[derive(Eq, PartialEq, Debug)]
-pub struct UniverseDiscoveryPacketFramingLayer<'a> {
+pub struct UniverseDiscoveryPacketFramingLayer {
     /// Name of the source.
-    pub source_name: Cow<'a, str>,
+    pub source_name: String<E131_SOURCE_NAME_FIELD_LENGTH>,
 
     /// Universe discovery layer.
-    pub data: UniverseDiscoveryPacketUniverseDiscoveryLayer<'a>,
+    pub data: UniverseDiscoveryPacketUniverseDiscoveryLayer,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -870,14 +845,12 @@ const E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX: usize =
 const E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX: usize =
     E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX + E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_LENGTH;
 
-impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer<'a> {
-    fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketFramingLayer<'a>, ParsePackError> {
+impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer {
+    fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketFramingLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
-            Err(ParsePackError::ParseInsufficientData(
-                "Buffer contains insufficient data based on universe discovery packet framing layer pdu length field".to_string(),
-            ))?;
+            Err(InsufficientData::BufferTooShortBasedOnDiscoveryFramingLayer)?;
         }
 
         if vector != VECTOR_E131_EXTENDED_DISCOVERY {
@@ -889,19 +862,16 @@ impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer<'a> {
         }
 
         // Source Name
-        let source_name = String::from(parse_source_name_str(
+        let source_name = parse_source_name_str(
             &buf[E131_DISCOVERY_FRAMING_LAYER_SOURCE_NAME_FIELD_INDEX..E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX],
-        )?);
+        )?;
 
         // Reserved data (immediately after source_name) ignored as per ANSI E1.31-2018 Section 6.4.3.
 
         // The universe discovery data.
         let data = UniverseDiscoveryPacketUniverseDiscoveryLayer::parse(&buf[E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX..length])?;
 
-        Ok(UniverseDiscoveryPacketFramingLayer {
-            source_name: source_name.into(),
-            data,
-        })
+        Ok(UniverseDiscoveryPacketFramingLayer { source_name, data })
     }
 
     fn pack(&self, buf: &mut [u8]) -> Result<(), ParsePackError> {
@@ -954,7 +924,7 @@ impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer<'a> {
     }
 }
 
-impl Clone for UniverseDiscoveryPacketFramingLayer<'_> {
+impl Clone for UniverseDiscoveryPacketFramingLayer {
     fn clone(&self) -> Self {
         UniverseDiscoveryPacketFramingLayer {
             source_name: self.source_name.clone(),
@@ -963,7 +933,7 @@ impl Clone for UniverseDiscoveryPacketFramingLayer<'_> {
     }
 }
 
-impl Hash for UniverseDiscoveryPacketFramingLayer<'_> {
+impl Hash for UniverseDiscoveryPacketFramingLayer {
     #[inline]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         (*self.source_name).hash(state);
@@ -973,7 +943,7 @@ impl Hash for UniverseDiscoveryPacketFramingLayer<'_> {
 
 /// Universe discovery layer PDU.
 #[derive(Eq, PartialEq, Debug)]
-pub struct UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
+pub struct UniverseDiscoveryPacketUniverseDiscoveryLayer {
     /// Current page of the discovery packet.
     pub page: u8,
 
@@ -981,7 +951,7 @@ pub struct UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
     pub last_page: u8,
 
     /// List of universes.
-    pub universes: Cow<'a, [Universe]>,
+    pub universes: Vec<Universe, DISCOVERY_UNI_PER_PAGE>,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -993,14 +963,15 @@ const E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_INDEX: usize = E131_DISCOVERY_LAYER_P
 const E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX: usize =
     E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_INDEX + E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_LENGTH;
 
-impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
-    fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketUniverseDiscoveryLayer<'a>, ParsePackError> {
+impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
+    fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketUniverseDiscoveryLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = pdu_info(buf, E131_DISCOVERY_LAYER_VECTOR_FIELD_LENGTH)?;
         if buf.len() != length {
-            Err(ParsePackError::ParseInsufficientData(
-                        format!("Buffer contains incorrect amount of data ({} bytes) based on universe discovery packet universe discovery layer pdu length field ({} bytes)"
-                        , buf.len() ,length).to_string()))?;
+            Err(InsufficientData::InvalidAmountOfDataBytes {
+                should_be: length,
+                actual: buf.len(),
+            })?;
         }
 
         if vector != VECTOR_UNIVERSE_DISCOVERY_UNIVERSE_LIST {
@@ -1023,7 +994,7 @@ impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
 
         // The number of universes, calculated by dividing the remaining space in the packet by the size of a single universe.
         let universes_length = (length - E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX) / E131_UNIVERSE_FIELD_LENGTH;
-        let universes: Cow<'a, [Universe]> = parse_universe_list(&buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX..], universes_length)?;
+        let universes = parse_universe_list(&buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX..], universes_length)?;
 
         Ok(UniverseDiscoveryPacketUniverseDiscoveryLayer {
             page,
@@ -1034,10 +1005,7 @@ impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
 
     fn pack(&self, buf: &mut [u8]) -> Result<(), ParsePackError> {
         if self.universes.len() > DISCOVERY_UNI_PER_PAGE {
-            Err(ParsePackError::PackInvalidData(format!(
-                "Maximum {} universes allowed per discovery page",
-                DISCOVERY_UNI_PER_PAGE
-            )))?;
+            Err(InvalidData::TooManyUniversesInDiscoveryPage)?;
         }
 
         if buf.len() < self.len() {
@@ -1063,16 +1031,17 @@ impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
         buf[E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_INDEX] = self.last_page;
 
         // Universes
+        // todo!("logic bug. when self.universes is not sorted, the uniqueness check fails");
         for i in 1..self.universes.len() {
             if self.universes[i] == self.universes[i - 1] {
-                Err(ParsePackError::PackInvalidData("Universes are not unique".to_string()))?;
+                Err(InvalidData::UniversesNotUnique)?;
             }
             if self.universes[i] <= self.universes[i - 1] {
-                Err(ParsePackError::PackInvalidData("Universes are not sorted".to_string()))?;
+                Err(InvalidData::UniversesNotSorted)?;
             }
         }
 
-        let universes: Vec<u16> = self.universes.iter().map(Universe::get).collect();
+        let universes: Vec<u16, DISCOVERY_UNI_PER_PAGE> = self.universes.iter().map(Universe::get).collect();
         NetworkEndian::write_u16_into(
             &universes,
             &mut buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX
@@ -1096,7 +1065,7 @@ impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer<'a> {
     }
 }
 
-impl Clone for UniverseDiscoveryPacketUniverseDiscoveryLayer<'_> {
+impl Clone for UniverseDiscoveryPacketUniverseDiscoveryLayer {
     fn clone(&self) -> Self {
         UniverseDiscoveryPacketUniverseDiscoveryLayer {
             page: self.page,
@@ -1106,7 +1075,7 @@ impl Clone for UniverseDiscoveryPacketUniverseDiscoveryLayer<'_> {
     }
 }
 
-impl Hash for UniverseDiscoveryPacketUniverseDiscoveryLayer<'_> {
+impl Hash for UniverseDiscoveryPacketUniverseDiscoveryLayer {
     #[inline]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.page.hash(state);
@@ -1127,8 +1096,8 @@ impl Hash for UniverseDiscoveryPacketUniverseDiscoveryLayer<'_> {
 /// ParseInvalidUniverseOrder: If the universes are not sorted in ascending order with no duplicates.
 ///
 /// ParseInsufficientData: If the buffer doesn't contain sufficient bytes and so cannot be parsed into the specified number of u16 universes.
-fn parse_universe_list<'a>(buf: &[u8], length: usize) -> Result<Cow<'a, [Universe]>, ParsePackError> {
-    let mut universes: Vec<Universe> = Vec::with_capacity(length);
+fn parse_universe_list<'a>(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOVERY_UNI_PER_PAGE>, ParsePackError> {
+    let mut universes = Vec::new();
     let mut i = 0;
 
     // Last_universe starts as a placeholder value that is guaranteed to be less than the lowest possible advertised universe.
@@ -1137,14 +1106,10 @@ fn parse_universe_list<'a>(buf: &[u8], length: usize) -> Result<Cow<'a, [Univers
     let mut last_universe: i32 = -1;
 
     if buf.len() < length * E131_UNIVERSE_FIELD_LENGTH {
-        Err(ParsePackError::ParseInsufficientData(
-            format!(
-                "The given buffer of length {} bytes cannot be parsed into the given number of universes {}",
-                buf.len(),
-                length
-            )
-            .to_string(),
-        ))?;
+        Err(InsufficientData::BufferTooShortForNumberOfUniverses {
+            should_be: buf.len(),
+            actual: length,
+        })?;
     }
 
     while i < (length * E131_UNIVERSE_FIELD_LENGTH) {
@@ -1152,14 +1117,11 @@ fn parse_universe_list<'a>(buf: &[u8], length: usize) -> Result<Cow<'a, [Univers
 
         if (u as i32) > last_universe {
             // Enforce assending ordering of universes as per ANSI E1.31-2018 Section 8.5.
-            universes.push(Universe::try_from(u)?);
+            universes.push(Universe::try_from(u)?).expect("should be enough capacity");
             last_universe = u as i32;
             i += E131_UNIVERSE_FIELD_LENGTH; // Jump to the next universe.
         } else {
-            Err(ParsePackError::ParseInvalidUniverseOrder(format!(
-                "Universe {} is out of order, discovery packet universe list must be in accending order!",
-                u
-            )))?;
+            Err(ParsePackError::ParseInvalidUniverseOrder(Universe::try_from(u)?))?;
         }
     }
 

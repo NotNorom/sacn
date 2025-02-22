@@ -226,3 +226,9 @@ pub const E131_NETWORK_DATA_LOSS_TIMEOUT: Duration = Duration::from_millis(2500)
 
 /// The timeout before a discovered source is assumed to be lost as defined in section 12.2 of ANSI E1.31-2018.
 pub const UNIVERSE_DISCOVERY_SOURCE_TIMEOUT: Duration = E131_NETWORK_DATA_LOSS_TIMEOUT;
+
+/// The maximum size a packet can have, specified in secion 6.1
+/// 
+/// The potentially biggest packet is a universe discovery packet with 
+/// all 512 slots being used. 
+pub const MAXIMUM_PACKET_SIZE: usize = 1144;

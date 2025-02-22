@@ -7,14 +7,12 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
-extern crate alloc;
-
 use core::str::Utf8Error;
 
 use crate::{
     e131_definitions::{DISCOVERY_UNI_PER_PAGE, UNIVERSE_CHANNEL_CAPACITY},
     priority::PriorityError,
-    universe::UniverseError,
+    universe::{Universe, UniverseError},
 };
 
 /// The errors used within the SacnLibrary specifically those related to parsing and packeting packets received/sent on the network.
@@ -55,15 +53,15 @@ pub enum ParsePackError {
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the universe ordering was invalid.
-    #[error("Attempted to parse a packet with an invalid ordering of universes, msg: {0}")]
-    ParseInvalidUniverseOrder(alloc::string::String),
+    #[error("Universe {} is out of order, discovery packet universe list must be in accending order!", .0)]
+    ParseInvalidUniverseOrder(Universe),
 
     /// When packing a packet into a buffer invalid data encountered.
     ///
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the data couldn't be packed.
     #[error("When packing a packet into a buffer invalid data encountered, msg: {0}")]
-    PackInvalidData(String),
+    PackInvalidData(#[from] InvalidData),
 
     #[error("Maximum {DISCOVERY_UNI_PER_PAGE} universes allowed per discovery page, but got {0}")]
     TooManyDiscoveryUniverses(u16),
@@ -83,7 +81,7 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to why there was insufficient data for parsing.
     #[error("Supplied buffer does not contain enough data, msg: {0}")]
-    ParseInsufficientData(String),
+    ParseInsufficientData(#[from] InsufficientData),
 
     /// Received PDU flags are invalid for parsing.
     ///
@@ -126,4 +124,54 @@ pub enum ParsePackError {
     /// msg: A message providing further details (if any) as to why the source name was invalid.
     #[error("Attempted to parse invalid source name, msg: {0}")]
     SourceNameInvalid(&'static str),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InvalidData {
+    #[error("Universes are not unique")]
+    UniversesNotUnique,
+    #[error("Universes are not sorted")]
+    UniversesNotSorted,
+    #[error("Too many universes in discovery page. Max is {}", DISCOVERY_UNI_PER_PAGE)]
+    TooManyUniversesInDiscoveryPage,
+    #[error("Too many DMX values. Max is {}", UNIVERSE_CHANNEL_CAPACITY)]
+    TooManyDmxValues,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum InsufficientData {
+    #[error("Insufficient data when parsing pdu_info, no flags or length field")]
+    PduInfoTooShort,
+    #[error("Buffer contains insufficient data based on E131 framing layer pdu length field")]
+    BufferTooShortBasedOnE131FramingLayer,
+    #[error("Buffer contains insufficient data based on data packet framing layer pdu length field")]
+    BufferTooShortBasedOnDataFramingLayer,
+    #[error("Buffer contains insufficient data based on data packet dmp layer pdu length field")]
+    BufferTooShortBasedOnDataDmpLayer,
+    #[error("Buffer contains insufficient data based on synchronisation packet framing layer pdu length field")]
+    BufferTooShortBasedOnSyncFramingLayer,
+    #[error("Buffer contains insufficient data based on universe discovery packet framing layer pdu length field")]
+    BufferTooShortBasedOnDiscoveryFramingLayer,
+    #[error("Buffer contains insufficient data based on ACN root layer pdu length field")]
+    BufferTooShortBasedOnRootLayer,
+    #[error("Insufficient data for ACN root layer preamble")]
+    TooShortForPreamble,
+    #[error(
+        "Invalid data packet dmp layer property value count, pdu length indicates {} property values, property value count field indicates {} property values",
+        should_be,
+        actual
+    )]
+    InvalidDmpLayerPropertyCount { should_be: usize, actual: usize },
+    #[error(
+        "Buffer contains incorrect amount of data ({} bytes) based on universe discovery packet universe discovery layer pdu length field ({} bytes)",
+        actual,
+        should_be
+    )]
+    InvalidAmountOfDataBytes { should_be: usize, actual: usize },
+    #[error(
+        "The given buffer of length {} bytes cannot be parsed into the given number of universes {}",
+        actual,
+        should_be
+    )]
+    BufferTooShortForNumberOfUniverses { should_be: usize, actual: usize },
 }
