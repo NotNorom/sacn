@@ -187,34 +187,36 @@ struct PduInfo {
     vector: u32,
 }
 
-/// Takes the given byte buffer and parses the flags, length and vector fields into a PduInfo struct.
-///
-/// # Arguments
-/// buf: The raw byte buffer.
-///
-/// vector_length: The length of the vectorfield in bytes.
-///
-/// # Errors
-/// ParseInsufficientData: If the length of the buffer is less than the flag, length and vector fields (E131_PDU_LENGTH_FLAGS_LENGTH + vector_length).
-///
-/// ParsePduInvalidFlags: If the flags parsed don't match the flags expected for an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
-fn pdu_info(buf: &[u8], vector_length: usize) -> Result<PduInfo, ParsePackError> {
-    if buf.len() < E131_PDU_LENGTH_FLAGS_LENGTH + vector_length {
-        Err(InsufficientData::PduInfoTooShort)?;
+impl PduInfo {
+    /// Takes the given byte buffer and parses the flags, length and vector fields into a PduInfo struct.
+    ///
+    /// # Arguments
+    /// buf: The raw byte buffer.
+    ///
+    /// vector_length: The length of the vectorfield in bytes.
+    ///
+    /// # Errors
+    /// ParseInsufficientData: If the length of the buffer is less than the flag, length and vector fields (E131_PDU_LENGTH_FLAGS_LENGTH + vector_length).
+    ///
+    /// ParsePduInvalidFlags: If the flags parsed don't match the flags expected for an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
+    pub fn new(buf: &[u8], vector_length: usize) -> Result<PduInfo, ParsePackError> {
+        if buf.len() < E131_PDU_LENGTH_FLAGS_LENGTH + vector_length {
+            Err(InsufficientData::PduInfoTooShort)?;
+        }
+
+        // Flags
+        let flags = buf[0] & 0xf0; // Flags are stored in the top 4 bits.
+        if flags != E131_PDU_FLAGS {
+            Err(ParsePackError::ParsePduInvalidFlags(flags))?;
+        }
+        // Length
+        let length = (NetworkEndian::read_u16(&buf[0..E131_PDU_LENGTH_FLAGS_LENGTH]) & 0x0fff) as usize;
+
+        // Vector
+        let vector = NetworkEndian::read_uint(&buf[E131_PDU_LENGTH_FLAGS_LENGTH..], vector_length) as u32;
+
+        Ok(PduInfo { length, vector })
     }
-
-    // Flags
-    let flags = buf[0] & 0xf0; // Flags are stored in the top 4 bits.
-    if flags != E131_PDU_FLAGS {
-        Err(ParsePackError::ParsePduInvalidFlags(flags))?;
-    }
-    // Length
-    let length = (NetworkEndian::read_u16(&buf[0..E131_PDU_LENGTH_FLAGS_LENGTH]) & 0x0fff) as usize;
-
-    // Vector
-    let vector = NetworkEndian::read_uint(&buf[E131_PDU_LENGTH_FLAGS_LENGTH..], vector_length) as u32;
-
-    Ok(PduInfo { length, vector })
 }
 
 trait Pdu: Sized {
@@ -250,7 +252,7 @@ pub struct E131RootLayer {
 impl<'a> Pdu for E131RootLayer {
     fn parse(buf: &[u8]) -> Result<E131RootLayer, ParsePackError> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(buf, E131_ROOT_LAYER_VECTOR_LENGTH)?;
+        let PduInfo { length, vector } = PduInfo::new(buf, E131_ROOT_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
             Err(InsufficientData::BufferTooShortBasedOnRootLayer)?;
         }
@@ -267,7 +269,7 @@ impl<'a> Pdu for E131RootLayer {
             VECTOR_ROOT_E131_DATA => E131RootLayerData::DataPacket(DataPacketFramingLayer::parse(&buf[E131_CID_END_INDEX..length])?),
             VECTOR_ROOT_E131_EXTENDED => {
                 let data_buf = &buf[E131_CID_END_INDEX..length];
-                let PduInfo { length, vector } = pdu_info(data_buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
+                let PduInfo { length, vector } = PduInfo::new(data_buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
                 if buf.len() < length {
                     Err(InsufficientData::BufferTooShortBasedOnE131FramingLayer)?;
                 }
@@ -381,7 +383,7 @@ const DATA_INDEX: usize = UNIVERSE_INDEX + E131_UNIVERSE_FIELD_LENGTH;
 impl<'a> Pdu for DataPacketFramingLayer {
     fn parse(buf: &[u8]) -> Result<DataPacketFramingLayer, ParsePackError> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
+        let PduInfo { length, vector } = PduInfo::new(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
             Err(InsufficientData::BufferTooShortBasedOnDataFramingLayer)?;
         }
@@ -561,7 +563,7 @@ const PROPERTY_VALUES_FIELD_INDEX: usize = PROPERTY_VALUE_COUNT_FIELD_INDEX + E1
 impl<'a> Pdu for DataPacketDmpLayer {
     fn parse(buf: &[u8]) -> Result<DataPacketDmpLayer, ParsePackError> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(buf, E131_DATA_PACKET_DMP_LAYER_VECTOR_FIELD_LENGTH)?;
+        let PduInfo { length, vector } = PduInfo::new(buf, E131_DATA_PACKET_DMP_LAYER_VECTOR_FIELD_LENGTH)?;
         if buf.len() < length {
             Err(InsufficientData::BufferTooShortBasedOnDataDmpLayer)?;
         }
@@ -717,7 +719,7 @@ const E131_SYNC_FRAMING_LAYER_END_INDEX: usize = E131_SYNC_FRAMING_LAYER_RESERVE
 impl Pdu for SynchronizationPacketFramingLayer {
     fn parse(buf: &[u8]) -> Result<SynchronizationPacketFramingLayer, ParsePackError> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
+        let PduInfo { length, vector } = PduInfo::new(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
             Err(InsufficientData::BufferTooShortBasedOnSyncFramingLayer)?;
         }
@@ -824,7 +826,7 @@ const E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX: usize =
 impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer {
     fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketFramingLayer, ParsePackError> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
+        let PduInfo { length, vector } = PduInfo::new(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
         if buf.len() < length {
             Err(InsufficientData::BufferTooShortBasedOnDiscoveryFramingLayer)?;
         }
@@ -942,7 +944,7 @@ const E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX: usize =
 impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
     fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketUniverseDiscoveryLayer, ParsePackError> {
         // Length and Vector
-        let PduInfo { length, vector } = pdu_info(buf, E131_DISCOVERY_LAYER_VECTOR_FIELD_LENGTH)?;
+        let PduInfo { length, vector } = PduInfo::new(buf, E131_DISCOVERY_LAYER_VECTOR_FIELD_LENGTH)?;
         if buf.len() != length {
             Err(InsufficientData::InvalidAmountOfDataBytes {
                 should_be: length,
