@@ -208,6 +208,8 @@ pub mod packet;
 /// The source module handles generation of sACN on the network.
 pub mod source;
 
+pub mod source_name;
+
 /// The receive module handles the receiving of sACN on the network.
 pub mod receive;
 

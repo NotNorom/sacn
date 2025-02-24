@@ -12,6 +12,7 @@ use core::str::Utf8Error;
 use crate::{
     e131_definitions::{DISCOVERY_UNI_PER_PAGE, UNIVERSE_CHANNEL_CAPACITY},
     priority::PriorityError,
+    source_name::SourceNameError,
     universe::{Universe, UniverseError},
 };
 
@@ -123,7 +124,7 @@ pub enum ParsePackError {
     /// # Arguments
     /// msg: A message providing further details (if any) as to why the source name was invalid.
     #[error("Attempted to parse invalid source name, msg: {0}")]
-    SourceNameInvalid(&'static str),
+    SourceName(#[from] SourceNameError),
 }
 
 #[derive(Debug, thiserror::Error)]

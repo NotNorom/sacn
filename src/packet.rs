@@ -57,7 +57,7 @@ use core::hash::{self, Hash};
 
 /// The byteorder crate is used for marshalling data on/off the network in Network Byte Order.
 use byteorder::{ByteOrder, NetworkEndian};
-use heapless::{String, Vec};
+use heapless::Vec;
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
 use uuid::Uuid;
 
@@ -81,6 +81,7 @@ use crate::{
     },
     priority::Priority,
     sacn_parse_pack_error::{InsufficientData, InvalidData, ParsePackError},
+    source_name::SourceName,
     universe::Universe,
 };
 
@@ -90,31 +91,6 @@ fn zeros(buf: &mut [u8], n: usize) {
     for b in buf.iter_mut().take(n) {
         *b = 0;
     }
-}
-
-/// Takes the given byte buffer (e.g. a c char array) and parses it into a rust &str.
-///
-/// # Arguments
-/// buf: The byte buffer to parse into a str.
-///
-/// # Errors
-/// SourceNameInvalid: Returned if the source name is not null terminated as required by ANSI E1.31-2018 Section 6.2.2
-#[inline]
-fn parse_source_name_str(buf: &[u8]) -> Result<String<E131_SOURCE_NAME_FIELD_LENGTH>, ParsePackError> {
-    let mut source_name_length = buf.len();
-    for (i, b) in buf.iter().enumerate() {
-        if *b == 0 {
-            source_name_length = i;
-            break;
-        }
-    }
-
-    if source_name_length == buf.len() && buf[buf.len() - 1] != 0 {
-        Err(ParsePackError::SourceNameInvalid("Packet source name not null terminated"))?;
-    }
-
-    let vec = heapless::Vec::from_slice(&buf[..source_name_length]).map_err(|_| ParsePackError::SourceNameInvalid("too long"))?;
-    Ok(heapless::String::from_utf8(vec)?)
 }
 
 /// Root layer protocol of the Architecture for Control Networks (ACN) protocol.
@@ -364,7 +340,7 @@ impl<'a> Pdu for E131RootLayer {
 #[derive(Eq, PartialEq, Debug)]
 pub struct DataPacketFramingLayer {
     /// The name of the source.
-    pub source_name: String<E131_SOURCE_NAME_FIELD_LENGTH>,
+    pub source_name: SourceName,
 
     /// Priority of this data packet.
     pub priority: Priority,
@@ -415,7 +391,7 @@ impl<'a> Pdu for DataPacketFramingLayer {
         }
 
         // Source Name
-        let source_name = parse_source_name_str(&buf[SOURCE_NAME_INDEX..PRIORITY_INDEX])?;
+        let source_name = SourceName::try_from(&buf[SOURCE_NAME_INDEX..PRIORITY_INDEX])?;
 
         // Priority
         let priority = buf[PRIORITY_INDEX].try_into()?;
@@ -828,7 +804,7 @@ impl Pdu for SynchronizationPacketFramingLayer {
 #[derive(Eq, PartialEq, Debug)]
 pub struct UniverseDiscoveryPacketFramingLayer {
     /// Name of the source.
-    pub source_name: String<E131_SOURCE_NAME_FIELD_LENGTH>,
+    pub source_name: SourceName,
 
     /// Universe discovery layer.
     pub data: UniverseDiscoveryPacketUniverseDiscoveryLayer,
@@ -862,7 +838,7 @@ impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer {
         }
 
         // Source Name
-        let source_name = parse_source_name_str(
+        let source_name = SourceName::try_from(
             &buf[E131_DISCOVERY_FRAMING_LAYER_SOURCE_NAME_FIELD_INDEX..E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX],
         )?;
 

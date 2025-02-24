@@ -2051,16 +2051,19 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
 
 #[cfg(test)]
 mod test {
-    extern crate alloc;
-
-    use alloc::{borrow::Cow, vec};
-    use core::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use core::{
+        net::{IpAddr, Ipv4Addr, SocketAddr},
+        str::FromStr,
+    };
     use std::time::Instant;
 
+    use heapless::Vec;
     use uuid::Uuid;
 
     use super::*;
-    use crate::{e131_definitions::ACN_SDT_MULTICAST_PORT, packet::DataPacketDmpLayer};
+    use crate::{
+        e131_definitions::ACN_SDT_MULTICAST_PORT, packet::DataPacketDmpLayer, source_name::SourceName, universe::slice_to_universes,
+    };
 
     const TEST_DATA_SINGLE_UNIVERSE: [u8; 512] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -2090,7 +2093,7 @@ mod test {
         let universes: Vec<Universe> = vec![1, 2, 3, 4, 5].iter().map(|u| Universe::new(*u).expect("in range")).collect();
 
         let discovery_pkt: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
-            source_name: name.into(),
+            source_name: SourceName::from_str(name).unwrap(),
 
             // Universe discovery layer.
             data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
@@ -2137,7 +2140,7 @@ mod test {
         }
 
         let discovery_pkt_1: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
-            source_name: name.into(),
+            source_name: SourceName::from_str(name).unwrap(),
 
             // Universe discovery layer.
             data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
@@ -2152,7 +2155,7 @@ mod test {
         };
 
         let discovery_pkt_2: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
-            source_name: name.into(),
+            source_name: SourceName::from_str(name).unwrap(),
 
             // Universe discovery layer.
             data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
@@ -2417,7 +2420,7 @@ mod test {
     /// }
     fn generate_data_packet_framing_layer_seq_num<'a>(universe: Universe, sequence_number: u8) -> DataPacketFramingLayer<'a> {
         DataPacketFramingLayer {
-            source_name: "Source_A".into(),
+            source_name: SourceName::from_str("Source_A").unwrap(),
             priority: Priority::default(),
             synchronization_address: None,
             sequence_number,

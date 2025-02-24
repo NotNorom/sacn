@@ -31,12 +31,9 @@ use uuid::Uuid;
 use crate::{
     priority::PriorityError,
     sacn_parse_pack_error::ParsePackError,
-    source::SourceError,
+    source_name::SourceNameError,
     universe::{Universe, UniverseError},
 };
-
-extern crate alloc;
-use alloc::string::String;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -58,7 +55,7 @@ pub enum Error {
 
     /// Error with source
     #[error("source error: {0:?}")]
-    SourceError(#[from] SourceError),
+    SourceError(#[from] SourceNameError),
 
     /// Error with universe
     #[error("universe error: {0:?}")]

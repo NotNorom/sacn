@@ -15,9 +15,9 @@
 
 use core::{
     cell::RefCell,
-    cmp,
-    cmp::min,
+    cmp::{self, min},
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    str::FromStr,
     time::Duration,
 };
 use std::{
@@ -33,6 +33,7 @@ use socket2::{Domain, Socket, Type};
 use uuid::Uuid;
 
 use crate::{
+    SacnResult,
     e131_definitions::{
         ACN_SDT_MULTICAST_PORT, DISCOVERY_UNI_PER_PAGE, E131_SOURCE_NAME_FIELD_LENGTH, E131_TERMINATE_STREAM_PACKET_COUNT,
         E131_UNIVERSE_DISCOVERY_INTERVAL, STARTING_SEQUENCE_NUMBER, UNIVERSE_CHANNEL_CAPACITY,
@@ -40,8 +41,9 @@ use crate::{
     error::Error,
     packet::*,
     priority::Priority,
+    sacn_parse_pack_error::ParsePackError,
+    source_name::{SourceName, SourceNameError},
     universe::Universe,
-    SacnResult,
 };
 
 /// The name of the thread which runs periodically to perform various actions such as universe discovery adverts for the source.
@@ -114,7 +116,7 @@ struct SacnSourceInternal {
     cid: Uuid,
 
     /// The human readable name of this source.
-    name: String,
+    name: SourceName,
 
     /// Flag which is included in sACN packets to indicate that the data shouldn't be used for live output
     /// (ie. on actual lighting fixtures). A receiver may or may not be compliant with this so it should not be relied
@@ -202,7 +204,7 @@ impl SacnSource {
     /// MalformedSourceName: Returned if the given source name is longer than the maximum allowed size of E131_SOURCE_NAME_FIELD_LENGTH.
     pub fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> SacnResult<SacnSource> {
         if name.len() > E131_SOURCE_NAME_FIELD_LENGTH {
-            Err(SourceError::SourceNameTooLong(name.to_string()))?;
+            Err(SourceNameError::SourceNameTooLong(name.len()))?;
         }
 
         let trd_builder = thread::Builder::new().name(SND_UPDATE_THREAD_NAME.into());
@@ -586,7 +588,7 @@ impl SacnSourceInternal {
             socket,
             addr: ip,
             cid,
-            name: name.to_string(),
+            name: SourceName::from_str(name)?,
             preview_data: false,
             data_sequences: RefCell::new(HashMap::new()),
             sync_sequences: RefCell::new(HashMap::new()),
@@ -818,7 +820,7 @@ impl SacnSourceInternal {
             pdu: E131RootLayer {
                 cid: self.cid,
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
-                    source_name: self.name.as_str().into(),
+                    source_name: self.name.clone(),
                     priority,
                     synchronization_address: sync_address,
                     sequence_number: sequence,
@@ -958,7 +960,7 @@ impl SacnSourceInternal {
             pdu: E131RootLayer {
                 cid: self.cid,
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
-                    source_name: self.name.as_str().into(),
+                    source_name: self.name.clone(),
                     priority: Priority::default(),
                     synchronization_address: Some(Universe::new(1).expect("in range")),
                     sequence_number: sequence,
@@ -1068,7 +1070,7 @@ impl SacnSourceInternal {
             pdu: E131RootLayer {
                 cid: self.cid,
                 data: E131RootLayerData::UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer {
-                    source_name: self.name.as_str().into(),
+                    source_name: self.name.clone(),
                     data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
                         page,
                         last_page,
@@ -1114,11 +1116,8 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// MalformedSourceName: Returned to indicate that the given source name is longer than the maximum allowed as per E131_SOURCE_NAME_FIELD_LENGTH.
-    fn set_name(&mut self, name: &str) -> Result<(), SourceError> {
-        if name.len() > E131_SOURCE_NAME_FIELD_LENGTH {
-            Err(SourceError::SourceNameTooLong(name.to_string()))?;
-        }
-        self.name = name.to_string();
+    fn set_name(&mut self, name: &str) -> Result<(), SourceNameError> {
+        self.name = SourceName::from_str(name)?;
 
         Ok(())
     }
@@ -1255,16 +1254,4 @@ fn perform_periodic_update(src: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnResu
         unwrap_src.last_discovery_advert_timestamp = Instant::now();
     }
     Ok(())
-}
-
-/// For any source specific errors
-#[derive(Debug, thiserror::Error)]
-pub enum SourceError {
-    /// A source name that's too long was encountered.
-    /// Maximu length shoul dbe [`E131_SOURCE_NAME_FIELD_LENGTH`]
-    ///
-    /// # Arguments
-    /// Reference to the source name
-    #[error("The given source name is too long: {0}")]
-    SourceNameTooLong(String),
 }
