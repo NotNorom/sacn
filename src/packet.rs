@@ -249,7 +249,7 @@ pub struct E131RootLayer {
     pub data: E131RootLayerData,
 }
 
-impl<'a> Pdu for E131RootLayer {
+impl Pdu for E131RootLayer {
     fn parse(buf: &[u8]) -> Result<E131RootLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = PduInfo::new(buf, E131_ROOT_LAYER_VECTOR_LENGTH)?;
@@ -380,7 +380,7 @@ const OPTIONS_FIELD_INDEX: usize = SEQ_NUM_INDEX + E131_SEQ_NUM_FIELD_LENGTH;
 const UNIVERSE_INDEX: usize = OPTIONS_FIELD_INDEX + E131_OPTIONS_FIELD_LENGTH;
 const DATA_INDEX: usize = UNIVERSE_INDEX + E131_UNIVERSE_FIELD_LENGTH;
 
-impl<'a> Pdu for DataPacketFramingLayer {
+impl Pdu for DataPacketFramingLayer {
     fn parse(buf: &[u8]) -> Result<DataPacketFramingLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = PduInfo::new(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
@@ -560,7 +560,7 @@ const ADDRESS_INCREMENT_FIELD_INDEX: usize = FIRST_PRIORITY_FIELD_INDEX + E131_D
 const PROPERTY_VALUE_COUNT_FIELD_INDEX: usize = ADDRESS_INCREMENT_FIELD_INDEX + E131_DATA_PACKET_DMP_LAYER_ADDRESS_INCREMENT_FIELD_LENGTH;
 const PROPERTY_VALUES_FIELD_INDEX: usize = PROPERTY_VALUE_COUNT_FIELD_INDEX + E131_DATA_PACKET_DMP_LAYER_PROPERTY_VALUE_COUNT_FIELD_LENGTH;
 
-impl<'a> Pdu for DataPacketDmpLayer {
+impl Pdu for DataPacketDmpLayer {
     fn parse(buf: &[u8]) -> Result<DataPacketDmpLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = PduInfo::new(buf, E131_DATA_PACKET_DMP_LAYER_VECTOR_FIELD_LENGTH)?;
@@ -823,7 +823,7 @@ const E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX: usize =
 const E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX: usize =
     E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX + E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_LENGTH;
 
-impl<'a> Pdu for UniverseDiscoveryPacketFramingLayer {
+impl Pdu for UniverseDiscoveryPacketFramingLayer {
     fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketFramingLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = PduInfo::new(buf, E131_FRAMING_LAYER_VECTOR_LENGTH)?;
@@ -941,7 +941,7 @@ const E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_INDEX: usize = E131_DISCOVERY_LAYER_P
 const E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX: usize =
     E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_INDEX + E131_DISCOVERY_LAYER_LAST_PAGE_FIELD_LENGTH;
 
-impl<'a> Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
+impl Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
     fn parse(buf: &[u8]) -> Result<UniverseDiscoveryPacketUniverseDiscoveryLayer, ParsePackError> {
         // Length and Vector
         let PduInfo { length, vector } = PduInfo::new(buf, E131_DISCOVERY_LAYER_VECTOR_FIELD_LENGTH)?;
@@ -1074,7 +1074,7 @@ impl Hash for UniverseDiscoveryPacketUniverseDiscoveryLayer {
 /// ParseInvalidUniverseOrder: If the universes are not sorted in ascending order with no duplicates.
 ///
 /// ParseInsufficientData: If the buffer doesn't contain sufficient bytes and so cannot be parsed into the specified number of u16 universes.
-fn parse_universe_list<'a>(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOVERY_UNI_PER_PAGE>, ParsePackError> {
+fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOVERY_UNI_PER_PAGE>, ParsePackError> {
     let mut universes = Vec::new();
     let mut i = 0;
 

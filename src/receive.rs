@@ -1116,7 +1116,7 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    fn recv<'a>(&mut self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
+    fn recv(&mut self, buf: &mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol> {
         self.socket.read(buf)?;
 
         Ok(AcnRootLayerProtocol::parse(buf)?)
@@ -1243,7 +1243,7 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    fn recv<'a>(&mut self, buf: &'a mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol<'a>> {
+    fn recv(&mut self, buf: &mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol> {
         self.socket.read(buf)?;
 
         Ok(AcnRootLayerProtocol::parse(buf)?)
@@ -2418,7 +2418,7 @@ mod test {
     ///         property_values: Cow::from(&TEST_DATA_SINGLE_UNIVERSE[0..]),
     ///     },
     /// }
-    fn generate_data_packet_framing_layer_seq_num<'a>(universe: Universe, sequence_number: u8) -> DataPacketFramingLayer<'a> {
+    fn generate_data_packet_framing_layer_seq_num(universe: Universe, sequence_number: u8) -> DataPacketFramingLayer {
         DataPacketFramingLayer {
             source_name: SourceName::from_str("Source_A").unwrap(),
             priority: Priority::default(),
