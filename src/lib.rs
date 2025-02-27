@@ -191,8 +191,7 @@
 
 #![doc(html_root_url = "https://docs.rs/sacn/")]
 // #![warn(missing_docs)]
-// Recursion limit for error_chain.
-#![recursion_limit = "1024"]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 /// The errors within the sACN crate related to parse/pack errors.
 /// Error-chain is used for errors within the library to allow chaining errors together to provide more informative backtraces.
@@ -214,7 +213,9 @@ pub mod source_name;
 pub mod receive;
 
 pub mod e131_definitions;
+
 pub mod priority;
+
 pub mod universe;
 
 pub type SacnResult<T> = Result<T, error::Error>;

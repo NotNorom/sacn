@@ -75,6 +75,14 @@ impl TryFrom<&[u8]> for SourceName {
     }
 }
 
+impl TryFrom<&str> for SourceName {
+    type Error = SourceNameError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::from_str(value)
+    }
+}
+
 /// For any source specific errors
 #[derive(Debug, thiserror::Error)]
 pub enum SourceNameError {

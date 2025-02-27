@@ -86,11 +86,11 @@ pub enum Error {
 
     /// Synchronisation universe not allowed
     #[error("Synchronisation universe not allowed")]
-    SyncUniverseNotAllowed(#[source] alloc::boxed::Box<Error>),
+    SyncUniverseNotAllowed(Universe),
 
     /// Failed to sent a timeout value for the receiver
     #[error("Failed to sent a timeout value for the receiver")]
-    SendTimeoutValue(#[source] alloc::boxed::Box<Error>),
+    SendTimeoutValue(#[source] std::io::Error),
 
     /// Used to indicate that the limit for the number of supported sources has been reached.
     /// This is based on unique CID values.

@@ -37,9 +37,10 @@ use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 use uuid::Uuid;
 
 use crate::{
+    SacnResult,
     e131_definitions::{
-        E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
-        UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
+        DISCOVERY_UNI_PER_PAGE, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
+        UNIVERSE_CHANNEL_CAPACITY, UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
     },
     error::Error,
     packet::{
@@ -48,7 +49,6 @@ use crate::{
     },
     priority::Priority,
     universe::Universe,
-    SacnResult,
 };
 
 /// The libc constants required are not available on many windows environments and therefore are hard-coded.
@@ -103,7 +103,7 @@ pub struct DMXData {
     pub universe: Universe,
 
     /// The actual universe data, if less than 512 values in length then implies trailing 0's to pad to a full-universe of data.
-    pub values: Vec<u8>,
+    pub values: heapless::Vec<u8, UNIVERSE_CHANNEL_CAPACITY>,
 
     /// The universe the data is (or was if now acted upon) waiting for a synchronisation packet from.
     /// 0 indicates it isn't waiting for a universe synchronisation packet.
@@ -247,7 +247,7 @@ struct UniversePage {
 
     /// The universes that the source is transmitting that are on this page, this may or may-not be a complete list of all universes being sent
     /// depending on if there are more pages.
-    universes: Vec<Universe>,
+    universes: heapless::Vec<Universe, DISCOVERY_UNI_PER_PAGE>,
 }
 
 /// Allows debug ({:?}) printing of the SacnReceiver, used during debugging.
@@ -521,7 +521,7 @@ impl SacnReceiver {
 
         self.receiver
             .set_timeout(Some(actual_timeout))
-            .map_err(|err| Error::SendTimeoutValue(Box::new(err)))?;
+            .map_err(|err| Error::SendTimeoutValue(err))?;
         let start_time = Instant::now();
 
         let mut buf: [u8; RCV_BUF_DEFAULT_SIZE] = [0; RCV_BUF_DEFAULT_SIZE];
@@ -734,10 +734,10 @@ impl SacnReceiver {
         if data_pkt.synchronization_address.is_none() {
             self.clear_waiting_data(data_pkt.universe);
 
-            let vals: Vec<u8> = data_pkt.data.property_values.into_owned();
+            let vals = data_pkt.data.property_values;
             let dmx_data: DMXData = DMXData {
                 universe: data_pkt.universe,
-                values: vals.to_vec(),
+                values: vals,
                 sync_uni: data_pkt.synchronization_address,
                 priority: data_pkt.priority,
                 src_cid: Some(cid),
@@ -751,10 +751,10 @@ impl SacnReceiver {
             // synchronisation address.
             self.listen_universes(&[data_pkt.synchronization_address.unwrap()])?;
 
-            let vals: Vec<u8> = data_pkt.data.property_values.into_owned();
+            let vals = data_pkt.data.property_values;
             let dmx_data: DMXData = DMXData {
                 universe: data_pkt.universe,
-                values: vals.to_vec(),
+                values: vals,
                 sync_uni: data_pkt.synchronization_address,
                 priority: data_pkt.priority,
                 src_cid: Some(cid),
@@ -853,11 +853,7 @@ impl SacnReceiver {
             .check_sync_seq_number(self.source_limit, cid, sync_pkt.sequence_number, universe, self.announce_timeout)?;
 
         let res = self.rtrv_waiting_data(universe);
-        if res.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(res))
-        }
+        if res.is_empty() { Ok(None) } else { Ok(Some(res)) }
     }
 
     /// Retrieves and removes the DMX data of all waiting data with a synchronisation address matching the one provided.
@@ -918,10 +914,7 @@ impl SacnReceiver {
 
         let universes = data.universes;
 
-        let uni_page: UniversePage = UniversePage {
-            page,
-            universes: universes.into(),
-        };
+        let uni_page: UniversePage = UniversePage { page, universes };
 
         // See if some pages that belong to the source that this page belongs to have already been received.
         match find_discovered_src(&self.partially_discovered_sources, &discovery_pkt.source_name) {
@@ -1129,7 +1122,7 @@ impl SacnNetworkReceiver {
     ///
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
-    fn set_timeout(&mut self, timeout: Option<Duration>) -> SacnResult<()> {
+    fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
         Ok(self.socket.set_read_timeout(timeout)?)
     }
 
@@ -1256,14 +1249,15 @@ impl SacnNetworkReceiver {
     ///
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
-    fn set_timeout(&mut self, timeout: Option<Duration>) -> SacnResult<()> {
+    fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
         Ok(self.socket.set_read_timeout(timeout)?)
     }
 }
 
 impl Clone for DMXData {
     fn clone(&self) -> DMXData {
-        let new_vals = self.values.to_vec(); // https://stackoverflow.com/questions/21369876/what-is-the-idiomatic-rust-way-to-copy-clone-a-vector-in-a-parameterized-functio (26/12/2019)
+        let mut new_vals = heapless::Vec::new();
+        self.values.clone_into(&mut new_vals); // https://stackoverflow.com/questions/21369876/what-is-the-idiomatic-rust-way-to-copy-clone-a-vector-in-a-parameterized-functio (26/12/2019)
         DMXData {
             universe: self.universe,
             values: new_vals,
@@ -2019,7 +2013,7 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
 
     let mut r: DMXData = DMXData {
         universe: i.universe,
-        values: Vec::new(),
+        values: heapless::Vec::new(),
         sync_uni: i.sync_uni,
         priority: i.priority,
         src_cid: None,
@@ -2040,7 +2034,7 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
             (Some(i), None) => i,
             (Some(i), Some(n)) => i.max(n),
         };
-        r.values.push(*value_to_push);
+        r.values.push(*value_to_push).expect("Should have enough capacity");
 
         i_val = i_iter.next();
         n_val = n_iter.next();
@@ -2090,7 +2084,7 @@ mod test {
         let name = "Test Src 1";
         let page: u8 = 0;
         let last_page: u8 = 0;
-        let universes: Vec<Universe> = vec![1, 2, 3, 4, 5].iter().map(|u| Universe::new(*u).expect("in range")).collect();
+        let universes = heapless::Vec::from_slice(slice_to_universes(&[1, 2, 3, 4, 5]).expect("in range")).unwrap();
 
         let discovery_pkt: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
             source_name: SourceName::from_str(name).unwrap(),
@@ -2103,7 +2097,7 @@ mod test {
                 last_page,
 
                 // List of universes.
-                universes: universes.clone().into(),
+                universes: universes.clone(),
             },
         };
         let res: Option<String> = dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
@@ -2132,11 +2126,15 @@ mod test {
         let mut universes_page_2 = Vec::new();
 
         for i in 1..513 {
-            universes_page_1.push(Universe::new(i).expect("in range"));
+            universes_page_1
+                .push(Universe::new(i).expect("in range"))
+                .expect("Should have enough capacity");
         }
 
         for i in 513..1024 {
-            universes_page_2.push(Universe::new(i).expect("in range"));
+            universes_page_2
+                .push(Universe::new(i).expect("in range"))
+                .expect("Should have enough capacity");
         }
 
         let discovery_pkt_1: UniverseDiscoveryPacketFramingLayer = UniverseDiscoveryPacketFramingLayer {
@@ -2196,7 +2194,7 @@ mod test {
 
         let sync_uni = Universe::new(1).expect("in range");
         let universe = Universe::new(1).expect("in range");
-        let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let vals = heapless::Vec::from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
 
         let dmx_data = DMXData {
             universe,
@@ -2210,7 +2208,7 @@ mod test {
 
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
 
-        let res: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(sync_uni);
+        let res = dmx_rcv.rtrv_waiting_data(sync_uni);
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
@@ -2227,7 +2225,7 @@ mod test {
         let sync_uni = Universe::new(1).expect("in range");
         let universe = Universe::new(1).expect("in range");
         let universe2 = Universe::new(2).expect("in range");
-        let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let vals = heapless::Vec::from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
 
         let dmx_data = DMXData {
             universe,
@@ -2252,7 +2250,7 @@ mod test {
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
         dmx_rcv.store_waiting_data(dmx_data2).unwrap();
 
-        let res: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(sync_uni);
+        let res = dmx_rcv.rtrv_waiting_data(sync_uni);
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
@@ -2270,7 +2268,7 @@ mod test {
         let universe = Universe::new(1).expect("in range");
         let universe2 = Universe::new(2).expect("in range");
 
-        let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let vals = heapless::Vec::from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
 
         let dmx_data = DMXData {
             universe,
@@ -2282,7 +2280,7 @@ mod test {
             recv_timestamp: Instant::now(),
         };
 
-        let vals2: Vec<u8> = vec![0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3];
+        let vals2 = heapless::Vec::from_slice(&[0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3]).unwrap();
 
         let dmx_data2 = DMXData {
             universe: universe2,
@@ -2297,14 +2295,14 @@ mod test {
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
         dmx_rcv.store_waiting_data(dmx_data2).unwrap();
 
-        let res: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(sync_uni);
+        let res = dmx_rcv.rtrv_waiting_data(sync_uni);
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
         assert_eq!(res[0].sync_uni, Some(sync_uni));
         assert_eq!(res[0].values, vals);
 
-        let res2: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(Universe::new(2).expect("in range"));
+        let res2 = dmx_rcv.rtrv_waiting_data(Universe::new(2).expect("in range"));
 
         assert_eq!(res2.len(), 1);
         assert_eq!(res2[0].universe, universe2);
@@ -2320,7 +2318,7 @@ mod test {
 
         let sync_uni = Universe::new(1).expect("in range");
         let universe = Universe::new(1).expect("in range");
-        let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let vals = heapless::Vec::from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
 
         let dmx_data = DMXData {
             universe,
@@ -2332,7 +2330,7 @@ mod test {
             recv_timestamp: Instant::now(),
         };
 
-        let vals2: Vec<u8> = vec![0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3];
+        let vals2 = heapless::Vec::from_slice(&[0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3]).unwrap();
 
         let dmx_data2 = DMXData {
             universe,
@@ -2347,7 +2345,7 @@ mod test {
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
         dmx_rcv.store_waiting_data(dmx_data2).unwrap();
 
-        let res2: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(sync_uni);
+        let res2 = dmx_rcv.rtrv_waiting_data(sync_uni);
 
         assert_eq!(res2.len(), 1);
         assert_eq!(res2[0].universe, universe);
@@ -2365,7 +2363,7 @@ mod test {
 
         let sync_uni = Universe::new(1).expect("in range");
         let universe = Universe::MIN;
-        let vals: Vec<u8> = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let vals = heapless::Vec::from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).unwrap();
 
         let dmx_data = DMXData {
             universe,
@@ -2377,7 +2375,7 @@ mod test {
             recv_timestamp: Instant::now(),
         };
 
-        let vals2: Vec<u8> = vec![0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3];
+        let vals2 = heapless::Vec::from_slice(&[0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3]).unwrap();
 
         let dmx_data2 = DMXData {
             universe,
@@ -2392,7 +2390,7 @@ mod test {
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
         dmx_rcv.store_waiting_data(dmx_data2).unwrap(); // Won't be added as lower priority than already waiting data.
 
-        let res: Vec<DMXData> = dmx_rcv.rtrv_waiting_data(sync_uni);
+        let res = dmx_rcv.rtrv_waiting_data(sync_uni);
 
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].universe, universe);
@@ -2429,7 +2427,7 @@ mod test {
             force_synchronization: false,
             universe,
             data: DataPacketDmpLayer {
-                property_values: Cow::from(&TEST_DATA_SINGLE_UNIVERSE[0..]),
+                property_values: Vec::from_slice(&TEST_DATA_SINGLE_UNIVERSE[0..]).unwrap(),
             },
         }
     }
@@ -2979,7 +2977,7 @@ mod test {
 
         let data: DMXData = DMXData {
             universe: Universe::new(1).expect("in range"), // @todo this used to be 0, not 1.
-            values: vec![1, 2, 3],
+            values: heapless::Vec::from_slice(&[1, 2, 3]).unwrap(),
             sync_uni: Some(sync_addr),
             priority: Priority::default(),
             src_cid: Some(Uuid::new_v4()),
@@ -2991,7 +2989,7 @@ mod test {
 
         dmx_rcv.clear_all_waiting_data();
 
-        assert_eq!(dmx_rcv.rtrv_waiting_data(sync_addr), Vec::new(), "Data was not reset as expected");
+        assert!(dmx_rcv.rtrv_waiting_data(sync_addr).is_empty(), "Data was not reset as expected");
     }
 
     #[test]
@@ -3053,7 +3051,7 @@ mod test {
     #[test]
     fn test_dmx_data_eq() {
         let universe = Universe::new(1).expect("in range");
-        let values = vec![1, 2, 3];
+        let values = heapless::Vec::from_slice(&[1, 2, 3]).unwrap();
         let sync_addr = Universe::new(1).expect("in range");
         let priority = Priority::default();
         let preview = false;

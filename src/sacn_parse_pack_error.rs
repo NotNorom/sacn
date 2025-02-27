@@ -65,7 +65,7 @@ pub enum ParsePackError {
     PackInvalidData(#[from] InvalidData),
 
     #[error("Maximum {DISCOVERY_UNI_PER_PAGE} universes allowed per discovery page, but got {0}")]
-    TooManyDiscoveryUniverses(u16),
+    TooManyDiscoveryUniverses(usize),
 
     #[error("Too many DMX values. Maximum amount is {}", UNIVERSE_CHANNEL_CAPACITY - 1)]
     TooManyDMXValues(usize),

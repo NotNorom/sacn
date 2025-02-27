@@ -734,9 +734,9 @@ impl SacnSourceInternal {
         }
 
         // Check that the synchronisation universe is also valid.
-        if synchronisation_addr.is_some() {
-            self.universe_allowed(&synchronisation_addr.unwrap())
-                .map_err(|err| Error::SyncUniverseNotAllowed(Box::new(err)))?;
+        if let Some(sync_addr) = synchronisation_addr {
+            self.universe_allowed(&sync_addr)
+                .map_err(|_| Error::SyncUniverseNotAllowed(sync_addr))?;
         }
 
         // + 1 as there must be at least 1 universe required as the data isn't empty then additional universes for any more.
@@ -821,11 +821,7 @@ impl SacnSourceInternal {
                     force_synchronization: false,
                     universe,
                     data: DataPacketDmpLayer {
-                        property_values: {
-                            let mut property_values = Vec::with_capacity(data.len());
-                            property_values.extend(data);
-                            property_values.into()
-                        },
+                        property_values: heapless::Vec::from_slice(data).unwrap(),
                     },
                 }),
             },
@@ -961,7 +957,7 @@ impl SacnSourceInternal {
                     force_synchronization: false,
                     universe,
                     data: DataPacketDmpLayer {
-                        property_values: vec![start_code].into(),
+                        property_values: heapless::Vec::from_slice(&[start_code]).unwrap(),
                     },
                 }),
             },
@@ -1057,8 +1053,10 @@ impl SacnSourceInternal {
     /// Io: Returned if the discovery packet fails to be sent on the socket.
     ///
     /// SacnParsePackError: Returned if the discovery packet cannot be packed to send.
-    fn send_universe_discovery_detailed<'a>(&'a self, page: u8, last_page: u8, universes: &'a [Universe]) -> SacnResult<()> {
-        let packet = AcnRootLayerProtocol::<'a> {
+    fn send_universe_discovery_detailed(&self, page: u8, last_page: u8, universes: &[Universe]) -> SacnResult<()> {
+        let universes = heapless::Vec::from_slice(universes).map_err(|_| ParsePackError::TooManyDiscoveryUniverses(universes.len()))?;
+
+        let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {
                 cid: self.cid,
                 data: E131RootLayerData::UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer {
@@ -1066,7 +1064,7 @@ impl SacnSourceInternal {
                     data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
                         page,
                         last_page,
-                        universes: universes.into(),
+                        universes,
                     },
                 }),
             },
@@ -1223,7 +1221,7 @@ fn unlock_internal_mut(internal: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnRes
     // shouldn't be exposed to the user (as its internal and would have no use).
     // Cannot directly return the PoisonError due to PoisonError using a different error system to other std modules which doesn't work with
     // error_chain.
-    internal.lock().map_err(|_| Error::SourceCorrupt("Mutex poisoned".to_string()))
+    internal.lock().map_err(|e| Error::SourceCorrupt(e.to_string()))
 }
 
 /// Called periodically by the source update thread.
