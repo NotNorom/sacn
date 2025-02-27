@@ -152,7 +152,7 @@ impl SacnSource {
     ///
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
-    pub fn new_v4(name: &str) -> SacnResult<SacnSource> {
+    pub fn new_v4(name: &str) -> Result<Self, SourceCreationError> {
         let cid = Uuid::new_v4();
         SacnSource::with_cid_v4(name, cid)
     }
@@ -161,7 +161,7 @@ impl SacnSource {
     ///
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
-    pub fn with_cid_v4(name: &str, cid: Uuid) -> SacnResult<SacnSource> {
+    pub fn with_cid_v4(name: &str, cid: Uuid) -> Result<Self, SourceCreationError> {
         let ip = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT);
         SacnSource::with_cid_ip(name, cid, ip)
     }
@@ -171,7 +171,7 @@ impl SacnSource {
     ///
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
-    pub fn new_v6(name: &str) -> SacnResult<SacnSource> {
+    pub fn new_v6(name: &str) -> Result<Self, SourceCreationError> {
         let cid = Uuid::new_v4();
         SacnSource::with_cid_v6(name, cid)
     }
@@ -180,7 +180,7 @@ impl SacnSource {
     ///
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
-    pub fn with_cid_v6(name: &str, cid: Uuid) -> SacnResult<SacnSource> {
+    pub fn with_cid_v6(name: &str, cid: Uuid) -> Result<Self, SourceCreationError> {
         let ip = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), ACN_SDT_MULTICAST_PORT);
         SacnSource::with_cid_ip(name, cid, ip)
     }
@@ -189,7 +189,7 @@ impl SacnSource {
     ///
     /// # Errors
     /// See (with_cid_ip)[with_cid_ip]
-    pub fn with_ip(name: &str, ip: SocketAddr) -> SacnResult<SacnSource> {
+    pub fn with_ip(name: &str, ip: SocketAddr) -> Result<Self, SourceCreationError> {
         SacnSource::with_cid_ip(name, Uuid::new_v4(), ip)
     }
 
@@ -202,7 +202,7 @@ impl SacnSource {
     /// UnsupportedIpVersion: Returned if the SocketAddr is not IPv4 or IPv6.
     ///
     /// MalformedSourceName: Returned if the given source name is longer than the maximum allowed size of E131_SOURCE_NAME_FIELD_LENGTH.
-    pub fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> SacnResult<SacnSource> {
+    pub fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> Result<Self, SourceCreationError> {
         if name.len() > E131_SOURCE_NAME_FIELD_LENGTH {
             Err(SourceNameError::SourceNameTooLong(name.len()))?;
         }
@@ -410,7 +410,7 @@ impl SacnSource {
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
     ///
     /// MalformedSourceName: Returned to indicate that the given source name is longer than the maximum allowed as per E131_SOURCE_NAME_FIELD_LENGTH.
-    pub fn set_name(&mut self, name: &str) -> SacnResult<()> {
+    pub fn set_name(&mut self, name: &str) -> Result<(), Error> {
         Ok(unlock_internal_mut(&mut self.internal)?.set_name(name)?)
     }
 
@@ -1254,4 +1254,15 @@ fn perform_periodic_update(src: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnResu
         unwrap_src.last_discovery_advert_timestamp = Instant::now();
     }
     Ok(())
+}
+
+/// Error that can happen during creation of this source
+#[derive(thiserror::Error, Debug)]
+pub enum SourceCreationError {
+    /// Stdio errors
+    #[error("std io error: {}", .0)]
+    StdIo(#[from] std::io::Error),
+    /// Source name errors
+    #[error("invalid source name: {}", .0)]
+    SourceName(#[from] SourceNameError),
 }

@@ -13,8 +13,9 @@ use sacn::{
     e131_definitions::ACN_SDT_MULTICAST_PORT,
     error::Error,
     priority::{Priority, PriorityError},
-    source::{SacnSource, SourceError},
-    universe::{slice_to_universes, Universe, UniverseError},
+    source::{SacnSource, SourceCreationError},
+    source_name::SourceNameError,
+    universe::{Universe, UniverseError, slice_to_universes},
 };
 /// UUID library used to handle the UUID's used in the CID fields.
 use uuid::Uuid;
@@ -25,7 +26,7 @@ fn test_new_ipv4_one_too_long_source_name() {
     const SRC_NAME: &str = "01234567890123456789012345678901234567890123456789012345678901234";
     match SacnSource::new_v4(SRC_NAME) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            SourceCreationError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -46,7 +47,7 @@ fn test_new_ipv6_one_too_long_source_name() {
     const SRC_NAME: &str = "01234567890123456789012345678901234567890123456789012345678901234";
     match SacnSource::new_v6(SRC_NAME) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            SourceCreationError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -71,7 +72,7 @@ fn test_new_with_cid_ip_too_long_source_name() {
         SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT),
     ) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            SourceCreationError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -92,7 +93,7 @@ fn test_new_with_cid_ip_v4_too_long_source_name() {
     const SRC_NAME: &str = "01234567890123456789012345678901234567890123456789012345678901234";
     match SacnSource::with_cid_v4(SRC_NAME, Uuid::new_v4()) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            SourceCreationError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -113,7 +114,7 @@ fn test_new_with_cid_ip_v6_too_long_source_name() {
     const SRC_NAME: &str = "01234567890123456789012345678901234567890123456789012345678901234";
     match SacnSource::with_cid_v6(SRC_NAME, Uuid::new_v4()) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            SourceCreationError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -134,7 +135,7 @@ fn test_new_with_ip_too_long_source_name() {
     const SRC_NAME: &str = "01234567890123456789012345678901234567890123456789012345678901234";
     match SacnSource::with_ip(SRC_NAME, SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), ACN_SDT_MULTICAST_PORT)) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            SourceCreationError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -157,7 +158,7 @@ fn test_set_name_too_long_source_name() {
 
     match src.set_name(SRC_NAME) {
         Err(e) => match e {
-            Error::SourceError(SourceError::SourceNameTooLong(_)) => {
+            Error::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {

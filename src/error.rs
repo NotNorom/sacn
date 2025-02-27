@@ -31,6 +31,7 @@ use uuid::Uuid;
 use crate::{
     priority::PriorityError,
     sacn_parse_pack_error::ParsePackError,
+    source::SourceCreationError,
     source_name::SourceNameError,
     universe::{Universe, UniverseError},
 };
@@ -53,9 +54,13 @@ pub enum Error {
     #[error("sacn parse error: {0:?}")]
     SacnParsePackError(#[from] ParsePackError),
 
-    /// Error with source
-    #[error("source error: {0:?}")]
-    SourceError(#[from] SourceNameError),
+    /// Error with source name
+    #[error("source name error: {0:?}")]
+    SourceName(#[from] SourceNameError),
+
+    /// Error with source name
+    #[error("source creation error: {0:?}")]
+    SourceCreation(#[from] SourceCreationError),
 
     /// Error with universe
     #[error("universe error: {0:?}")]
