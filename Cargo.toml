@@ -12,7 +12,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 byteorder = { version = "1.5.0", default-features = false }
-heapless = { version = "0.8.0", default-features = false, optional = true }
+heapless = { version = "0.8.0", default-features = false }
 socket2 = { version = "0.5.8", features = ["all"] }
 libc = { version = "0.2.169" }
 
@@ -23,9 +23,8 @@ thiserror = { version = "2.0.11", default-features = false }
 thiserror = { version = "2.0.11", default-features = false }
 
 [features]
-default = []
+default = ["std"]
 std = []
-unstable = ["heapless"]
 
 [badges]
 travis-ci = { repository = "Lan2u/RustSacn" }
