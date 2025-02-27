@@ -1,6 +1,3 @@
-#![recursion_limit = "1024"]
-// Recursion limit for error-chain.
-
 // Copyright 2020 sacn Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or

@@ -1,6 +1,3 @@
-#![recursion_limit = "1024"]
-// Recursion limit for error-chain, value used as recommended by the crates documentation.
-
 // Copyright 2020 sacn Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
@@ -369,7 +366,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
 /// data_id: The id used as the first column within the file for the data.
 fn write_to_file(file: &mut Box<File>, data: Vec<DMXData>, data_id: u64) -> ExampleResult<()> {
     for d in data {
-        let values_str = create_values_str(d.values)?;
+        let values_str = create_values_str(d.values.to_vec())?;
 
         // Note that the formatting string literal must be here and cannot be subsituted using const.
         write!(
