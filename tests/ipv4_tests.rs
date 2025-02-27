@@ -6,6 +6,7 @@
 // copied, modified, or distributed except according to those terms.
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
+#![cfg(feature = "std")]
 
 // Used for converting between u8 and u16 representations.
 use std::time::{Duration, Instant}; // Used for converting between bytes and strings.
@@ -24,6 +25,7 @@ use std::{
 };
 
 use sacn::{
+    SacnResult,
     e131_definitions::{
         ACN_SDT_MULTICAST_PORT, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SYNC_PACKET_LENGTH, E131_UNIVERSE_DISCOVERY_INTERVAL,
         UNIVERSE_CHANNEL_CAPACITY,
@@ -31,10 +33,9 @@ use sacn::{
     error::Error,
     packet::*,
     priority::Priority,
-    receive::{htp_dmx_merge, DMXData, SacnReceiver},
+    receive::{DMXData, SacnReceiver, htp_dmx_merge},
     source::SacnSource,
-    universe::{slice_to_universes, Universe},
-    SacnResult,
+    universe::{Universe, slice_to_universes},
 };
 /// Socket2 used to create sockets for testing.
 use socket2::{Domain, Socket, Type};
@@ -224,7 +225,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     assert_eq!(received_universe1.universe, universe); // Check that the universe received is as expected.
     assert_eq!(
         received_universe1.values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 
@@ -235,7 +236,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     assert_eq!(received_universe2.universe, universe); // Check that the universe received is as expected.
     assert_eq!(
         received_universe2.values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -348,8 +349,8 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
     assert_eq!(results[0].universe, universe1); // Check that the universe 1 received is as expected.
     assert_eq!(results[1].universe, universe2); // Check that the universe 2 received is as expected.
 
-    assert_eq!(results[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec());
-    assert_eq!(results[1].values, TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec());
+    assert_eq!(results[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513]);
+    assert_eq!(results[1].values, TEST_DATA_MULTIPLE_UNIVERSE[513..]);
 }
 
 #[test]
@@ -401,7 +402,7 @@ fn test_send_recv_single_universe_unicast_ipv4() {
 
     assert_eq!(
         received_universe.values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -472,7 +473,7 @@ fn test_send_recv_single_universe_multicast_ipv4() {
     assert_eq!(received_universe.universe, universe, "Received universe doesn't match expected");
     assert_eq!(
         received_universe.values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -529,7 +530,7 @@ fn test_send_recv_single_universe_overflow_sequence_number_multicast_ipv4() {
 
         assert_eq!(
             received_universe.values,
-            TEST_DATA_SINGLE_UNIVERSE[0..i + 1].to_vec(),
+            TEST_DATA_SINGLE_UNIVERSE[0..i + 1],
             "Received payload values don't match sent!"
         );
     }
@@ -606,7 +607,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
 
     assert_eq!(
         received_universe.values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -678,7 +679,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
 
     assert_eq!(
         received_universe.values,
-        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -746,7 +747,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
     assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
     assert_eq!(
         received_universe.values,
-        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 
@@ -774,7 +775,10 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
             }
         }
         Ok(_) => {
-            assert!(false, "Second receive attempt didn't timeout as expected, indicates that the synchronised data packet wasn't discarded as expected");
+            assert!(
+                false,
+                "Second receive attempt didn't timeout as expected, indicates that the synchronised data packet wasn't discarded as expected"
+            );
         }
     }
 }
@@ -835,8 +839,8 @@ fn test_send_recv_two_universe_multicast_ipv4() {
     assert_eq!(received_data[0].universe, universes[0]); // Check that the universe received is as expected.
     assert_eq!(received_data_2[0].universe, universes[1]);
 
-    assert_eq!(received_data[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec());
-    assert_eq!(received_data_2[0].values, TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec());
+    assert_eq!(received_data[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513]);
+    assert_eq!(received_data_2[0].values, TEST_DATA_MULTIPLE_UNIVERSE[513..]);
 }
 
 #[test]
@@ -899,7 +903,7 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
 
     assert_eq!(
         received_universe.values,
-        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -957,7 +961,7 @@ fn test_send_recv_across_universe_multicast_ipv4() {
 
     assert_eq!(
         received_data[0].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY].to_vec(),
+        TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY],
         "Universe 1 received payload values don't match sent!"
     );
 
@@ -967,7 +971,7 @@ fn test_send_recv_across_universe_multicast_ipv4() {
 
     assert_eq!(
         received_data[1].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..].to_vec(),
+        TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..],
         "Universe 2 received payload values don't match sent!"
     );
 }
@@ -1036,7 +1040,7 @@ fn test_send_recv_across_universe_unicast_ipv4() {
 
     assert_eq!(
         received_data[0].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY].to_vec(),
+        TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY],
         "Universe 1 received payload values don't match sent!"
     );
 
@@ -1046,7 +1050,7 @@ fn test_send_recv_across_universe_unicast_ipv4() {
 
     assert_eq!(
         received_data[1].values,
-        TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..].to_vec(),
+        TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..],
         "Universe 2 received payload values don't match sent!"
     );
 }
@@ -1101,8 +1105,8 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
     assert_eq!(res[0].universe, universe_1);
     assert_eq!(res[1].universe, universe_2);
 
-    assert_eq!(res[0].values, TEST_DATA_SINGLE_UNIVERSE.to_vec());
-    assert_eq!(res[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec());
+    assert_eq!(res[0].values, TEST_DATA_SINGLE_UNIVERSE);
+    assert_eq!(res[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE);
 }
 
 #[test]
@@ -1152,11 +1156,11 @@ fn test_two_senders_one_recv_same_universe_no_sync_multicast_ipv4() {
     assert_eq!(res[0].universe, universe);
     assert_eq!(res[1].universe, universe);
 
-    if res[0].values == TEST_DATA_SINGLE_UNIVERSE.to_vec() {
-        assert_eq!(res[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec());
+    if res[0].values == TEST_DATA_SINGLE_UNIVERSE {
+        assert_eq!(res[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE);
     } else {
-        assert_eq!(res[0].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec());
-        assert_eq!(res[1].values, TEST_DATA_SINGLE_UNIVERSE.to_vec());
+        assert_eq!(res[0].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE);
+        assert_eq!(res[1].values, TEST_DATA_SINGLE_UNIVERSE);
     }
 }
 
@@ -1232,7 +1236,7 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
         htp_dmx_merge(
             &DMXData {
                 universe,
-                values: TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+                values: TEST_DATA_SINGLE_UNIVERSE.as_slice().try_into().unwrap(),
                 sync_uni: Some(sync_uni),
                 priority: Priority::default(),
                 src_cid: None,
@@ -1241,7 +1245,7 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
             },
             &DMXData {
                 universe,
-                values: TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec(),
+                values: TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.as_slice().try_into().unwrap(),
                 sync_uni: Some(sync_uni),
                 priority: Priority::default(),
                 src_cid: None,
@@ -1363,7 +1367,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
         for k in 0..num_snd_threads {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + base_universe)); // Check that the universe received is as expected.
 
-            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
+            assert_eq!(rcv_dmx_datas[k].values, *snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -1485,7 +1489,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
         for k in 0..num_snd_threads {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + base_universe)); // Check that the universe received is as expected.
 
-            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
+            assert_eq!(rcv_dmx_datas[k].values, *snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -1607,7 +1611,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
         for k in 0..num_snd_threads {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + base_universe)); // Check that the universe received is as expected.
 
-            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
+            assert_eq!(rcv_dmx_datas[k].values, *snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -1729,7 +1733,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
         for k in 0..num_snd_threads {
             assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + base_universe)); // Check that the universe received is as expected.
 
-            assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
+            assert_eq!(rcv_dmx_datas[k].values, *snd_data[k], "Received payload values don't match sent!");
         }
     }
 
@@ -2701,7 +2705,7 @@ fn test_source_1_universe_timeout() {
     assert_eq!(received_data[0].universe, universe); // Check that the universe received is as expected.
     assert_eq!(
         received_data[0].values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 
@@ -2859,7 +2863,7 @@ fn test_source_2_universe_1_timeout() {
     if received_data[0].universe == universe_no_timeout {
         assert_eq!(
             received_data[0].values,
-            TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_UNIVERSE,
             "Received payload values don't match sent!"
         );
 
@@ -2869,7 +2873,7 @@ fn test_source_2_universe_1_timeout() {
         if received_data[0].universe == universe_with_timeout {
             assert_eq!(
                 received_data[0].values,
-                TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+                TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
                 "Received payload values don't match sent!"
             );
         } else {
@@ -2878,7 +2882,7 @@ fn test_source_2_universe_1_timeout() {
     } else if received_data[0].universe == universe_with_timeout {
         assert_eq!(
             received_data[0].values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Received payload values don't match sent!"
         );
 
@@ -2888,7 +2892,7 @@ fn test_source_2_universe_1_timeout() {
         if received_data[0].universe == universe_no_timeout {
             assert_eq!(
                 received_data[0].values,
-                TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+                TEST_DATA_SINGLE_UNIVERSE,
                 "Received payload values don't match sent!"
             );
         } else {
@@ -2954,7 +2958,7 @@ fn test_source_2_universe_1_timeout() {
                 assert_eq!(p[0].universe, universe_no_timeout, "Data packet universe doesn't match expected");
                 assert_eq!(
                     p[0].values,
-                    TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+                    TEST_DATA_SINGLE_UNIVERSE,
                     "Data packet values don't match expected"
                 );
             }
@@ -3017,7 +3021,7 @@ fn test_send_recv_wrong_multicast_universe() {
     assert_eq!(received_data[0].universe, actual_universe, "Packet universe doesn't match expected");
     assert_eq!(
         received_data[0].values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Data packet values don't match expected"
     );
 
@@ -3092,7 +3096,7 @@ fn test_send_recv_multiple_sync_universes() {
     assert_eq!(received_data[0].universe, universes[0], "Packet universe doesn't match expected");
     assert_eq!(
         received_data[0].values,
-        TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+        TEST_DATA_SINGLE_UNIVERSE,
         "Data packet values don't match expected"
     );
 
@@ -3103,7 +3107,7 @@ fn test_send_recv_multiple_sync_universes() {
         // Allow the data to be in any order as no ordering enforced within a set of data.
         assert_eq!(
             received_data2[0].values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Second set of data part 1 packet values don't match expected"
         );
 
@@ -3113,13 +3117,13 @@ fn test_send_recv_multiple_sync_universes() {
         );
         assert_eq!(
             received_data2[1].values,
-            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec(),
+            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
             "Second set of data part 2 packet values don't match expected"
         );
     } else if received_data2[0].universe == universes[2] {
         assert_eq!(
             received_data2[0].values,
-            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec(),
+            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
             "Second set of data part 1 packet values don't match expected"
         );
 
@@ -3129,7 +3133,7 @@ fn test_send_recv_multiple_sync_universes() {
         );
         assert_eq!(
             received_data2[1].values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Second set of data part 2 packet values don't match expected"
         );
     } else {

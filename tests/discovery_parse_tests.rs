@@ -1,12 +1,11 @@
 #[cfg(test)]
 pub mod discovery_parse_tests {
-    use std::borrow::Cow;
-
+    use heapless::Vec;
     use sacn::{
         e131_definitions::DISCOVERY_UNI_PER_PAGE,
         packet::*,
         sacn_parse_pack_error::ParsePackError,
-        universe::{slice_to_universes, Universe},
+        universe::{Universe, slice_to_universes},
     };
     use uuid::Uuid;
 
@@ -795,11 +794,11 @@ pub mod discovery_parse_tests {
             pdu: E131RootLayer {
                 cid: Uuid::from_slice(&TEST_UNIVERSE_DISCOVERY_PACKET[22..38]).unwrap(),
                 data: E131RootLayerData::UniverseDiscoveryPacket(UniverseDiscoveryPacketFramingLayer {
-                    source_name: "Source_A".into(),
+                    source_name: "Source_A".try_into().unwrap(),
                     data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
                         page: 1,
                         last_page: 2,
-                        universes: Cow::Borrowed(slice_to_universes(&[0x0001, 0x0203, 0x0405]).expect("in range")),
+                        universes: Vec::from_slice(slice_to_universes(&[0x0001, 0x0203, 0x0405]).expect("in range")).unwrap(),
                     },
                 }),
             },
@@ -984,10 +983,10 @@ pub mod discovery_parse_tests {
             }
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::UniverseDiscoveryPacket(udpfl) => {
-                    assert_eq!(udpfl.source_name, "Source_A");
+                    assert_eq!(udpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(udpfl.data.page, 1);
                     assert_eq!(udpfl.data.last_page, 2);
-                    assert_eq!(udpfl.data.universes, vec!(0x01, 0x0203, 0x0405));
+                    assert_eq!(udpfl.data.universes, [0x01, 0x0203, 0x0405]);
                 }
                 _ => {
                     assert!(false, "Packet not parsed as discovery-packet as expected");
@@ -1117,7 +1116,7 @@ pub mod discovery_parse_tests {
 
     /// Generates a test universe discovery packet with the given number of universes.
     /// This function has no usage outside the parse tests - it is just used as an auxiliary function.
-    fn generate_test_universe_discovery_packet(universes_to_generate: u16) -> Vec<u8> {
+    fn generate_test_universe_discovery_packet(universes_to_generate: u16) -> Vec<u8, { u16::MAX as usize }> {
         let flags_val: u8 = 0x70;
 
         // Note that .to_be_bytes() returns in network byte order which is required to be used for this.
@@ -1153,47 +1152,47 @@ pub mod discovery_parse_tests {
         let root_layer_flags_length_lower: u8 = root_layer_parts[1];
 
         #[rustfmt::skip]
-        let mut test_universe_discovery_packet = vec!{
-        // Root Layer
-        // Preamble Size
-        0x00, 0x10,
-        // Post-amble Size
-        0x00, 0x00,
-        // ACN Packet Identifier
-        0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
-        // Flags and Length Protocol
-        root_layer_flags_length_upper, root_layer_flags_length_lower,
-        // Vector
-        0x00, 0x00, 0x00, 0x08, 
-        // CID
-        0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
-        // E1.31 Framing Layer
-        // Flags and Length
-        framing_layer_flags_length_upper, framing_layer_flags_length_lower,
-        // Vector
-        0x00, 0x00, 0x00, 0x02,
-        // Source Name
-        b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        // Reserved
-        0, 0, 0, 0,
-        // Universe Discovery Layer
-        // Flags and Length
-        discovery_layer_flags_length_upper, discovery_layer_flags_length_lower,
-        // Vector
-        0x00, 0x00, 0x00, 0x01,
-        // Page
-        1,
-        // Last Page
-        2
-        };
+        let mut test_universe_discovery_packet = Vec::from_slice(&[
+            // Root Layer
+            // Preamble Size
+            0x00, 0x10,
+            // Post-amble Size
+            0x00, 0x00,
+            // ACN Packet Identifier
+            0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00,
+            // Flags and Length Protocol
+            root_layer_flags_length_upper, root_layer_flags_length_lower,
+            // Vector
+            0x00, 0x00, 0x00, 0x08, 
+            // CID
+            0xef, 0x07, 0xc8, 0xdd, 0x00, 0x64, 0x44, 0x01, 0xa3, 0xa2, 0x45, 0x9e, 0xf8, 0xe6, 0x14, 0x3e,
+            // E1.31 Framing Layer
+            // Flags and Length
+            framing_layer_flags_length_upper, framing_layer_flags_length_lower,
+            // Vector
+            0x00, 0x00, 0x00, 0x02,
+            // Source Name
+            b'S', b'o', b'u', b'r', b'c', b'e', b'_', b'A', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            // Reserved
+            0, 0, 0, 0,
+            // Universe Discovery Layer
+            // Flags and Length
+            discovery_layer_flags_length_upper, discovery_layer_flags_length_lower,
+            // Vector
+            0x00, 0x00, 0x00, 0x01,
+            // Page
+            1,
+            // Last Page
+            2
+        ]).unwrap();
 
-        let range = Universe::E131_MIN_MULTICAST_UNIVERSE_RAW..Universe::E131_MIN_MULTICAST_UNIVERSE_RAW + universes_to_generate;
+        let range = Universe::E131_MIN_MULTICAST_UNIVERSE_RAW..=universes_to_generate;
         for i in range {
             let vals = i.to_be_bytes();
-            test_universe_discovery_packet.push(vals[0]);
-            test_universe_discovery_packet.push(vals[1]);
+            test_universe_discovery_packet.push(vals[0]).unwrap();
+            test_universe_discovery_packet.push(vals[1]).unwrap();
         }
 
         test_universe_discovery_packet
@@ -1211,7 +1210,7 @@ pub mod discovery_parse_tests {
             }
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::UniverseDiscoveryPacket(udpfl) => {
-                    assert_eq!(udpfl.source_name, "Source_A");
+                    assert_eq!(udpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(udpfl.data.page, 1);
                     assert_eq!(udpfl.data.last_page, 2);
                     assert!(udpfl.data.universes.is_empty());
@@ -1235,10 +1234,10 @@ pub mod discovery_parse_tests {
             }
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::UniverseDiscoveryPacket(udpfl) => {
-                    assert_eq!(udpfl.source_name, "Source_A");
+                    assert_eq!(udpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(udpfl.data.page, 1);
                     assert_eq!(udpfl.data.last_page, 2);
-                    assert_eq!(udpfl.data.universes.into_owned().len(), DISCOVERY_UNI_PER_PAGE);
+                    assert_eq!(udpfl.data.universes.len(), DISCOVERY_UNI_PER_PAGE);
                 }
                 _ => {
                     assert!(false, "Packet not parsed as discovery-packet as expected");

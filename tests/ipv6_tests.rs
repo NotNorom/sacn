@@ -6,6 +6,7 @@
 // copied, modified, or distributed except according to those terms.
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
+#![cfg(feature = "std")]
 
 pub mod ipv4_tests;
 
@@ -31,24 +32,24 @@ mod sacn_ipv6_multicast_test {
     };
 
     use sacn::{
+        SacnResult,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, E131_TERMINATE_STREAM_PACKET_COUNT, UNIVERSE_CHANNEL_CAPACITY},
         error::Error,
         priority::Priority,
         receive::{DMXData, SacnReceiver},
         source::SacnSource,
-        universe::{slice_to_universes, Universe},
-        SacnResult,
+        universe::{Universe, slice_to_universes},
     };
     use socket2::{Domain, Socket, Type};
     /// UUID library used to handle the UUID's used in the CID fields.
     use uuid::Uuid;
 
     use crate::{
+        TEST_NETWORK_INTERFACE_IPV6,
         ipv4_tests::{
             TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE, TEST_DATA_MULTIPLE_ALTERNATIVE_STARTCODE_UNIVERSE, TEST_DATA_MULTIPLE_UNIVERSE,
             TEST_DATA_PARTIAL_CAPACITY_UNIVERSE, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE, TEST_DATA_SINGLE_UNIVERSE,
         },
-        TEST_NETWORK_INTERFACE_IPV6,
     };
 
     #[test]
@@ -108,7 +109,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_universe.values,
-            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec(),
+            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -176,7 +177,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_universe.values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -242,7 +243,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_data[0].values,
-            TEST_DATA_MULTIPLE_ALTERNATIVE_STARTCODE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY].to_vec(),
+            TEST_DATA_MULTIPLE_ALTERNATIVE_STARTCODE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY],
             "Universe 1 received payload values don't match sent!"
         );
 
@@ -252,7 +253,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_data[1].values,
-            TEST_DATA_MULTIPLE_ALTERNATIVE_STARTCODE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..].to_vec(),
+            TEST_DATA_MULTIPLE_ALTERNATIVE_STARTCODE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..],
             "Universe 2 received payload values don't match sent!"
         );
     }
@@ -323,7 +324,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_data[0].values,
-            TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY].to_vec(),
+            TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY],
             "Universe 1 received payload values don't match sent!"
         );
 
@@ -333,7 +334,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_data[1].values,
-            TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..].to_vec(),
+            TEST_DATA_FULL_CAPACITY_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..],
             "Universe 2 received payload values don't match sent!"
         );
     }
@@ -395,7 +396,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_universe.values,
-            TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -460,7 +461,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_data[0].values,
-            TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY].to_vec(),
+            TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY],
             "Universe 1 received payload values don't match sent!"
         );
 
@@ -470,7 +471,7 @@ mod sacn_ipv6_multicast_test {
 
         assert_eq!(
             received_data[1].values,
-            TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..].to_vec(),
+            TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..],
             "Universe 2 received payload values don't match sent!"
         );
     }
@@ -586,8 +587,8 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(result[0].universe, universe1); // Check that the universe 1 received is as expected.
         assert_eq!(result[1].universe, universe2); // Check that the universe 2 received is as expected.
 
-        assert_eq!(result[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec());
-        assert_eq!(result[1].values, TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec());
+        assert_eq!(result[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513]);
+        assert_eq!(result[1].values, TEST_DATA_MULTIPLE_UNIVERSE[513..]);
     }
 
     #[test]
@@ -701,7 +702,7 @@ mod sacn_ipv6_multicast_test {
             for k in 0..SND_THREADS {
                 assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + BASE_UNIVERSE)); // Check that the universe received is as expected.
 
-                assert_eq!(rcv_dmx_datas[k].values, snd_data[k], "Received payload values don't match sent!");
+                assert_eq!(rcv_dmx_datas[k].values, *snd_data[k], "Received payload values don't match sent!");
             }
         }
 
@@ -1040,8 +1041,8 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(received_data[0].universe, universes[0]); // Check that the universe received is as expected.
         assert_eq!(received_data_2[0].universe, universes[1]);
 
-        assert_eq!(received_data[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513].to_vec());
-        assert_eq!(received_data_2[0].values, TEST_DATA_MULTIPLE_UNIVERSE[513..].to_vec());
+        assert_eq!(received_data[0].values, TEST_DATA_MULTIPLE_UNIVERSE[..513]);
+        assert_eq!(received_data_2[0].values, TEST_DATA_MULTIPLE_UNIVERSE[513..]);
     }
 
     #[test]
@@ -1091,11 +1092,11 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(res[0].universe, universe);
         assert_eq!(res[1].universe, universe);
 
-        if res[0].values == TEST_DATA_SINGLE_UNIVERSE.to_vec() {
-            assert_eq!(res[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec());
+        if res[0].values == TEST_DATA_SINGLE_UNIVERSE {
+            assert_eq!(res[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE);
         } else {
-            assert_eq!(res[0].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.to_vec());
-            assert_eq!(res[1].values, TEST_DATA_SINGLE_UNIVERSE.to_vec());
+            assert_eq!(res[0].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE);
+            assert_eq!(res[1].values, TEST_DATA_SINGLE_UNIVERSE);
         }
     }
 
@@ -1573,17 +1574,17 @@ mod sacn_ipv6_unicast_test {
     };
 
     use sacn::{
+        SacnResult,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, UNIVERSE_CHANNEL_CAPACITY},
         priority::Priority,
         receive::{DMXData, SacnReceiver},
         source::SacnSource,
         universe::Universe,
-        SacnResult,
     };
 
     use crate::{
-        ipv4_tests::{TEST_DATA_MULTIPLE_UNIVERSE, TEST_DATA_SINGLE_UNIVERSE},
         TEST_NETWORK_INTERFACE_IPV6,
+        ipv4_tests::{TEST_DATA_MULTIPLE_UNIVERSE, TEST_DATA_SINGLE_UNIVERSE},
     };
 
     #[test]
@@ -1642,7 +1643,7 @@ mod sacn_ipv6_unicast_test {
 
         assert_eq!(
             received_universe.values,
-            TEST_DATA_SINGLE_UNIVERSE.to_vec(),
+            TEST_DATA_SINGLE_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -1723,7 +1724,7 @@ mod sacn_ipv6_unicast_test {
 
         assert_eq!(
             received_data[0].values,
-            TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY].to_vec(),
+            TEST_DATA_MULTIPLE_UNIVERSE[..UNIVERSE_CHANNEL_CAPACITY],
             "Universe 1 received payload values don't match sent!"
         );
 
@@ -1733,7 +1734,7 @@ mod sacn_ipv6_unicast_test {
 
         assert_eq!(
             received_data[1].values,
-            TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..].to_vec(),
+            TEST_DATA_MULTIPLE_UNIVERSE[UNIVERSE_CHANNEL_CAPACITY..],
             "Universe 2 received payload values don't match sent!"
         );
     }
