@@ -64,21 +64,11 @@ impl TryFrom<&[u8]> for SourceName {
     ///
     /// # Errors
     /// MissingNullTermination: Returned if the source name is not null terminated as required by ANSI E1.31-2018 Section 6.2.2
+    /// SourceNameTooLong: Returned if the source name is too long
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let mut source_name_length = value.len();
+        let first_null_pos = value.iter().position(|&b| b == 0).ok_or(SourceNameError::MissingNullTermination)?;
 
-        for (i, b) in value.iter().enumerate() {
-            if *b == 0 {
-                source_name_length = i;
-                break;
-            }
-        }
-
-        if source_name_length == value.len() && value[value.len() - 1] != 0 {
-            Err(SourceNameError::MissingNullTermination)?;
-        }
-
-        let as_vec = Vec::from_slice(value).map_err(|_| SourceNameError::SourceNameTooLong(value.len()))?;
+        let as_vec = Vec::from_slice(&value[..first_null_pos]).map_err(|_| SourceNameError::SourceNameTooLong(value.len()))?;
         let inner = String::from_utf8(as_vec)?;
 
         Ok(Self { inner })
