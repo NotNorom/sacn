@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod sync_parse_tests {
 
-    use sacn::{packet::*, sacn_parse_pack_error::ParsePackError, universe::Universe};
+    use sacn_core::{packet::*, sacn_parse_pack_error::ParsePackError, universe::Universe};
     use uuid::Uuid;
     #[rustfmt::skip]
     /// A test synchronisation packet as specified as an example in
@@ -415,7 +415,10 @@ pub mod sync_parse_tests {
             },
         };
 
-        assert_eq!(AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET).unwrap(), packet);
+        assert_eq!(
+            AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET).unwrap(),
+            packet
+        );
 
         let mut buf = [0; 49];
         packet.pack(&mut buf).unwrap();
@@ -432,7 +435,10 @@ pub mod sync_parse_tests {
                 assert!(true, "Expected error family returned");
             }
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -449,7 +455,10 @@ pub mod sync_parse_tests {
                 }
             },
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -463,7 +472,10 @@ pub mod sync_parse_tests {
                 assert!(true, "Expected error family returned");
             }
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -477,7 +489,10 @@ pub mod sync_parse_tests {
                 assert!(true, "Expected error family returned");
             }
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -494,14 +509,18 @@ pub mod sync_parse_tests {
                 }
             },
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
 
     #[test]
     fn test_sync_packet_framing_layer_length_too_long_parse() {
-        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_LONG)
+        {
             Err(e) => match e {
                 ParsePackError::ParseInsufficientData(_) => {
                     assert!(true, "Expected error returned");
@@ -511,14 +530,19 @@ pub mod sync_parse_tests {
                 }
             },
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
 
     #[test]
     fn test_sync_packet_framing_layer_length_too_short_parse() {
-        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT) {
+        match AcnRootLayerProtocol::parse(
+            TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_LENGTH_TOO_SHORT,
+        ) {
             Err(e) => match e {
                 ParsePackError::PduInvalidLength(_) => {
                     assert!(true, "Expected error returned");
@@ -528,14 +552,19 @@ pub mod sync_parse_tests {
                 }
             },
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
 
     #[test]
     fn test_sync_packet_framing_layer_discovery_vector() {
-        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_DISCOVERY_VECTOR) {
+        match AcnRootLayerProtocol::parse(
+            TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_DISCOVERY_VECTOR,
+        ) {
             Err(_) => {
                 // The packet will be parsed as if it was a discovery packet which means that the parsing might fail
                 // for a number of reasons with it being hard to assert which one ahead of time.
@@ -543,14 +572,18 @@ pub mod sync_parse_tests {
                 assert!(true, "Expected error family returned");
             }
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
 
     #[test]
     fn test_sync_packet_framing_layer_unknown_vector() {
-        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_UNKNOWN_VECTOR) {
+        match AcnRootLayerProtocol::parse(TEST_SYNCHRONIZATION_PACKET_FRAMING_LAYER_UNKNOWN_VECTOR)
+        {
             Err(e) => match e {
                 ParsePackError::PduInvalidVector(_) => {
                     assert!(true, "Expected error family returned");
@@ -560,7 +593,10 @@ pub mod sync_parse_tests {
                 }
             },
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -577,7 +613,10 @@ pub mod sync_parse_tests {
                 }
             },
             Ok(_) => {
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -595,7 +634,10 @@ pub mod sync_parse_tests {
             },
             Ok(x) => {
                 eprintln!("{x:#?}");
-                assert!(false, "Malformed packet was parsed when should have been rejected");
+                assert!(
+                    false,
+                    "Malformed packet was parsed when should have been rejected"
+                );
             }
         }
     }
@@ -609,7 +651,10 @@ pub mod sync_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::SynchronizationPacket(spfl) => {
                     assert_eq!(spfl.sequence_number, 0x70);
-                    assert_eq!(spfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(
+                        spfl.synchronization_address,
+                        Some(Universe::new(7962).expect("in range"))
+                    );
                 }
                 _ => {
                     assert!(false, "Packet not parsed as sync-packet as expected");
