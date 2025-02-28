@@ -11,6 +11,7 @@ repository = "https://github.com/Lan2u/RustSacn"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+sacn-core = { path = "../sacn-core" }
 byteorder = { version = "1.5.0", default-features = false }
 heapless = { version = "0.8.0", default-features = false }
 socket2 = { version = "0.5.8", features = ["all"] }

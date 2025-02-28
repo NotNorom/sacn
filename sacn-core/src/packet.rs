@@ -19,9 +19,9 @@
 //!
 //! ```
 //! # use uuid::Uuid;
-//! # use sacn::packet::{AcnRootLayerProtocol, E131RootLayer, E131RootLayerData, DataPacketFramingLayer, DataPacketDmpLayer};
-//! # use sacn::priority::Priority;
-//! # use sacn::universe::Universe;
+//! # use sacn_core::packet::{AcnRootLayerProtocol, E131RootLayer, E131RootLayerData, DataPacketFramingLayer, DataPacketDmpLayer};
+//! # use sacn_core::priority::Priority;
+//! # use sacn_core::universe::Universe;
 //! # use core::str::FromStr;
 //! # fn main() {
 //! # {

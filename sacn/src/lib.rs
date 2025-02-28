@@ -193,22 +193,15 @@
 // #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod sacn_parse_pack_error;
+pub use sacn_core::e131_definitions;
+pub use sacn_core::packet;
+pub use sacn_core::priority;
+pub use sacn_core::sacn_parse_pack_error;
+pub use sacn_core::source_name;
+pub use sacn_core::universe;
 
 pub mod error;
-
-pub mod packet;
-
-pub mod source;
-
-pub mod source_name;
-
 pub mod receive;
-
-pub mod e131_definitions;
-
-pub mod priority;
-
-pub mod universe;
+pub mod source;
 
 pub type SacnResult<T> = Result<T, error::Error>;
