@@ -1442,7 +1442,7 @@ mod sacn_ipv6_multicast_test {
         // Create and setup the ipv4 receiver socket.
         let mut ipv4_recv = Socket::new(Domain::IPV4, Type::DGRAM, None).unwrap();
         let ipv4_multicast_addr = universe.to_ipv4_multicast_addr();
-        let ipv4_discovery_multicast_addr = Universe::E131_DISCOVERY_UNIVERSE.to_ipv4_multicast_addr();
+        let ipv4_discovery_multicast_addr = Universe::DISCOVERY.to_ipv4_multicast_addr();
 
         // To allow joining multiple multicast groups like this reuse port/address must be true.
         ipv4_recv.set_reuse_port(true).unwrap();
@@ -1469,7 +1469,7 @@ mod sacn_ipv6_multicast_test {
         // Create and setup the ipv6 receiver socket.
         let mut ipv6_recv = Socket::new(Domain::IPV6, Type::DGRAM, None).unwrap();
         let ipv6_multicast_addr = universe.to_ipv6_multicast_addr();
-        let ipv6_discovery_multicast_addr = Universe::E131_DISCOVERY_UNIVERSE.to_ipv6_multicast_addr();
+        let ipv6_discovery_multicast_addr = Universe::DISCOVERY.to_ipv6_multicast_addr();
 
         // To allow joining multiple multicast groups like this reuse port/address must be true.
         ipv6_recv.set_reuse_port(true).unwrap();

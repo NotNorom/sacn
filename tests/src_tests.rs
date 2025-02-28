@@ -373,7 +373,7 @@ fn test_send_across_universe() {
 #[test]
 fn test_register_discovery_universe() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
-    match src.register_universes(&[Universe::E131_DISCOVERY_UNIVERSE]) {
+    match src.register_universes(&[Universe::DISCOVERY]) {
         Err(e) => {
             assert!(
                 false,
@@ -392,7 +392,7 @@ fn test_register_discovery_universe() {
 #[test]
 fn test_register_max_universe() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
-    match src.register_universes(&[Universe::E131_MAX_MULTICAST_UNIVERSE]) {
+    match src.register_universes(&[Universe::MAX]) {
         Err(e) => {
             assert!(
                 false,
@@ -411,7 +411,7 @@ fn test_register_max_universe() {
 #[test]
 fn test_register_min_universe() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
-    match src.register_universes(&[Universe::E131_MIN_MULTICAST_UNIVERSE]) {
+    match src.register_universes(&[Universe::MIN]) {
         Err(e) => {
             assert!(
                 false,

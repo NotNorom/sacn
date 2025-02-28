@@ -193,23 +193,16 @@
 // #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// The errors within the sACN crate related to parse/pack errors.
-/// Error-chain is used for errors within the library to allow chaining errors together to provide more informative backtraces.
-/// This completely replaces the old error system (sACN crate version 0.4.4) which relied on a simple Enum model without proper backtraces.
 pub mod sacn_parse_pack_error;
 
-/// The errors used within the sACN crate, parse/pack errors are seperated out into sacn_parse_pack_error.
 pub mod error;
 
-/// The packet module handles the sACN packets including parsing/packing and sACN related constants.
 pub mod packet;
 
-/// The source module handles generation of sACN on the network.
 pub mod source;
 
 pub mod source_name;
 
-/// The receive module handles the receiving of sACN on the network.
 pub mod receive;
 
 pub mod e131_definitions;

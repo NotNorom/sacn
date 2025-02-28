@@ -1188,7 +1188,7 @@ pub mod discovery_parse_tests {
             2
         ]).unwrap();
 
-        let range = Universe::E131_MIN_MULTICAST_UNIVERSE_RAW..=universes_to_generate;
+        let range = Universe::MIN_RAW..=universes_to_generate;
         for i in range {
             let vals = i.to_be_bytes();
             test_universe_discovery_packet.push(vals[0]).unwrap();

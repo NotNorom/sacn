@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+
+//! The packet module handles the sACN packets including parsing/packing and sACN related constants.
+
 // Copyright 2020 sacn Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
@@ -6,8 +10,6 @@
 // copied, modified, or distributed except according to those terms.
 //
 // This file was modified as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
-
-#![warn(missing_docs)]
 
 //! Parsing of sacn network packets.
 //!
@@ -1085,8 +1087,8 @@ fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOV
 
     if buf.len() < length * E131_UNIVERSE_FIELD_LENGTH {
         Err(InsufficientData::BufferTooShortForNumberOfUniverses {
-            should_be: buf.len(),
-            actual: length,
+            buffer_length: buf.len(),
+            universe_count: length,
         })?;
     }
 
@@ -1161,18 +1163,13 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv4_limit_high() {
-        let res = Universe::E131_MAX_MULTICAST_UNIVERSE.to_ipv4_multicast_addr();
+        let res = Universe::MAX.to_ipv4_multicast_addr();
         assert!(res.as_socket().unwrap().ip().is_multicast());
 
         assert_eq!(
             res.as_socket_ipv4().unwrap(),
             SocketAddrV4::new(
-                Ipv4Addr::new(
-                    239,
-                    255,
-                    (Universe::E131_MAX_MULTICAST_UNIVERSE_RAW / 256) as u8,
-                    (Universe::E131_MAX_MULTICAST_UNIVERSE_RAW % 256) as u8
-                ),
+                Ipv4Addr::new(239, 255, (Universe::MAX_RAW / 256) as u8, (Universe::MAX_RAW % 256) as u8),
                 ACN_SDT_MULTICAST_PORT
             )
         );
@@ -1180,19 +1177,14 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv4_limit_low() {
-        let res = Universe::E131_MIN_MULTICAST_UNIVERSE.to_ipv4_multicast_addr();
+        let res = Universe::MIN.to_ipv4_multicast_addr();
 
         assert!(res.as_socket().unwrap().ip().is_multicast());
 
         assert_eq!(
             res.as_socket_ipv4().unwrap(),
             SocketAddrV4::new(
-                Ipv4Addr::new(
-                    239,
-                    255,
-                    (Universe::E131_MIN_MULTICAST_UNIVERSE_RAW / 256) as u8,
-                    (Universe::E131_MIN_MULTICAST_UNIVERSE_RAW % 256) as u8
-                ),
+                Ipv4Addr::new(239, 255, (Universe::MIN_RAW / 256) as u8, (Universe::MIN_RAW % 256) as u8),
                 ACN_SDT_MULTICAST_PORT
             )
         );
@@ -1205,19 +1197,19 @@ mod test {
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be higher than {}",
-            Universe::E131_MIN_MULTICAST_UNIVERSE_RAW
+            Universe::MIN_RAW
         );
     }
 
     #[test]
     fn test_universe_to_ip_ipv4_out_range_high() {
-        let result = Universe::try_from(Universe::E131_MAX_MULTICAST_UNIVERSE_RAW + 10);
+        let result = Universe::try_from(Universe::MAX_RAW + 10);
         // let result = universe_to_ipv4_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10);
 
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be lower than {}",
-            Universe::E131_MAX_MULTICAST_UNIVERSE_RAW
+            Universe::MAX_RAW
         );
     }
 
@@ -1256,11 +1248,11 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv6_limit_high() {
-        let address = Universe::E131_MAX_MULTICAST_UNIVERSE.to_ipv6_multicast_addr();
+        let address = Universe::MAX.to_ipv6_multicast_addr();
 
         assert!(address.as_socket().unwrap().ip().is_multicast());
 
-        let low_16: u16 = ((Universe::E131_MAX_MULTICAST_UNIVERSE_RAW / 256) << 8) | (Universe::E131_MAX_MULTICAST_UNIVERSE_RAW % 256);
+        let low_16: u16 = ((Universe::MAX_RAW / 256) << 8) | (Universe::MAX_RAW % 256);
 
         assert_eq!(
             address.as_socket_ipv6().unwrap(),
@@ -1270,11 +1262,11 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv6_limit_low() {
-        let address = Universe::E131_MIN_MULTICAST_UNIVERSE.to_ipv6_multicast_addr();
+        let address = Universe::MIN.to_ipv6_multicast_addr();
 
         assert!(address.as_socket().unwrap().ip().is_multicast());
 
-        let low_16: u16 = ((Universe::E131_MIN_MULTICAST_UNIVERSE_RAW / 256) << 8) | (Universe::E131_MIN_MULTICAST_UNIVERSE_RAW % 256);
+        let low_16: u16 = ((Universe::MIN_RAW / 256) << 8) | (Universe::MIN_RAW % 256);
 
         assert_eq!(
             address.as_socket_ipv6().unwrap(),
@@ -1289,18 +1281,18 @@ mod test {
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be higher than {}",
-            Universe::E131_MIN_MULTICAST_UNIVERSE_RAW
+            Universe::MIN_RAW
         );
     }
 
     #[test]
     fn test_universe_to_ip_ipv6_out_range_high() {
-        let result = Universe::try_from(Universe::E131_MAX_MULTICAST_UNIVERSE_RAW + 10);
+        let result = Universe::try_from(Universe::MAX_RAW + 10);
 
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be lower than {}",
-            Universe::E131_MAX_MULTICAST_UNIVERSE_RAW
+            Universe::MAX_RAW
         );
     }
 
@@ -1317,7 +1309,7 @@ mod test {
         assert_eq!(VECTOR_UNIVERSE_DISCOVERY_UNIVERSE_LIST, 0x0000_0001);
         assert_eq!(E131_UNIVERSE_DISCOVERY_INTERVAL, Duration::from_secs(10));
         assert_eq!(E131_NETWORK_DATA_LOSS_TIMEOUT, Duration::from_millis(2500));
-        assert_eq!(Universe::E131_DISCOVERY_UNIVERSE_RAW, 64214);
+        assert_eq!(Universe::DISCOVERY_RAW, 64214);
         assert_eq!(ACN_SDT_MULTICAST_PORT, 5568);
     }
 }

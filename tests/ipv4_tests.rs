@@ -3911,7 +3911,7 @@ fn test_discovery_packet_transmit_format() {
     recv_socket.bind(&addr.into()).unwrap();
 
     // Receiving on the discovery universe shows that the discovery universe is correctly used for discovery packets as per ANSI E1.31-2018 Section 6.2.7.
-    let address = Universe::E131_DISCOVERY_UNIVERSE.to_ipv4_multicast_addr().as_socket_ipv4();
+    let address = Universe::DISCOVERY.to_ipv4_multicast_addr().as_socket_ipv4();
 
     recv_socket
         .join_multicast_v4(address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))

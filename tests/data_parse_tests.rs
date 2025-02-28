@@ -1470,7 +1470,7 @@ pub mod data_parse_tests {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
         // Priority
-        Priority::E131_MAX_PRIORITY_RAW + 1,
+        Priority::MAX_RAW + 1,
         // Synchronization Address, 7962
         0x1F, 0x1A,
         // Sequence Number

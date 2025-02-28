@@ -1,9 +1,13 @@
+#![warn(missing_docs)]
+//! This module contains all things `SourceName`
+
 use core::str::FromStr;
 
 use heapless::{String, Vec};
 
 use crate::e131_definitions::E131_SOURCE_NAME_FIELD_LENGTH;
 
+/// The name of a source
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourceName {
     inner: String<E131_SOURCE_NAME_FIELD_LENGTH>,
@@ -18,6 +22,7 @@ impl core::ops::Deref for SourceName {
 }
 
 impl SourceName {
+    /// Creates a new [SourceName]
     pub fn new<S: AsRef<str>>(s: S) -> Result<Self, SourceNameError> {
         let value = s.as_ref();
 
@@ -25,22 +30,27 @@ impl SourceName {
         Ok(Self { inner })
     }
 
+    /// Returns the wrapped heapless [String] as a reference
     pub const fn inner(&self) -> &String<E131_SOURCE_NAME_FIELD_LENGTH> {
         &self.inner
     }
 
-    pub fn as_str(&self) -> &str {
-        self.inner.as_str()
-    }
-
+    /// Returns the wrapped heapless [String] as a mutable reference
     pub fn inner_mut(&mut self) -> &mut String<E131_SOURCE_NAME_FIELD_LENGTH> {
         &mut self.inner
     }
 
+    /// Returns a [str] reference
+    pub fn as_str(&self) -> &str {
+        self.inner.as_str()
+    }
+
+    /// Returns the length of the source name
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
+    /// Returns the bytes this source name is made out of
     pub fn as_bytes(&self) -> &[u8] {
         self.inner.as_bytes()
     }

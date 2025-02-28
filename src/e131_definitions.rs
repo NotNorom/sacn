@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+//! This module contains various definitions mentioned in the ANSI E1.31 — 2018 document
+
 use core::time::Duration;
 
 /// The maximum number of universes per page in a universe discovery packet.
@@ -147,7 +150,7 @@ pub const E131_ACN_PACKET_IDENTIFIER: [u8; 12] = [0x41, 0x53, 0x43, 0x2d, 0x45, 
 /// The E131 CID field length in bytes as per ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
 pub const E131_CID_FIELD_LENGTH: usize = 16;
 
-// The exclusive end index of the CID field. Calculated based on previous values defined in ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
+/// The exclusive end index of the CID field. Calculated based on previous values defined in ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
 pub const E131_CID_END_INDEX: usize = E131_PDU_LENGTH_FLAGS_LENGTH + E131_ROOT_LAYER_VECTOR_LENGTH + E131_CID_FIELD_LENGTH;
 
 /// The length of the Source Name field in bytes in an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4, Table 4-1, 4-2, 4-3.
@@ -167,8 +170,8 @@ pub const E131_SYNC_FRAMING_LAYER_SEQ_NUM_FIELD_LENGTH: usize = 1;
 /// AS per ANSI E1.31-2018 Section 4, Table 4-2.
 pub const E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_LENGTH: usize = 2;
 
-// The length in bytes of the reserve field in the universe discovery framing layer of an ANSI E1.31-2018 Universe Discovery Packet.
-// Length as per ANSI E1.31-2018 Section 4, Table 4-3.
+/// The length in bytes of the reserve field in the universe discovery framing layer of an ANSI E1.31-2018 Universe Discovery Packet.
+/// Length as per ANSI E1.31-2018 Section 4, Table 4-3.
 pub const E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_LENGTH: usize = 4;
 
 /// The initial/starting sequence number used.

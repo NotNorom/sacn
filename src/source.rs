@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+//! The source module handles generation of sACN on the network.
 
 // Copyright 2020 sacn Developers
 //
@@ -1071,9 +1072,9 @@ impl SacnSourceInternal {
         };
 
         let ip = if self.addr.is_ipv6() {
-            Universe::E131_DISCOVERY_UNIVERSE.to_ipv6_multicast_addr()
+            Universe::DISCOVERY.to_ipv6_multicast_addr()
         } else {
-            Universe::E131_DISCOVERY_UNIVERSE.to_ipv4_multicast_addr()
+            Universe::DISCOVERY.to_ipv4_multicast_addr()
         };
 
         self.socket.send_to(&packet.pack_alloc()?, &ip)?;

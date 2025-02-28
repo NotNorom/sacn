@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+//! The receive module handles the receiving of sACN on the network.
 
 // Copyright 2020 sacn Developers
 //
@@ -314,7 +315,7 @@ impl SacnReceiver {
             announce_timeout: ANNOUNCE_TIMEOUT_DEFAULT,
         };
 
-        sri.listen_universes(&[Universe::E131_DISCOVERY_UNIVERSE])?;
+        sri.listen_universes(&[Universe::DISCOVERY])?;
 
         Ok(sri)
     }
@@ -488,11 +489,7 @@ impl SacnReceiver {
     /// universe from the source. If it isn't detected immediately it will be detected within an interval of E131_NETWORK_DATA_LOSS_TIMEOUT (assuming code
     /// executes in zero time).
     pub fn recv(&mut self, timeout: Option<Duration>) -> SacnResult<Vec<DMXData>> {
-        if self.universes.len() == 1
-            && self.universes[0] == Universe::E131_DISCOVERY_UNIVERSE
-            && timeout.is_none()
-            && !self.announce_source_discovery
-        {
+        if self.universes.len() == 1 && self.universes[0] == Universe::DISCOVERY && timeout.is_none() && !self.announce_source_discovery {
             return Err(Error::OnlyDiscoveryUniverseRegistered);
         }
 
