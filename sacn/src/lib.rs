@@ -193,12 +193,7 @@
 // #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use sacn_core::e131_definitions;
-pub use sacn_core::packet;
-pub use sacn_core::priority;
-pub use sacn_core::sacn_parse_pack_error;
-pub use sacn_core::source_name;
-pub use sacn_core::universe;
+pub use sacn_core::{e131_definitions, packet, priority, sacn_parse_pack_error, source_name, universe};
 
 pub mod error;
 pub mod receive;

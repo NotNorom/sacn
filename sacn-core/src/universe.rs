@@ -216,7 +216,7 @@ pub const fn slice_to_universes(raw: &[u16]) -> Result<&[Universe], UniverseErro
 
 /// Converts a slice of u16 to a slice of Universe without checking for correctness
 ///
-/// # Safety:
+/// # Safety
 /// All values must be in the valid range of a universe. See [Universe::in_range]
 pub const unsafe fn slice_to_universes_unchecked(raw: &[u16]) -> &[Universe] {
     unsafe { &*slice_from_raw_parts(raw.as_ptr() as *const Universe, raw.len()) }

@@ -224,8 +224,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     let received_universe1: DMXData = received_data1[0].clone();
     assert_eq!(received_universe1.universe, universe); // Check that the universe received is as expected.
     assert_eq!(
-        received_universe1.values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_universe1.values, TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 
@@ -235,8 +234,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     let received_universe2: DMXData = received_data2[0].clone();
     assert_eq!(received_universe2.universe, universe); // Check that the universe received is as expected.
     assert_eq!(
-        received_universe2.values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_universe2.values, TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -401,8 +399,7 @@ fn test_send_recv_single_universe_unicast_ipv4() {
     assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
     assert_eq!(
-        received_universe.values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_universe.values, TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -472,8 +469,7 @@ fn test_send_recv_single_universe_multicast_ipv4() {
     assert_eq!(received_universe.priority, priority, "Received priority doesn't match expected");
     assert_eq!(received_universe.universe, universe, "Received universe doesn't match expected");
     assert_eq!(
-        received_universe.values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_universe.values, TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -606,8 +602,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
     assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
     assert_eq!(
-        received_universe.values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_universe.values, TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -678,8 +673,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
     assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
     assert_eq!(
-        received_universe.values,
-        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+        received_universe.values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -746,8 +740,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
     let received_universe: DMXData = received_data[0].clone();
     assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
     assert_eq!(
-        received_universe.values,
-        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+        received_universe.values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 
@@ -902,8 +895,7 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
     assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
     assert_eq!(
-        received_universe.values,
-        TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+        received_universe.values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 }
@@ -2704,8 +2696,7 @@ fn test_source_1_universe_timeout() {
     assert_eq!(received_data.len(), 1); // Check only 1 universe received as expected.
     assert_eq!(received_data[0].universe, universe); // Check that the universe received is as expected.
     assert_eq!(
-        received_data[0].values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_data[0].values, TEST_DATA_SINGLE_UNIVERSE,
         "Received payload values don't match sent!"
     );
 
@@ -2862,8 +2853,7 @@ fn test_source_2_universe_1_timeout() {
 
     if received_data[0].universe == universe_no_timeout {
         assert_eq!(
-            received_data[0].values,
-            TEST_DATA_SINGLE_UNIVERSE,
+            received_data[0].values, TEST_DATA_SINGLE_UNIVERSE,
             "Received payload values don't match sent!"
         );
 
@@ -2872,8 +2862,7 @@ fn test_source_2_universe_1_timeout() {
         assert_eq!(received_data.len(), 1); // Check only 1 universe received as expected.
         if received_data[0].universe == universe_with_timeout {
             assert_eq!(
-                received_data[0].values,
-                TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+                received_data[0].values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
                 "Received payload values don't match sent!"
             );
         } else {
@@ -2881,8 +2870,7 @@ fn test_source_2_universe_1_timeout() {
         }
     } else if received_data[0].universe == universe_with_timeout {
         assert_eq!(
-            received_data[0].values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+            received_data[0].values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Received payload values don't match sent!"
         );
 
@@ -2891,8 +2879,7 @@ fn test_source_2_universe_1_timeout() {
         assert_eq!(received_data.len(), 1); // Check only 1 universe received as expected.
         if received_data[0].universe == universe_no_timeout {
             assert_eq!(
-                received_data[0].values,
-                TEST_DATA_SINGLE_UNIVERSE,
+                received_data[0].values, TEST_DATA_SINGLE_UNIVERSE,
                 "Received payload values don't match sent!"
             );
         } else {
@@ -2956,11 +2943,7 @@ fn test_source_2_universe_1_timeout() {
                 // Check that only data from the non-timed out universe is received.
                 assert_eq!(p.len(), 1, "Data packet universe count doesn't match expected");
                 assert_eq!(p[0].universe, universe_no_timeout, "Data packet universe doesn't match expected");
-                assert_eq!(
-                    p[0].values,
-                    TEST_DATA_SINGLE_UNIVERSE,
-                    "Data packet values don't match expected"
-                );
+                assert_eq!(p[0].values, TEST_DATA_SINGLE_UNIVERSE, "Data packet values don't match expected");
             }
         }
     }
@@ -3020,8 +3003,7 @@ fn test_send_recv_wrong_multicast_universe() {
     // Particularly important that the universe is the actual universe of the data rather than the universe which corresponds to the multicast address.
     assert_eq!(received_data[0].universe, actual_universe, "Packet universe doesn't match expected");
     assert_eq!(
-        received_data[0].values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_data[0].values, TEST_DATA_SINGLE_UNIVERSE,
         "Data packet values don't match expected"
     );
 
@@ -3095,8 +3077,7 @@ fn test_send_recv_multiple_sync_universes() {
     assert_eq!(received_data.len(), 1, "First set of data universe count doesn't match expected");
     assert_eq!(received_data[0].universe, universes[0], "Packet universe doesn't match expected");
     assert_eq!(
-        received_data[0].values,
-        TEST_DATA_SINGLE_UNIVERSE,
+        received_data[0].values, TEST_DATA_SINGLE_UNIVERSE,
         "Data packet values don't match expected"
     );
 
@@ -3106,8 +3087,7 @@ fn test_send_recv_multiple_sync_universes() {
     if received_data2[0].universe == universes[1] {
         // Allow the data to be in any order as no ordering enforced within a set of data.
         assert_eq!(
-            received_data2[0].values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+            received_data2[0].values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Second set of data part 1 packet values don't match expected"
         );
 
@@ -3116,14 +3096,12 @@ fn test_send_recv_multiple_sync_universes() {
             "Second set of data universes don't match expected"
         );
         assert_eq!(
-            received_data2[1].values,
-            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
+            received_data2[1].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
             "Second set of data part 2 packet values don't match expected"
         );
     } else if received_data2[0].universe == universes[2] {
         assert_eq!(
-            received_data2[0].values,
-            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
+            received_data2[0].values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
             "Second set of data part 1 packet values don't match expected"
         );
 
@@ -3132,8 +3110,7 @@ fn test_send_recv_multiple_sync_universes() {
             "Second set of data universes don't match expected"
         );
         assert_eq!(
-            received_data2[1].values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+            received_data2[1].values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Second set of data part 2 packet values don't match expected"
         );
     } else {

@@ -211,6 +211,7 @@ impl PduInfo {
         if flags != E131_PDU_FLAGS {
             Err(ParsePackError::ParsePduInvalidFlags(flags))?;
         }
+
         // Length
         let length = (NetworkEndian::read_u16(&buf[0..E131_PDU_LENGTH_FLAGS_LENGTH]) & 0x0fff) as usize;
 
@@ -294,7 +295,7 @@ impl Pdu for E131RootLayer {
 
     fn pack(&self, buf: &mut [u8]) -> Result<(), ParsePackError> {
         if buf.len() < self.len() {
-            Err(ParsePackError::PackBufferInsufficient(""))?
+            Err(ParsePackError::PackBufferInsufficient(""))?;
         }
 
         // Flags and Length, flags are stored in the top 4 bits.
@@ -613,9 +614,7 @@ impl Pdu for DataPacketDmpLayer {
 
         let property_values = Vec::from_slice(&buf[PROPERTY_VALUES_FIELD_INDEX..length]).expect("should be enough capacity");
 
-        Ok(DataPacketDmpLayer {
-            property_values: property_values.into(),
-        })
+        Ok(DataPacketDmpLayer { property_values })
     }
 
     fn pack(&self, buf: &mut [u8]) -> Result<(), ParsePackError> {
@@ -820,8 +819,7 @@ pub struct UniverseDiscoveryPacketFramingLayer {
 const E131_DISCOVERY_FRAMING_LAYER_VECTOR_FIELD_INDEX: usize = E131_PDU_LENGTH_FLAGS_LENGTH;
 const E131_DISCOVERY_FRAMING_LAYER_SOURCE_NAME_FIELD_INDEX: usize =
     E131_DISCOVERY_FRAMING_LAYER_VECTOR_FIELD_INDEX + E131_FRAMING_LAYER_VECTOR_LENGTH;
-const E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX: usize =
-    E131_DISCOVERY_FRAMING_LAYER_SOURCE_NAME_FIELD_INDEX + SourceName::CAPACITY;
+const E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX: usize = E131_DISCOVERY_FRAMING_LAYER_SOURCE_NAME_FIELD_INDEX + SourceName::CAPACITY;
 const E131_DISCOVERY_FRAMING_LAYER_DATA_INDEX: usize =
     E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_INDEX + E131_DISCOVERY_FRAMING_LAYER_RESERVE_FIELD_LENGTH;
 
@@ -1105,7 +1103,7 @@ fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOV
         }
     }
 
-    Ok(universes.into())
+    Ok(universes)
 }
 
 #[cfg(test)]

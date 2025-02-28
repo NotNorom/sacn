@@ -108,8 +108,7 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
         assert_eq!(
-            received_universe.values,
-            TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
+            received_universe.values, TEST_DATA_PARTIAL_CAPACITY_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -176,8 +175,7 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
         assert_eq!(
-            received_universe.values,
-            TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
+            received_universe.values, TEST_DATA_SINGLE_ALTERNATIVE_STARTCODE_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -395,8 +393,7 @@ mod sacn_ipv6_multicast_test {
         assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
         assert_eq!(
-            received_universe.values,
-            TEST_DATA_SINGLE_UNIVERSE,
+            received_universe.values, TEST_DATA_SINGLE_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }
@@ -1642,8 +1639,7 @@ mod sacn_ipv6_unicast_test {
         assert_eq!(received_universe.universe, universe); // Check that the universe received is as expected.
 
         assert_eq!(
-            received_universe.values,
-            TEST_DATA_SINGLE_UNIVERSE,
+            received_universe.values, TEST_DATA_SINGLE_UNIVERSE,
             "Received payload values don't match sent!"
         );
     }

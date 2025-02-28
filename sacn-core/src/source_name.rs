@@ -109,7 +109,7 @@ pub enum SourceNameError {
     #[error("Given source name is invalid utf-8 error: {0:?}")]
     Utf8(#[from] core::str::Utf8Error),
 
-    ///
+    /// Given source name is not not null terminated
     #[error("Given source name is not not null terminated")]
     MissingNullTermination,
 }
