@@ -153,9 +153,6 @@ pub const E131_CID_FIELD_LENGTH: usize = 16;
 /// The exclusive end index of the CID field. Calculated based on previous values defined in ANSI E1.31-2018 Section 4 Table 4-1, 4-2, 4-3.
 pub const E131_CID_END_INDEX: usize = E131_PDU_LENGTH_FLAGS_LENGTH + E131_ROOT_LAYER_VECTOR_LENGTH + E131_CID_FIELD_LENGTH;
 
-/// The length of the Source Name field in bytes in an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4, Table 4-1, 4-2, 4-3.
-pub const E131_SOURCE_NAME_FIELD_LENGTH: usize = 64;
-
 /// Sync packet length 49 bytes as per ANSI E1.31-2018 Section 4.2 Table 4-2.
 pub const E131_SYNC_PACKET_LENGTH: usize = 49;
 

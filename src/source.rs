@@ -36,8 +36,8 @@ use uuid::Uuid;
 use crate::{
     SacnResult,
     e131_definitions::{
-        ACN_SDT_MULTICAST_PORT, DISCOVERY_UNI_PER_PAGE, E131_SOURCE_NAME_FIELD_LENGTH, E131_TERMINATE_STREAM_PACKET_COUNT,
-        E131_UNIVERSE_DISCOVERY_INTERVAL, STARTING_SEQUENCE_NUMBER, UNIVERSE_CHANNEL_CAPACITY,
+        ACN_SDT_MULTICAST_PORT, DISCOVERY_UNI_PER_PAGE, E131_TERMINATE_STREAM_PACKET_COUNT, E131_UNIVERSE_DISCOVERY_INTERVAL,
+        STARTING_SEQUENCE_NUMBER, UNIVERSE_CHANNEL_CAPACITY,
     },
     error::Error,
     packet::*,
@@ -204,15 +204,9 @@ impl SacnSource {
     ///
     /// MalformedSourceName: Returned if the given source name is longer than the maximum allowed size of E131_SOURCE_NAME_FIELD_LENGTH.
     pub fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> Result<Self, SourceCreationError> {
-        if name.len() > E131_SOURCE_NAME_FIELD_LENGTH {
-            Err(SourceNameError::SourceNameTooLong(name.len()))?;
-        }
-
-        let trd_builder = thread::Builder::new().name(SND_UPDATE_THREAD_NAME.into());
-
         let internal_src = Arc::new(Mutex::new(SacnSourceInternal::with_cid_ip(name, cid, ip)?));
-
         let mut trd_src = internal_src.clone();
+        let trd_builder = thread::Builder::new().name(SND_UPDATE_THREAD_NAME.into());
 
         let src = SacnSource {
             internal: internal_src,

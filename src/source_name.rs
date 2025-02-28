@@ -5,16 +5,14 @@ use core::str::FromStr;
 
 use heapless::{String, Vec};
 
-use crate::e131_definitions::E131_SOURCE_NAME_FIELD_LENGTH;
-
 /// The name of a source
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourceName {
-    inner: String<E131_SOURCE_NAME_FIELD_LENGTH>,
+    inner: String<{ Self::CAPACITY }>,
 }
 
 impl core::ops::Deref for SourceName {
-    type Target = String<E131_SOURCE_NAME_FIELD_LENGTH>;
+    type Target = String<{ Self::CAPACITY }>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -22,6 +20,9 @@ impl core::ops::Deref for SourceName {
 }
 
 impl SourceName {
+    /// The length of the Source Name field in bytes in an ANSI E1.31-2018 packet as per ANSI E1.31-2018 Section 4, Table 4-1, 4-2, 4-3.
+    pub const CAPACITY: usize = 64;
+
     /// Creates a new [SourceName]
     pub fn new<S: AsRef<str>>(s: S) -> Result<Self, SourceNameError> {
         let value = s.as_ref();
@@ -31,12 +32,12 @@ impl SourceName {
     }
 
     /// Returns the wrapped heapless [String] as a reference
-    pub const fn inner(&self) -> &String<E131_SOURCE_NAME_FIELD_LENGTH> {
+    pub const fn inner(&self) -> &String<{ Self::CAPACITY }> {
         &self.inner
     }
 
     /// Returns the wrapped heapless [String] as a mutable reference
-    pub fn inner_mut(&mut self) -> &mut String<E131_SOURCE_NAME_FIELD_LENGTH> {
+    pub fn inner_mut(&mut self) -> &mut String<{ Self::CAPACITY }> {
         &mut self.inner
     }
 
@@ -97,11 +98,11 @@ impl TryFrom<&str> for SourceName {
 #[derive(Debug, thiserror::Error)]
 pub enum SourceNameError {
     /// A source name that's too long was encountered.
-    /// Maximum length should be [`E131_SOURCE_NAME_FIELD_LENGTH`]
+    /// Maximum length should be [`SourceName::CAPACITY`]
     ///
     /// # Arguments
     /// Length of too long source name
-    #[error("Given source name is too long. Maximum is {} but current name is: {}", E131_SOURCE_NAME_FIELD_LENGTH, .0)]
+    #[error("Given source name is too long. Maximum is {} but current name is: {}", SourceName::CAPACITY, .0)]
     SourceNameTooLong(usize),
 
     /// A source name is invalid utf8
