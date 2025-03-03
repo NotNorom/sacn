@@ -19,13 +19,13 @@
 // If a page is lost this therefore means the source update / discovery in its entirety will be lost - implementation detail.
 
 use core::{
-    cmp::Ordering,
     fmt,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     time::Duration,
 };
-use std::{collections::HashMap, io::Read, time::Instant};
+use std::{collections::HashMap, io::Read};
 
+use sacn_core::{dmx_data::DMXData, timestamp::Timestamp};
 /// Socket 2 used for the underlying UDP socket that sACN is sent over.
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
@@ -36,14 +36,13 @@ use crate::{
     SacnResult,
     e131_definitions::{
         DISCOVERY_UNI_PER_PAGE, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
-        UNIVERSE_CHANNEL_CAPACITY, UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
+        UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
     },
     error::Error,
     packet::{
         AcnRootLayerProtocol, DataPacketFramingLayer, E131RootLayer, E131RootLayerData, SynchronizationPacketFramingLayer,
         UniverseDiscoveryPacketFramingLayer, UniverseDiscoveryPacketUniverseDiscoveryLayer,
     },
-    priority::Priority,
     universe::Universe,
 };
 
@@ -82,35 +81,6 @@ const INITIAL_SEQUENCE_NUMBER: u8 = 255;
 /// This can be changed by providing a new function to handle the situation of the user implementing a custom merge/arbitration algorithm as per
 /// ANSI E1.31-2018 Section 6.2.3.2.
 const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> SacnResult<DMXData> = discard_lowest_priority_then_previous;
-
-/// Holds a universes worth of DMX data.
-#[derive(Debug)]
-pub struct DMXData {
-    /// The universe that the data was sent to.
-    pub universe: Universe,
-
-    /// The actual universe data, if less than 512 values in length then implies trailing 0's to pad to a full-universe of data.
-    pub values: heapless::Vec<u8, UNIVERSE_CHANNEL_CAPACITY>,
-
-    /// The universe the data is (or was if now acted upon) waiting for a synchronisation packet from.
-    /// 0 indicates it isn't waiting for a universe synchronisation packet.
-    pub sync_uni: Option<Universe>,
-
-    /// The priority of the data, this may be useful for receivers which want to implement their own implementing merge algorithms.
-    /// Must be less than packet::E131_MAX_PRIORITY.
-    pub priority: Priority,
-
-    /// The unique id of the source of the data, this may be useful for receivers which want to implement their own merge algorithms
-    /// which use the identity of the source to decide behaviour.
-    /// A value of None indicates that there is no clear source, for example if a merge algorithm has merged data from 2 or more sources together.
-    pub src_cid: Option<Uuid>,
-
-    /// Indicates if the data is marked as 'preview' data indicating it is for use by visualisers etc. as per ANSI E1.31-2018 Section 6.2.6.
-    pub preview: bool,
-
-    /// The timestamp that the data was received.
-    pub recv_timestamp: Instant,
-}
 
 /// Allows receiving dmx or other (different startcode) data using sacn.
 ///
@@ -198,7 +168,7 @@ pub struct DiscoveredSacnSource {
     pub name: String,
 
     /// The time at which the discovered source was last updated / a discovery packet was received by the source.
-    pub last_updated: Instant,
+    pub last_updated: Timestamp,
 
     /// The pages that have been sent so far by this source when enumerating the universes it is currently sending on.
     pages: Vec<UniversePage>,
@@ -505,7 +475,7 @@ impl SacnReceiver {
         self.receiver
             .set_timeout(Some(actual_timeout))
             .map_err(|err| Error::SendTimeoutValue(err))?;
-        let start_time = Instant::now();
+        let start_time = Timestamp::now();
 
         let mut buf: [u8; RCV_BUF_DEFAULT_SIZE] = [0; RCV_BUF_DEFAULT_SIZE];
         match self.receiver.recv(&mut buf) {
@@ -725,7 +695,7 @@ impl SacnReceiver {
                 priority: data_pkt.priority,
                 src_cid: Some(cid),
                 preview: data_pkt.preview_data,
-                recv_timestamp: Instant::now(),
+                recv_timestamp: Timestamp::now(),
             };
 
             Ok(Some(vec![dmx_data]))
@@ -742,9 +712,8 @@ impl SacnReceiver {
                 priority: data_pkt.priority,
                 src_cid: Some(cid),
                 preview: data_pkt.preview_data,
-                recv_timestamp: Instant::now(),
+                recv_timestamp: Timestamp::now(),
             };
-
             self.store_waiting_data(dmx_data)?;
             Ok(None)
         }
@@ -904,7 +873,7 @@ impl SacnReceiver {
             Some(index) => {
                 // Some pages have already been received from this source.
                 self.partially_discovered_sources[index].pages.push(uni_page);
-                self.partially_discovered_sources[index].last_updated = Instant::now();
+                self.partially_discovered_sources[index].last_updated = Timestamp::now();
                 if self.partially_discovered_sources[index].has_all_pages() {
                     let discovered_src: DiscoveredSacnSource = self.partially_discovered_sources.remove(index);
                     self.update_discovered_srcs(discovered_src);
@@ -917,7 +886,7 @@ impl SacnReceiver {
                     name: discovery_pkt.source_name.to_string(),
                     last_page,
                     pages: vec![uni_page],
-                    last_updated: Instant::now(),
+                    last_updated: Timestamp::now(),
                 };
 
                 if page == 0 && page == last_page {
@@ -1237,52 +1206,6 @@ impl SacnNetworkReceiver {
     }
 }
 
-impl Clone for DMXData {
-    fn clone(&self) -> DMXData {
-        let mut new_vals = heapless::Vec::new();
-        self.values.clone_into(&mut new_vals); // https://stackoverflow.com/questions/21369876/what-is-the-idiomatic-rust-way-to-copy-clone-a-vector-in-a-parameterized-functio (26/12/2019)
-        DMXData {
-            universe: self.universe,
-            values: new_vals,
-            sync_uni: self.sync_uni,
-            priority: self.priority,
-            src_cid: self.src_cid,
-            preview: self.preview,
-            recv_timestamp: self.recv_timestamp,
-        }
-    }
-}
-
-/// DMXData has a total ordering based on the universe, then sync-universe and finally values.
-impl Ord for DMXData {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.universe
-            .cmp(&other.universe)
-            .then(self.sync_uni.cmp(&other.sync_uni))
-            .then(self.values.cmp(&other.values))
-    }
-}
-
-/// See Ord trait implementation for DMXData.
-impl PartialOrd for DMXData {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-/// DMXData is taken to be equivalent iff:
-///     - The universes are the same
-///     - The synchronisation universes are the same
-///     - The values are all the same
-impl PartialEq for DMXData {
-    fn eq(&self, other: &Self) -> bool {
-        self.universe == other.universe && self.sync_uni == other.sync_uni && self.values == other.values
-    }
-}
-
-/// See PartialEq trait implementation for DMXData.
-impl Eq for DMXData {}
-
 impl DiscoveredSacnSource {
     /// Returns true if all the pages sent by this DiscoveredSacnSource have been received.
     ///
@@ -1472,11 +1395,11 @@ fn create_win_socket(addr: SocketAddr) -> SacnResult<Socket> {
 #[derive(Copy, Clone)]
 struct TimedStampedSeqNo {
     sequence_number: u8,
-    last_recv: Instant,
+    last_recv: Timestamp,
 }
 
 impl TimedStampedSeqNo {
-    fn new(sequence_number: u8, last_recv: Instant) -> TimedStampedSeqNo {
+    fn new(sequence_number: u8, last_recv: Timestamp) -> TimedStampedSeqNo {
         TimedStampedSeqNo {
             sequence_number,
             last_recv,
@@ -1673,7 +1596,7 @@ fn check_seq_number(
                 }
                 None => {
                     // Indicates that this is the first time (or the first time since it timed out) the universe has been received from this source.
-                    TimedStampedSeqNo::new(INITIAL_SEQUENCE_NUMBER, Instant::now())
+                    TimedStampedSeqNo::new(INITIAL_SEQUENCE_NUMBER, Timestamp::now())
                 }
             };
             seq_num
@@ -1710,7 +1633,7 @@ fn check_seq_number(
     match src_sequences.get_mut(&cid) {
         Some(src) => {
             // Replace the old sequence number with the new and reset the timeout.
-            src.insert(universe, TimedStampedSeqNo::new(sequence_number, Instant::now()));
+            src.insert(universe, TimedStampedSeqNo::new(sequence_number, Timestamp::now()));
         }
         None => {
             // See previous node regarding panic previously in this method.
@@ -1909,9 +1832,9 @@ mod test {
         net::{IpAddr, Ipv4Addr, SocketAddr},
         str::FromStr,
     };
-    use std::time::Instant;
 
     use heapless::Vec;
+    use sacn_core::{priority::Priority, timestamp::Timestamp};
     use uuid::Uuid;
 
     use super::*;
@@ -2063,7 +1986,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
@@ -2094,7 +2017,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         let dmx_data2 = DMXData {
@@ -2104,7 +2027,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
@@ -2137,7 +2060,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         let vals2 = heapless::Vec::from_slice(&[0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3]).unwrap();
@@ -2149,7 +2072,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
@@ -2187,7 +2110,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         let vals2 = heapless::Vec::from_slice(&[0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3]).unwrap();
@@ -2199,7 +2122,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
@@ -2232,7 +2155,7 @@ mod test {
             priority: Priority::new(120).expect("in range"),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         let vals2 = heapless::Vec::from_slice(&[0, 9, 7, 3, 2, 4, 5, 6, 5, 1, 2, 3]).unwrap();
@@ -2244,7 +2167,7 @@ mod test {
             priority: Priority::default(),
             src_cid: None,
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         dmx_rcv.store_waiting_data(dmx_data).unwrap();
@@ -2842,7 +2765,7 @@ mod test {
             priority: Priority::default(),
             src_cid: Some(Uuid::new_v4()),
             preview: false,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         dmx_rcv.store_waiting_data(data).unwrap();
@@ -2925,7 +2848,7 @@ mod test {
             priority,
             src_cid: Some(Uuid::new_v4()),
             preview,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         let data2 = DMXData {
@@ -2937,7 +2860,7 @@ mod test {
             priority: Priority::new(150).expect("in range"),
             src_cid: None,
             preview: !preview,
-            recv_timestamp: Instant::now(),
+            recv_timestamp: Timestamp::now(),
         };
 
         assert_eq!(data1, data2, "DMX data not seen as equivalent when should be");

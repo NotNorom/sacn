@@ -33,10 +33,11 @@ use sacn::{
     error::Error,
     packet::*,
     priority::Priority,
-    receive::{DMXData, SacnReceiver, htp_dmx_merge},
+    receive::{SacnReceiver, htp_dmx_merge},
     source::SacnSource,
     universe::{Universe, slice_to_universes},
 };
+use sacn_core::{dmx_data::DMXData, timestamp::Timestamp};
 /// Socket2 used to create sockets for testing.
 use socket2::{Domain, Socket, Type};
 /// UUID library used to handle the UUID's used in the CID fields.
@@ -1233,7 +1234,7 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
                 priority: Priority::default(),
                 src_cid: None,
                 preview: false,
-                recv_timestamp: Instant::now()
+                recv_timestamp: Timestamp::now()
             },
             &DMXData {
                 universe,
@@ -1242,7 +1243,7 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
                 priority: Priority::default(),
                 src_cid: None,
                 preview: false,
-                recv_timestamp: Instant::now()
+                recv_timestamp: Timestamp::now()
             },
         )
         .unwrap()

@@ -28,9 +28,10 @@ use error::{ExampleError, ExampleResult};
 use sacn::{
     e131_definitions::ACN_SDT_MULTICAST_PORT,
     error::Error as SacnError,
-    receive::{DMXData, DiscoveredSacnSource, SacnReceiver},
+    receive::{DiscoveredSacnSource, SacnReceiver},
     universe::Universe,
 };
+use sacn_core::dmx_data::DMXData;
 
 /// The string given by the user to receive data.
 const ACTION_RECV: &str = "r";

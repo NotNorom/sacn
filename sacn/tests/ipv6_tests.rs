@@ -36,10 +36,11 @@ mod sacn_ipv6_multicast_test {
         e131_definitions::{ACN_SDT_MULTICAST_PORT, E131_TERMINATE_STREAM_PACKET_COUNT, UNIVERSE_CHANNEL_CAPACITY},
         error::Error,
         priority::Priority,
-        receive::{DMXData, SacnReceiver},
+        receive::SacnReceiver,
         source::SacnSource,
         universe::{Universe, slice_to_universes},
     };
+    use sacn_core::dmx_data::DMXData;
     use socket2::{Domain, Socket, Type};
     /// UUID library used to handle the UUID's used in the CID fields.
     use uuid::Uuid;
@@ -1574,10 +1575,11 @@ mod sacn_ipv6_unicast_test {
         SacnResult,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, UNIVERSE_CHANNEL_CAPACITY},
         priority::Priority,
-        receive::{DMXData, SacnReceiver},
+        receive::SacnReceiver,
         source::SacnSource,
         universe::Universe,
     };
+    use sacn_core::dmx_data::DMXData;
 
     use crate::{
         TEST_NETWORK_INTERFACE_IPV6,
