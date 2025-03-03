@@ -320,7 +320,7 @@ impl SacnSource {
         priority: Option<Priority>,
         dst_ip: Option<SocketAddr>,
         synchronisation_addr: Option<Universe>,
-    ) -> SacnResult<()> {
+    ) -> SacnResult<usize> {
         unlock_internal_mut(&mut self.internal)?.send(universes, data, priority, dst_ip, synchronisation_addr)
     }
 
@@ -709,7 +709,7 @@ impl SacnSourceInternal {
         priority: Option<Priority>,
         dst_ip: Option<SocketAddr>,
         synchronisation_addr: Option<Universe>,
-    ) -> SacnResult<()> {
+    ) -> SacnResult<usize> {
         if !self.running {
             // Indicates that this sender has been terminated.
             Err(Error::SenderAlreadyTerminated("Attempted to send".to_string()))?;
@@ -729,6 +729,7 @@ impl SacnSourceInternal {
         }
 
         // Check that the synchronisation universe is also valid.
+        // a sync address of None is valid
         if let Some(sync_addr) = synchronisation_addr {
             self.universe_allowed(&sync_addr)
                 .map_err(|_| Error::SyncUniverseNotAllowed(sync_addr))?;
@@ -744,21 +745,23 @@ impl SacnSourceInternal {
             ))?;
         }
 
+        let mut bytes_sent = 0;
+
         for (i, universe) in universes.iter().enumerate().take(required_universes) {
             let start_index = i * UNIVERSE_CHANNEL_CAPACITY;
             // Safety check to make sure that the end index doesn't exceed the data length
             let end_index = cmp::min((i + 1) * UNIVERSE_CHANNEL_CAPACITY, data.len());
 
-            self.send_universe(
+            bytes_sent += self.send_universe(
                 *universe,
                 &data[start_index..end_index],
                 priority.unwrap_or_default(),
                 &dst_ip,
-                synchronisation_addr.unwrap_or_default().into(),
+                synchronisation_addr,
             )?;
         }
 
-        Ok(())
+        Ok(bytes_sent)
     }
 
     /// Sends the given data to the given universe with the given priority, synchronisation address (universe) and destination ip.
@@ -790,7 +793,7 @@ impl SacnSourceInternal {
         priority: Priority,
         dst_ip: &Option<SocketAddr>,
         sync_address: Option<Universe>,
-    ) -> SacnResult<()> {
+    ) -> SacnResult<usize> {
         if data.len() > UNIVERSE_CHANNEL_CAPACITY {
             Err(Error::ExceedUniverseCapacity(format!(
                 "Data provided must fit in a single universe, data len: {}",
@@ -822,10 +825,10 @@ impl SacnSourceInternal {
             },
         };
 
-        if dst_ip.is_some() {
+        let bytes_sent = if dst_ip.is_some() {
             self.socket
                 .send_to(&packet.pack_alloc().unwrap(), &dst_ip.unwrap().into())
-                .map_err(Error::SendUnicastData)?;
+                .map_err(Error::SendUnicastData)?
         } else {
             let dst = if self.addr.is_ipv6() {
                 universe.to_ipv6_multicast_addr()
@@ -835,8 +838,8 @@ impl SacnSourceInternal {
 
             self.socket
                 .send_to(&packet.pack_alloc().unwrap(), &dst)
-                .map_err(Error::SendMulticastData)?;
-        }
+                .map_err(Error::SendMulticastData)?
+        };
 
         if sequence == 255 {
             sequence = 0;
@@ -844,7 +847,7 @@ impl SacnSourceInternal {
             sequence += 1;
         }
         self.data_sequences.borrow_mut().insert(universe, sequence);
-        Ok(())
+        Ok(bytes_sent)
     }
 
     /// Sends a synchronisation packet to trigger the sending of packets waiting to be sent together.
