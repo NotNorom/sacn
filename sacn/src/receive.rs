@@ -422,6 +422,13 @@ impl SacnReceiver {
     /// Any data returned will be ready to act on immediately i.e. waiting e.g. for universe synchronisation
     /// is already handled.
     ///
+    /// # Warning
+    /// This function can overflow the stack if it is called with `None` as the timeout and not receiving anything for a while.
+    /// This happens because a buffer is allocated on the stack and this function calls itself when running
+    /// into a timeout... so the stack just fills up until overflow.
+    ///
+    /// @todo: unrecurse this
+    ///
     /// # Errors
     /// This method will return a WouldBlock (unix) or TimedOut (windows) error if there is no data ready within the given timeout.
     /// A timeout of duration 0 will do timeout checks but otherwise will return a WouldBlock/TimedOut error without checking for data.
@@ -512,9 +519,11 @@ impl SacnReceiver {
                                         "No data available in given timeout",
                                     ))?
                                 }
+                                // @TODO REMOVE RECURSION
                                 Some(new_timeout) => self.recv(Some(new_timeout)),
                             }
                         } else {
+                            // @TODO REMOVE RECURSION
                             // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
                             self.recv(timeout)
                         }
@@ -545,9 +554,13 @@ impl SacnReceiver {
                                                 ))?
                                             }
                                         }
-                                        Some(new_timeout) => self.recv(Some(new_timeout)),
+                                        Some(new_timeout) => {
+                                            // @TODO REMOVE RECURSION
+                                            self.recv(Some(new_timeout))
+                                        }
                                     }
                                 } else {
+                                    // @TODO REMOVE RECURSION
                                     // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
                                     self.recv(timeout)
                                 }
