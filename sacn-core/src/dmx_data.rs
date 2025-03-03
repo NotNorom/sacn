@@ -163,7 +163,7 @@ impl DMXValues {
 /// List of known start codes that don't belong to companies
 ///
 /// Taken from these sources on 2025-03-02:
-/// - https://tsp.esta.org/tsp/working_groups/CP/DMXAlternateCodes.php
+/// - <https://tsp.esta.org/tsp/working_groups/CP/DMXAlternateCodes.php>
 /// - ANSI E1.11 – 2024, section: Annex D (Normative) - Reserved Alternate START Codes
 #[repr(u8)]
 pub enum DMXStartCode {

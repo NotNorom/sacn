@@ -1,7 +1,5 @@
 #![warn(missing_docs)]
 //! The errors within the sACN crate related to parse/pack errors.
-//! Error-chain is used for errors within the library to allow chaining errors together to provide more informative backtraces.
-//! This completely replaces the old error system (sACN crate version 0.4.4) which relied on a simple Enum model without proper backtraces.
 
 // Copyright 2020 sacn Developers
 //

@@ -88,7 +88,7 @@ impl Priority {
 #[derive(Debug, thiserror::Error)]
 pub enum PriorityError {
     /// Attempted to use invalid value for Priority. Allowed values are:
-    /// - Range from 0 to [`Priority::E131_MAX_PRIORITY`] inclusive
+    /// - Range from 0 to [`Priority::MAX`] inclusive
     ///
     /// # Arguments
     /// 0: Value of invalid Priority

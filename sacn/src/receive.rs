@@ -302,7 +302,7 @@ impl SacnReceiver {
     /// Wipes the record of discovered and sequence number tracked sources.
     /// This is one way to handle a sources exceeded condition.
     ///
-    /// If you want to wipe data awaiting synchronisation then see (clear_all_waiting_data)[clear_all_waiting_data].
+    /// If you want to wipe data awaiting synchronisation then see (clear_all_waiting_data)[Self::clear_all_waiting_data].
     pub fn reset_sources(&mut self) {
         self.sequences.clear();
         self.partially_discovered_sources.clear();
@@ -312,9 +312,9 @@ impl SacnReceiver {
     /// Deletes all data currently waiting to be passed up - e.g. waiting for a synchronisation packet.
     ///
     /// This allows clearing all data awaiting synchronisation but without forgetting sequence numbers. To wipe sequence numbers
-    /// and discovered sources see (reset_sources)[reset_sources].
+    /// and discovered sources see (reset_sources)[Self::reset_sources].
     ///
-    /// To clear only a specific universe of waiting data see (clear_waiting_data)[clear_waiting_data].
+    /// To clear only a specific universe of waiting data see (clear_waiting_data)[Self::clear_waiting_data].
     pub fn clear_all_waiting_data(&mut self) {
         self.waiting_data.clear();
     }
@@ -338,7 +338,7 @@ impl SacnReceiver {
     ///     to provide a more informative backtrace.
     ///
     /// Arguments:
-    /// func: The merge function to use. Should take 2 DMXData references as arguments and return a Result<DMXData>.
+    /// func: The merge function to use. Should take 2 DMXData references as arguments and return a `Result<DMXData>`.
     pub fn set_merge_fn(&mut self, func: fn(&DMXData, &DMXData) -> SacnResult<DMXData>) -> SacnResult<()> {
         self.merge_func = func;
         Ok(())
@@ -568,7 +568,7 @@ impl SacnReceiver {
     }
 
     /// Returns the current value of the announce_source_discovery flag.
-    /// See (set_announce_source_discovery)[receive::set_announce_source_discovery] for an explanation of the flag.
+    /// See (set_announce_source_discovery)[Self::set_announce_source_discovery] for an explanation of the flag.
     pub fn get_announce_source_discovery(&self) -> bool {
         self.announce_source_discovery
     }
@@ -600,7 +600,7 @@ impl SacnReceiver {
     }
 
     /// Returns the current value of the announce_timeout flag.
-    /// See (set_announce_timeout)[set_announce_timeout] for an explanation of the flag.
+    /// See (set_announce_timeout)[Self::set_announce_timeout] for an explanation of the flag.
     pub fn get_announce_timeout(&self) -> bool {
         self.announce_timeout
     }
@@ -619,7 +619,7 @@ impl SacnReceiver {
     }
 
     /// Returns the current value of the announce_stream_termination flag.
-    /// See (set_announce_stream_termination)[set_announce_stream_termination] for an explanation of the flag.
+    /// See (set_announce_stream_termination)[Self::set_announce_stream_termination] for an explanation of the flag.
     pub fn get_announce_stream_termination(&self) -> bool {
         self.announce_stream_termination
     }

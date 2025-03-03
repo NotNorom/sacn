@@ -226,8 +226,8 @@ pub const unsafe fn slice_to_universes_unchecked(raw: &[u16]) -> &[Universe] {
 #[derive(Debug, thiserror::Error)]
 pub enum UniverseError {
     /// Attempted to use invalid value for universe. Allowed values are:
-    /// - Range from [`Universe::E131_MIN_MULTICAST_UNIVERSE`] to [`Universe::E131_MAX_MULTICAST_UNIVERSE`] inclusive
-    /// - [`Universe::E131_DISCOVERY_UNIVERSE`]
+    /// - Range from [`Universe::MIN`] to [`Universe::MAX`] inclusive
+    /// - [`Universe::DISCOVERY``]
     ///
     /// # Arguments
     /// 0: Value of invalid universe
