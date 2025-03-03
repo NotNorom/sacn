@@ -58,7 +58,7 @@ impl DMXData {
     ) -> Self {
         Self {
             universe,
-            values: values.try_into().unwrap(),
+            values,
             sync_uni,
             priority,
             src_cid,

@@ -479,9 +479,7 @@ impl SacnReceiver {
         // recv is called with a longer timeout.
         let actual_timeout = timeout.map_or(E131_NETWORK_DATA_LOSS_TIMEOUT, |value| value.min(E131_NETWORK_DATA_LOSS_TIMEOUT));
 
-        self.receiver
-            .set_timeout(Some(actual_timeout))
-            .map_err(|err| Error::SendTimeoutValue(err))?;
+        self.receiver.set_timeout(Some(actual_timeout)).map_err(Error::SendTimeoutValue)?;
         let start_time = Timestamp::now();
 
         let mut buf: [u8; RCV_BUF_DEFAULT_SIZE] = [0; RCV_BUF_DEFAULT_SIZE];
@@ -1189,10 +1187,6 @@ impl SacnNetworkReceiver {
     /// Will only block if set_timeout was called with a timeout of None so otherwise (and by default) it won't
     /// block so may return a WouldBlock/TimedOut error to indicate that there was no data ready.
     ///
-    /// IMPORTANT NOTE:
-    /// An explicit lifetime is given to the AcnRootLayerProtocol which comes from the lifetime of the given buffer.
-    /// The compiler will prevent usage of the returned AcnRootLayerProtocol after the buffer is dropped.
-    ///
     /// Arguments:
     /// buf: The buffer to use for storing the received data into. This buffer shouldn't be accessed or used directly as the data
     /// is returned formatted properly in the AcnRootLayerProtocol. This buffer is used as memory space for the returned AcnRootLayerProtocol.
@@ -1202,7 +1196,7 @@ impl SacnNetworkReceiver {
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
     fn recv(&mut self, buf: &mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol> {
-        self.socket.read(buf)?;
+        let _ = self.socket.read(buf)?;
 
         Ok(AcnRootLayerProtocol::parse(buf)?)
     }
@@ -1215,7 +1209,7 @@ impl SacnNetworkReceiver {
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
     fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
-        Ok(self.socket.set_read_timeout(timeout)?)
+        self.socket.set_read_timeout(timeout)
     }
 }
 
@@ -1800,6 +1794,9 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
         ));
     }
 
+    #[allow(clippy::comparison_chain)]
+    // allowed because performance:
+    // https://rust-lang.github.io/rust-clippy/master/index.html#comparison_chain
     if i.priority > n.priority {
         return Ok(i.clone());
     } else if n.priority > i.priority {
