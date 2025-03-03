@@ -144,7 +144,7 @@ impl AcnRootLayerProtocol {
         }
 
         buf.clear();
-        buf.resize_default(MAXIMUM_PACKET_SIZE).expect("set len to exactly its capacity");
+        buf.resize_default(self.len()).expect("checked above");
 
         self.pack(buf)
     }
