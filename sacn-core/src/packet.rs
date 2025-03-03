@@ -328,16 +328,16 @@ impl Pdu for E131RootLayer {
     fn len(&self) -> usize {
         // Length and Flags
         E131_PDU_LENGTH_FLAGS_LENGTH +
-                // Vector
-                E131_ROOT_LAYER_VECTOR_LENGTH +
-                // CID
-                E131_CID_FIELD_LENGTH +
-                // Data
-                match self.data {
-                    E131RootLayerData::DataPacket(ref data) => data.len(),
-                    E131RootLayerData::SynchronizationPacket(ref data) => data.len(),
-                    E131RootLayerData::UniverseDiscoveryPacket(ref data) => data.len(),
-                }
+        // Vector
+        E131_ROOT_LAYER_VECTOR_LENGTH +
+        // CID
+        E131_CID_FIELD_LENGTH +
+        // Data
+        match self.data {
+            E131RootLayerData::DataPacket(ref data) => data.len(),
+            E131RootLayerData::SynchronizationPacket(ref data) => data.len(),
+            E131RootLayerData::UniverseDiscoveryPacket(ref data) => data.len(),
+        }
     }
 }
 
