@@ -27,20 +27,20 @@ mod sacn_ipv6_multicast_test {
         iter,
         net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
         sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, SyncSender},
-        thread::{self, sleep},
-        time::Duration,
+        thread::{self},
     };
 
     use sacn::{
         SacnResult,
+        dmx_data::DMXData,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, E131_TERMINATE_STREAM_PACKET_COUNT, UNIVERSE_CHANNEL_CAPACITY},
         error::Error,
         priority::Priority,
         receive::SacnReceiver,
         source::SacnSource,
+        time::{Duration, sleep},
         universe::{Universe, slice_to_universes},
     };
-    use sacn_core::dmx_data::DMXData;
     use socket2::{Domain, Socket, Type};
     /// UUID library used to handle the UUID's used in the CID fields.
     use uuid::Uuid;
@@ -556,7 +556,7 @@ mod sacn_ipv6_multicast_test {
         // causes the timeout, this is also difficult to avoid. Both of these reasons should be considered if this test passes occasionally but not consistently.
         // The timeout should be large enough to make this unlikely although must be lower than the protocol's in-built timeout.
         const WAIT_RECV_TIMEOUT: u64 = 2;
-        let attempt_recv = rx.recv_timeout(Duration::from_secs(WAIT_RECV_TIMEOUT));
+        let attempt_recv = rx.recv_timeout(Duration::from_secs(WAIT_RECV_TIMEOUT).inner());
 
         match attempt_recv {
             Ok(o) => {
@@ -1148,7 +1148,7 @@ mod sacn_ipv6_multicast_test {
                     .unwrap();
 
                 // Sender observes a slight pause to allow for processing delays (ANSI E1.31-2018 Section 11.2.2).
-                sleep(PAUSE_PERIOD);
+                sleep(PAUSE_PERIOD.into());
 
                 // Sender sends a synchronisation packet to the sync universe.
                 src.send_sync_packet(sync_universe, None).unwrap();
@@ -1301,12 +1301,12 @@ mod sacn_ipv6_multicast_test {
                 src.send(&[data_universes[1]], &data2, None, None, Some(sync_universe)).unwrap();
 
                 // Sender observes a slight pause to allow for processing delays (ANSI E1.31-2018 Section 11.2.2).
-                sleep(pause_period);
+                sleep(pause_period.into());
 
                 // Sender sends a synchronisation packet to the sync universe.
                 src.send_sync_packet(sync_universe, None).unwrap();
 
-                sleep(interval);
+                sleep(interval.into());
             }
 
             // Sender goes out of scope so will automatically send termination packets.
@@ -1559,7 +1559,6 @@ mod sacn_ipv6_multicast_test {
 
 #[cfg(test)]
 mod sacn_ipv6_unicast_test {
-
     use std::{
         net::{IpAddr, SocketAddr},
         sync::{
@@ -1567,19 +1566,18 @@ mod sacn_ipv6_unicast_test {
             mpsc::{Receiver, Sender},
         },
         thread,
-        thread::sleep,
-        time::Duration,
     };
 
     use sacn::{
         SacnResult,
+        dmx_data::DMXData,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, UNIVERSE_CHANNEL_CAPACITY},
         priority::Priority,
         receive::SacnReceiver,
         source::SacnSource,
+        time::{Duration, sleep},
         universe::Universe,
     };
-    use sacn_core::dmx_data::DMXData;
 
     use crate::{
         TEST_NETWORK_INTERFACE_IPV6,

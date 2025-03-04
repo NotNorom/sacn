@@ -21,11 +21,13 @@
 use core::{
     fmt,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
-    time::Duration,
 };
 use std::{collections::HashMap, io::Read};
 
-use sacn_core::{dmx_data::DMXData, timestamp::Timestamp};
+use sacn_core::{
+    dmx_data::DMXData,
+    time::{Duration, Timestamp},
+};
 /// Socket 2 used for the underlying UDP socket that sACN is sent over.
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
@@ -91,9 +93,9 @@ const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> SacnResult<DMXData> = discar
 /// use sacn::receive::SacnReceiver;
 /// use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 /// use sacn::universe::Universe;
+/// use sacn::time::Duration;
 ///
 /// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-/// use std::time::Duration;
 ///
 /// let universe1: Universe = Universe::new(1).expect("in range");
 /// let timeout: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
@@ -1086,7 +1088,7 @@ impl SacnNetworkReceiver {
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
     fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
-        Ok(self.socket.set_read_timeout(timeout)?)
+        Ok(self.socket.set_read_timeout(timeout.map(Into::into))?)
     }
 
     /// Returns true if this SacnNetworkReceiver is bound to an Ipv6 address.
@@ -1209,7 +1211,7 @@ impl SacnNetworkReceiver {
     /// Errors:
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
     fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
-        self.socket.set_read_timeout(timeout)
+        self.socket.set_read_timeout(timeout.map(Into::into))
     }
 }
 
@@ -1844,7 +1846,7 @@ mod test {
     };
 
     use heapless::Vec;
-    use sacn_core::{priority::Priority, timestamp::Timestamp};
+    use sacn_core::{priority::Priority, time::Timestamp};
     use uuid::Uuid;
 
     use super::*;

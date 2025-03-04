@@ -8,8 +8,6 @@
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 #![cfg(feature = "std")]
 
-// Used for converting between u8 and u16 representations.
-use std::time::{Duration, Instant}; // Used for converting between bytes and strings.
 use std::{
     convert::TryInto,
     io::Read,
@@ -21,11 +19,11 @@ use std::{
         mpsc::{Receiver, RecvTimeoutError, Sender, SyncSender},
     },
     thread,
-    thread::sleep,
 };
 
 use sacn::{
     SacnResult,
+    dmx_data::DMXData,
     e131_definitions::{
         ACN_SDT_MULTICAST_PORT, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SYNC_PACKET_LENGTH, E131_UNIVERSE_DISCOVERY_INTERVAL,
         UNIVERSE_CHANNEL_CAPACITY,
@@ -35,9 +33,9 @@ use sacn::{
     priority::Priority,
     receive::{SacnReceiver, htp_dmx_merge},
     source::SacnSource,
+    time::{Duration, Timestamp, sleep},
     universe::{Universe, slice_to_universes},
 };
-use sacn_core::{dmx_data::DMXData, timestamp::Timestamp};
 /// Socket2 used to create sockets for testing.
 use socket2::{Domain, Socket, Type};
 /// UUID library used to handle the UUID's used in the CID fields.
@@ -322,7 +320,7 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
     // causes the timeout, this is also difficult to avoid. Both of these reasons should be considered if this test passes occasionally but not consistently.
     // The timeout should be large enough to make this unlikely although must be lower than the protocol's in-built timeout.
     const WAIT_RECV_TIMEOUT: u64 = 2;
-    let attempt_recv = rx.recv_timeout(Duration::from_secs(WAIT_RECV_TIMEOUT));
+    let attempt_recv = rx.recv_timeout(Duration::from_secs(WAIT_RECV_TIMEOUT).inner());
 
     match attempt_recv {
         Ok(_) => {
@@ -1869,14 +1867,14 @@ fn test_universe_discovery_interval_ipv4() {
 
     snd_rx.recv().unwrap(); // Receiver created and ready so allow the sender to be created.
 
-    let mut interval_start = Instant::now(); // Assignment never used.
+    let mut interval_start = Timestamp::now(); // Assignment never used.
 
     match dmx_recv.recv(None) {
         Err(e) => {
             match e {
                 Error::SourceDiscovered(_) => {
                     // Measure the time between the first and second discovery packets, this removes the uncertainty in the time taken for the sender to start.
-                    interval_start = Instant::now();
+                    interval_start = Timestamp::now();
                 }
                 k => {
                     assert!(false, "Unexpected error kind, {:?}", k);
@@ -1949,7 +1947,7 @@ fn test_universe_discovery_interval_with_updates_ipv4() {
 
             for _ in 0..universes_to_register {
                 src.register_universes(&[base_universe]).unwrap();
-                sleep(sender_register_delay);
+                sleep(sender_register_delay.into());
             }
 
             tx.send(()).unwrap(); // Used to force the sender to wait till the receiver has received a universe discovery.
@@ -1965,14 +1963,14 @@ fn test_universe_discovery_interval_with_updates_ipv4() {
 
     snd_rx.recv().unwrap(); // Receiver created and ready so allow the sender to be created.
 
-    let mut interval_start = Instant::now(); // Assignment never used.
+    let mut interval_start = Timestamp::now(); // Assignment never used.
 
     match dmx_recv.recv(None) {
         Err(e) => {
             match e {
                 Error::SourceDiscovered(_) => {
                     // Measure the time between the first and second discovery packets, this removes the uncertainty in the time taken for the sender to start.
-                    interval_start = Instant::now();
+                    interval_start = Timestamp::now();
                 }
                 k => {
                     assert!(false, "Unexpected error kind, {:?}", k);
@@ -2701,7 +2699,7 @@ fn test_source_1_universe_timeout() {
         "Received payload values don't match sent!"
     );
 
-    let start_time: Instant = Instant::now();
+    let start_time: Timestamp = Timestamp::now();
     match dmx_recv.recv(Some(acceptable_upper_bound)) {
         // This will return a WouldBlock/Timedout error if the timeout takes too long.
         Err(e) => match e {
@@ -2890,7 +2888,7 @@ fn test_source_2_universe_1_timeout() {
         assert!(false, "Data packet from unexpected universe received");
     }
     // Start the expected timeout timer.
-    let start_time: Instant = Instant::now();
+    let start_time: Timestamp = Timestamp::now();
 
     loop {
         // Loop till a timeout happens, ignoring the data packets send to the non-timeout uni.
@@ -2906,7 +2904,7 @@ fn test_source_2_universe_1_timeout() {
                         assert!(true, "Universe timed out as expected");
 
                         // Know that the timeout universe timed out as expected so check that the other universe hasn't timed out.
-                        // Makes use of a timeout of 0 which should check the source timeouts without actually receiving any data as it times out instantly.
+                        // Makes use of a timeout of 0 which should check the source timeouts without actually receiving any data as it times out Timestamply.
                         match dmx_recv.recv(Some(Duration::from_millis(0))) {
                             Err(e) => match e {
                                 Error::Io(ref s) => match s.kind() {
@@ -3159,7 +3157,7 @@ fn test_send_sync_timeout() {
             .unwrap();
 
         // Sender waits too long to send the sync packet meaning that the synchronisation should have timed out.
-        sleep(sender_wait_period);
+        sleep(sender_wait_period.into());
 
         // Since the data packet should have timed out this should have no effect on the receiver.
         src.send_sync_packet(sync_universe, None).unwrap();
@@ -3252,7 +3250,7 @@ fn test_ansi_e131_appendix_b_runthrough_ipv4() {
                 .unwrap();
 
             // Sender observes a slight pause to allow for processing delays (ANSI E1.31-2018 Section 11.2.2).
-            sleep(pause_period);
+            sleep(pause_period.into());
 
             // Sender sends a synchronisation packet to the sync universe.
             src.send_sync_packet(sync_universe, None).unwrap();
@@ -3403,12 +3401,12 @@ fn test_discover_recv_sync_runthrough_ipv4() {
             src.send(&[data_universes[1]], &data2, None, None, Some(sync_universe)).unwrap();
 
             // Sender observes a slight pause to allow for processing delays (ANSI E1.31-2018 Section 11.2.2).
-            sleep(pause_period);
+            sleep(pause_period.into());
 
             // Sender sends a synchronisation packet to the sync universe.
             src.send_sync_packet(sync_universe, None).unwrap();
 
-            sleep(interval);
+            sleep(interval.into());
         }
 
         // Sender goes out of scope so will automatically send termination packets.

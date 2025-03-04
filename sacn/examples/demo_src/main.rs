@@ -28,8 +28,6 @@ use std::{
     env, io,
     net::{IpAddr, SocketAddr},
     str::FromStr,
-    thread::sleep,
-    time::{Duration, Instant},
 };
 
 use error::ExampleResult;
@@ -38,6 +36,7 @@ use sacn::{
     error::Error as SacnError,
     priority::Priority,
     source::SacnSource,
+    time::{Duration, Timestamp, sleep},
     universe::Universe,
 };
 
@@ -481,7 +480,7 @@ fn handle_data_over_time_option(src: &mut SacnSource, split_input: Vec<&str>) ->
 
     let duration: Duration = Duration::from_millis(duration_millis);
 
-    let start_time = Instant::now();
+    let start_time = Timestamp::now();
 
     while start_time.elapsed() < duration {
         let x: f64 = (start_time.elapsed().as_millis() as f64) / (1000 as f64);
@@ -492,7 +491,7 @@ fn handle_data_over_time_option(src: &mut SacnSource, split_input: Vec<&str>) ->
 
         src.send(&[universe], &data, Some(priority), None, None)?;
 
-        sleep(SHAPE_DATA_SEND_PERIOD);
+        sleep(SHAPE_DATA_SEND_PERIOD.into());
     }
 
     Ok(true)
@@ -597,7 +596,7 @@ fn run_test_2_universes_distinct_values(
     uni2_val: u8,
     dst_ip: Option<SocketAddr>,
 ) -> ExampleResult<()> {
-    let start_time = Instant::now();
+    let start_time = Timestamp::now();
 
     let mut data_1: [u8; UNIVERSE_CHANNEL_CAPACITY] = [uni1_val; UNIVERSE_CHANNEL_CAPACITY];
     let mut data_2: [u8; UNIVERSE_CHANNEL_CAPACITY] = [uni2_val; UNIVERSE_CHANNEL_CAPACITY];
@@ -621,7 +620,7 @@ fn run_test_2_universes_distinct_values(
 ///
 /// universe: The universe to send data on in the test.
 fn run_test_moving_channel_preset(src: &mut SacnSource, universe: Universe) -> ExampleResult<()> {
-    let start_time = Instant::now();
+    let start_time = Timestamp::now();
 
     let mut data: [u8; UNIVERSE_CHANNEL_CAPACITY] = [0; UNIVERSE_CHANNEL_CAPACITY];
 
@@ -649,7 +648,7 @@ fn run_test_moving_channel_preset(src: &mut SacnSource, universe: Universe) -> E
 ///
 /// universe: The universe to send data on in the test.
 fn run_test_rapid_changes_preset(src: &mut SacnSource, universe: Universe) -> ExampleResult<()> {
-    let start_time = Instant::now();
+    let start_time = Timestamp::now();
 
     let mut counter = 0;
 
@@ -681,7 +680,7 @@ fn run_test_rapid_changes_preset(src: &mut SacnSource, universe: Universe) -> Ex
 ///
 /// universe_count: The number of universes starting at the start_universe (inclusive) to send data on.
 fn run_test_high_data_rate(src: &mut SacnSource, start_universe: Universe, universe_count: u16) -> ExampleResult<()> {
-    let start_time = Instant::now();
+    let start_time = Timestamp::now();
 
     let mut counter: f64 = 0.0;
 
@@ -729,7 +728,7 @@ fn run_acceptance_test_demo(src: &mut SacnSource) -> ExampleResult<()> {
     const STEP_COUNT: usize = 4;
     const STEP_LENGTH: usize = 100;
 
-    let start_time = Instant::now();
+    let start_time = Timestamp::now();
 
     let mut step_counter: usize = 0; // Used as an animation / key-frame timeline to allow different actions to happen in sequence.
 

@@ -22,16 +22,17 @@
 //! const.
 
 mod error;
-use std::{env, fs::File, io, io::prelude::*, net::SocketAddr, thread::sleep, time::Duration};
+use std::{env, fs::File, io, io::prelude::*, net::SocketAddr};
 
 use error::{ExampleError, ExampleResult};
 use sacn::{
+    dmx_data::DMXData,
     e131_definitions::ACN_SDT_MULTICAST_PORT,
     error::Error as SacnError,
     receive::{DiscoveredSacnSource, SacnReceiver},
+    time::{Duration, sleep},
     universe::Universe,
 };
-use sacn_core::dmx_data::DMXData;
 
 /// The string given by the user to receive data.
 const ACTION_RECV: &str = "r";

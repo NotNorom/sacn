@@ -41,7 +41,7 @@
 //! dmx_rcv.listen_universes(&[universe1]).unwrap();
 //!
 //! // .recv(timeout) handles processing synchronised as-well as normal data.
-//! match dmx_rcv.recv(timeout) {
+//! match dmx_rcv.recv(timeout.map(Into::into)) {
 //!     Err(e) => {
 //!         // Print out the error.
 //!         println!("{:?}", e);
@@ -57,9 +57,9 @@
 //! ```
 //! use sacn::receive::SacnReceiver;
 //! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
+//! use sacn::time::Duration;
 //!
 //! use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-//! use std::time::Duration;
 //!
 //! const TIMEOUT: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
 //!
@@ -127,10 +127,9 @@
 //! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 //! use sacn::priority::Priority;
 //! use sacn::universe::Universe;
+//! use sacn::time::{sleep, Duration};
 //!
 //! use std::net::{IpAddr, SocketAddr};
-//! use std::thread::sleep;
-//! use std::time::Duration;
 //!
 //! let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 //!
@@ -162,10 +161,9 @@
 //! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 //! use sacn::priority::Priority;
 //! use sacn::universe::Universe;
+//! use sacn::time::{sleep, Duration};
 //!
 //! use std::net::{IpAddr, SocketAddr};
-//! use std::thread::sleep;
-//! use std::time::Duration;
 //!
 //! let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 //!
@@ -193,7 +191,7 @@
 // #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use sacn_core::{e131_definitions, packet, priority, sacn_parse_pack_error, source_name, universe};
+pub use sacn_core::{dmx_data, e131_definitions, packet, priority, sacn_parse_pack_error, source_name, time, universe};
 
 pub mod error;
 pub mod receive;

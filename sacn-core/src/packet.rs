@@ -1108,10 +1108,7 @@ fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOV
 
 #[cfg(test)]
 mod test {
-    use core::{
-        net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6},
-        time::Duration,
-    };
+    use core::net::{Ipv4Addr, Ipv6Addr, SocketAddrV4, SocketAddrV6};
 
     use super::*;
     use crate::{
@@ -1120,6 +1117,7 @@ mod test {
             VECTOR_E131_DATA_PACKET, VECTOR_E131_EXTENDED_DISCOVERY, VECTOR_E131_EXTENDED_SYNCHRONIZATION,
             VECTOR_UNIVERSE_DISCOVERY_UNIVERSE_LIST,
         },
+        time::Duration,
         universe::UniverseError,
     };
 

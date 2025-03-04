@@ -8,5 +8,5 @@ mod receiver;
 pub mod sacn_parse_pack_error;
 mod source;
 pub mod source_name;
-pub mod timestamp;
+pub mod time;
 pub mod universe;

@@ -19,15 +19,14 @@ use core::{
     cmp::{self, min},
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     str::FromStr,
-    time::Duration,
 };
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, MutexGuard},
     thread::{self, JoinHandle},
-    time::Instant,
 };
 
+use sacn_core::time::{Duration, Timestamp, sleep};
 /// Socket2 used to create the underlying UDP socket that sACN is sent on.
 use socket2::{Domain, Socket, Type};
 /// UUID library used to handle the UUID's used in the CID fields.
@@ -141,7 +140,7 @@ struct SacnSourceInternal {
     running: bool,
 
     /// The time that the last universe discovery advert was send.
-    last_discovery_advert_timestamp: Instant,
+    last_discovery_advert_timestamp: Timestamp,
 
     /// Flag that is set to True to indicate that the source is sending periodic universe discovery packets.
     is_sending_discovery: bool,
@@ -212,7 +211,7 @@ impl SacnSource {
             internal: internal_src,
             update_thread: Some(trd_builder.spawn(move || {
                 while trd_src.lock().unwrap().running {
-                    thread::sleep(DEFAULT_POLL_PERIOD);
+                    sleep(DEFAULT_POLL_PERIOD);
                     match perform_periodic_update(&mut trd_src) {
                         Err(e) => {
                             println!("Periodic error: {:?}", e);
@@ -581,7 +580,7 @@ impl SacnSourceInternal {
             sync_sequences: RefCell::new(HashMap::new()),
             universes: Vec::new(),
             running: true,
-            last_discovery_advert_timestamp: Instant::now(),
+            last_discovery_advert_timestamp: Timestamp::now(),
             is_sending_discovery: true,
         };
 
@@ -1236,10 +1235,10 @@ fn unlock_internal_mut(internal: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnRes
 fn perform_periodic_update(src: &mut Arc<Mutex<SacnSourceInternal>>) -> SacnResult<()> {
     let mut unwrap_src = unlock_internal_mut(src)?;
     if unwrap_src.is_sending_discovery
-        && Instant::now().duration_since(unwrap_src.last_discovery_advert_timestamp) > E131_UNIVERSE_DISCOVERY_INTERVAL
+        && Timestamp::now().duration_since(unwrap_src.last_discovery_advert_timestamp) > E131_UNIVERSE_DISCOVERY_INTERVAL
     {
         unwrap_src.send_universe_discovery()?;
-        unwrap_src.last_discovery_advert_timestamp = Instant::now();
+        unwrap_src.last_discovery_advert_timestamp = Timestamp::now();
     }
     Ok(())
 }

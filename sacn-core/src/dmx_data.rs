@@ -14,7 +14,7 @@ use core::cmp::Ordering;
 use heapless::Vec;
 use uuid::Uuid;
 
-use crate::{e131_definitions::UNIVERSE_CHANNEL_CAPACITY, priority::Priority, timestamp::Timestamp, universe::Universe};
+use crate::{e131_definitions::UNIVERSE_CHANNEL_CAPACITY, priority::Priority, time::Timestamp, universe::Universe};
 
 /// Holds a universes worth of DMX data.
 #[derive(Debug)]

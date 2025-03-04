@@ -1,7 +1,7 @@
 #![warn(missing_docs)]
 //! This module contains various definitions mentioned in the ANSI E1.31 — 2018 document
 
-use core::time::Duration;
+use crate::time::Duration;
 
 /// The maximum number of universes per page in a universe discovery packet.
 pub const DISCOVERY_UNI_PER_PAGE: usize = 512;
