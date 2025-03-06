@@ -981,7 +981,7 @@ impl SacnNetworkReceiver {
         Ok(SacnNetworkReceiver {
             socket: create_socket(ip)?,
             addr: ip,
-            is_multicast_enabled: !(ip.is_ipv6()), // IPv6 Windows IP Multicast is currently unsupported.
+            is_multicast_enabled: true,
         })
     }
 
@@ -1030,11 +1030,11 @@ impl SacnNetworkReceiver {
     /// Will return an OsOperationUnsupported error if attempting to set the flag to true in an environment that multicast
     /// isn't supported i.e. Ipv6 on Windows.
     fn set_is_multicast_enabled(&mut self, val: bool) -> SacnResult<()> {
-        if val && self.is_ipv6() {
-            Err(Error::OsOperationUnsupported(
-                "IPv6 multicast is currently unsupported on Windows".to_string(),
-            ))?;
-        }
+        // if val && self.is_ipv6() {
+        //     Err(Error::OsOperationUnsupported(
+        //         "IPv6 multicast is currently unsupported on Windows".to_string(),
+        //     ))?;
+        // }
         self.is_multicast_enabled = val;
         Ok(())
     }
@@ -1114,7 +1114,7 @@ impl SacnNetworkReceiver {
         Ok(SacnNetworkReceiver {
             socket: create_socket(ip)?,
             addr: ip,
-            is_multicast_enabled: true, // Linux IP Multicast is supported for Ipv4 and Ipv6.
+            is_multicast_enabled: true,
         })
     }
 
