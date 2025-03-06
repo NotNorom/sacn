@@ -562,9 +562,11 @@ impl SacnSourceInternal {
         let socket = Socket::new(Domain::for_address(ip), Type::DGRAM, None)?;
 
         // Multiple different processes might want to send to the sACN stream so therefore need to allow re-using the ACN port.
-        // Set reuse port is only supported on linux.
-        #[cfg(target_os = "linux")]
-        socket.set_reuse_port(true)?;
+        // Set reuse port is not supported on windows.
+        #[cfg(not(target_os = "windows"))]
+        {
+            socket.set_reuse_port(true)?;
+        }
 
         // Set reuse address supported on linux and windows.
         socket.set_reuse_address(true)?;
