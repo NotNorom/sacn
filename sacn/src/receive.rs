@@ -26,10 +26,11 @@ use std::{collections::HashMap, io::Read};
 
 use sacn_core::{
     dmx_data::DMXData,
+    e131_definitions::ACN_SDT_MULTICAST_PORT,
     time::{Duration, Timestamp},
 };
 /// Socket 2 used for the underlying UDP socket that sACN is sent over.
-use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+use socket2::{Domain, SockAddr, Socket, Type};
 /// The uuid crate is used for working with/generating UUIDs which sACN uses as part of the cid field in the protocol.
 /// This is used for uniquely identifying sources when counting sequence numbers.
 use uuid::Uuid;
@@ -978,7 +979,7 @@ impl SacnNetworkReceiver {
     /// For more details see socket2::Socket::new().
     fn new(ip: SocketAddr) -> SacnResult<SacnNetworkReceiver> {
         Ok(SacnNetworkReceiver {
-            socket: create_win_socket(ip)?,
+            socket: create_socket(ip)?,
             addr: ip,
             is_multicast_enabled: !(ip.is_ipv6()), // IPv6 Windows IP Multicast is currently unsupported.
         })
@@ -1111,7 +1112,7 @@ impl SacnNetworkReceiver {
     /// For more details see socket2::Socket::new().
     fn new(ip: SocketAddr) -> SacnResult<SacnNetworkReceiver> {
         Ok(SacnNetworkReceiver {
-            socket: create_unix_socket(ip)?,
+            socket: create_socket(ip)?,
             addr: ip,
             is_multicast_enabled: true, // Linux IP Multicast is supported for Ipv4 and Ipv6.
         })
@@ -1261,31 +1262,31 @@ impl DiscoveredSacnSource {
 /// Will return an error if the socket cannot be created, see (Socket::new)[fn.new.Socket].
 ///
 /// Will return an error if the socket cannot be bound to the given address, see (bind)[fn.bind.Socket2].
-#[cfg(not(target_os = "windows"))]
-fn create_unix_socket(addr: SocketAddr) -> SacnResult<Socket> {
-    use crate::e131_definitions::ACN_SDT_MULTICAST_PORT;
+fn create_socket(addr: SocketAddr) -> SacnResult<Socket> {
+    let socket = Socket::new(Domain::for_address(addr), Type::DGRAM, None)?;
 
-    if addr.is_ipv4() {
-        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
-
-        // Multiple different processes might want to listen to the sACN stream so therefore need to allow re-using the ACN port.
+    // Multiple different processes might want to listen to the sACN stream so therefore need to allow re-using the ACN port.
+    #[cfg(not(target_os = "windows"))]
+    {
         socket.set_reuse_port(true)?;
-        socket.set_reuse_address(true)?;
-
-        let socket_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
-        socket.bind(&socket_addr.into())?;
-        Ok(socket)
-    } else {
-        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))?;
-
-        // Multiple different processes might want to listen to the sACN stream so therefore need to allow re-using the ACN port.
-        socket.set_reuse_port(true)?;
-        socket.set_reuse_address(true)?;
-
-        let socket_addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), ACN_SDT_MULTICAST_PORT);
-        socket.bind(&socket_addr.into())?;
-        Ok(socket)
     }
+
+    socket.set_reuse_address(true)?;
+
+    let ip = match addr.ip() {
+        // after many many MANY hours of testing and research I figured out:
+        // for receiving multicast you need to bind to 0.0.0.0, or ::
+        // If you pass a regular ip address here because you thought: "hey, I wanna listen to
+        // the interface that this IP belongs to" then don't. It will not receive any packets
+        // and you will be left wondering why the hell it doesn't.
+        IpAddr::V4(_) => IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+        IpAddr::V6(_) => IpAddr::V6(Ipv6Addr::UNSPECIFIED),
+    };
+
+    let socket_addr = SocketAddr::new(ip, ACN_SDT_MULTICAST_PORT);
+
+    socket.bind(&socket_addr.into())?;
+    Ok(socket)
 }
 
 /// Joins the multicast group with the given address using the given socket.
@@ -1366,34 +1367,6 @@ fn leave_multicast(socket: &Socket, addr: &SockAddr, interface_addr: Option<IpAd
     };
 
     Ok(())
-}
-
-/// Creates a new Socket2 socket bound to the given address.
-///
-/// Returns the created socket.
-///
-/// Arguments:
-/// addr: The address that the newly created socket should bind to.
-///
-/// # Errors
-/// Will return an error if the socket cannot be created, see (Socket::new)[fn.new.Socket].
-///
-/// Will return an error if the socket cannot be bound to the given address, see (bind)[fn.bind.Socket].
-#[cfg(target_os = "windows")]
-fn create_win_socket(addr: SocketAddr) -> SacnResult<Socket> {
-    if addr.is_ipv4() {
-        let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
-
-        socket.set_reuse_address(true)?;
-        socket.bind(&SockAddr::from(addr))?;
-        Ok(socket)
-    } else {
-        let socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))?;
-
-        socket.set_reuse_address(true)?;
-        socket.bind(&SockAddr::from(addr))?;
-        Ok(socket)
-    }
 }
 
 /// Stores a sequence number and a timestamp.
