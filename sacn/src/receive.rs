@@ -1300,14 +1300,14 @@ fn create_socket(addr: SocketAddr) -> SacnResult<Socket> {
 ///     See join_multicast_v4[fn.join_multicast_v4.Socket] and join_multicast_v6[fn.join_multicast_v6.Socket]
 ///
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
-fn join_multicast(socket: &Socket, addr: &SockAddr, interface_addr: Option<IpAddr>) -> SacnResult<()> {
-    match addr.as_socket().unwrap() {
+fn join_multicast(socket: &Socket, multicast_addr: &SockAddr, interface_addr: Option<IpAddr>) -> SacnResult<()> {
+    match multicast_addr.as_socket().unwrap() {
         SocketAddr::V4(addr) => {
             match interface_addr {
                 Some(IpAddr::V4(ref interface_v4)) => {
                     socket.join_multicast_v4(addr.ip(), interface_v4)?;
                 }
-                Some(IpAddr::V6(ref _interface_v6)) => {
+                Some(IpAddr::V6(_)) => {
                     Err(Error::IpVersionError(
                         "Multicast address and interface_addr not same IP version".to_string(),
                     ))?;

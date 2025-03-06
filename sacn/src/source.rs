@@ -826,9 +826,11 @@ impl SacnSourceInternal {
             },
         };
 
+        let data_to_send = packet.pack_alloc()?;
+
         let bytes_sent = if dst_ip.is_some() {
             self.socket
-                .send_to(&packet.pack_alloc().unwrap(), &dst_ip.unwrap().into())
+                .send_to(&data_to_send, &dst_ip.unwrap().into())
                 .map_err(Error::SendUnicastData)?
         } else {
             let dst = if self.addr.is_ipv6() {
@@ -837,9 +839,7 @@ impl SacnSourceInternal {
                 universe.to_ipv4_multicast_addr()
             };
 
-            self.socket
-                .send_to(&packet.pack_alloc().unwrap(), &dst)
-                .map_err(Error::SendMulticastData)?
+            self.socket.send_to(&data_to_send, &dst).map_err(Error::SendMulticastData)?
         };
 
         if sequence == 255 {
@@ -848,6 +848,7 @@ impl SacnSourceInternal {
             sequence += 1;
         }
         self.data_sequences.borrow_mut().insert(universe, sequence);
+
         Ok(bytes_sent)
     }
 
@@ -872,17 +873,13 @@ impl SacnSourceInternal {
     fn send_sync_packet(&self, universe: Universe, dst_ip: Option<SocketAddr>) -> SacnResult<()> {
         self.universe_allowed(&universe)?;
 
-        let ip;
-
-        if dst_ip.is_none() {
-            if self.addr.is_ipv6() {
-                ip = universe.to_ipv6_multicast_addr();
-            } else {
-                ip = universe.to_ipv4_multicast_addr();
-            }
-        } else {
-            ip = dst_ip.unwrap().into();
-        }
+        let ip = match dst_ip {
+            Some(ip) => ip.into(),
+            None => match self.addr {
+                SocketAddr::V4(_) => universe.to_ipv4_multicast_addr(),
+                SocketAddr::V6(_) => universe.to_ipv6_multicast_addr(),
+            },
+        };
 
         let mut sequence = match self.sync_sequences.borrow().get(&universe) {
             Some(s) => *s,
@@ -898,6 +895,7 @@ impl SacnSourceInternal {
                 }),
             },
         };
+
         self.socket.send_to(&packet.pack_alloc()?, &ip).map_err(Error::SendSyncPacket)?;
 
         if sequence == 255 {
