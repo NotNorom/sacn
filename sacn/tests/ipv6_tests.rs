@@ -784,7 +784,7 @@ mod sacn_ipv6_multicast_test {
 
             if !discovered.is_empty() {
                 assert_eq!(discovered.len(), 1);
-                assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
+                assert_eq!(*discovered[0].name, SOURCE_NAMES[0]);
                 let universes = discovered[0].get_all_universes();
                 assert_eq!(universes.len(), UNIVERSE_COUNT);
                 for j in 0..UNIVERSE_COUNT {
@@ -872,7 +872,7 @@ mod sacn_ipv6_multicast_test {
 
             if !discovered.is_empty() {
                 assert_eq!(discovered.len(), 1);
-                assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
+                assert_eq!(*discovered[0].name, SOURCE_NAMES[0]);
 
                 let universes = discovered[0].get_all_universes();
                 assert_eq!(universes.len(), UNIVERSE_COUNT);
@@ -966,7 +966,7 @@ mod sacn_ipv6_multicast_test {
 
             if !discovered.is_empty() {
                 assert_eq!(discovered.len(), 1);
-                assert_eq!(discovered[0].name, SOURCE_NAMES[0]);
+                assert_eq!(*discovered[0].name, SOURCE_NAMES[0]);
                 let universes = discovered[0].get_all_universes();
                 assert_eq!(universes.len(), UNIVERSE_COUNT);
                 for j in 0..UNIVERSE_COUNT {

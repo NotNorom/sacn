@@ -1808,7 +1808,7 @@ fn test_universe_discovery_one_universe_one_source_ipv4() {
 
         if !discovered.is_empty() {
             assert_eq!(discovered.len(), 1);
-            assert_eq!(discovered[0].name, source_names[0]);
+            assert_eq!(*discovered[0].name, source_names[0]);
             let universes = discovered[0].get_all_universes();
             assert_eq!(universes.len(), universe_count);
             for j in 0..universe_count {
@@ -2081,7 +2081,7 @@ fn test_universe_discovery_multiple_universe_one_source_ipv4() {
 
         if !discovered.is_empty() {
             assert_eq!(discovered.len(), 1);
-            assert_eq!(discovered[0].name, source_names[0]);
+            assert_eq!(*discovered[0].name, source_names[0]);
 
             let universes = discovered[0].get_all_universes();
             assert_eq!(universes.len(), universe_count);
@@ -2175,7 +2175,7 @@ fn test_universe_discovery_multiple_pages_one_source_ipv4() {
 
         if !discovered.is_empty() {
             assert_eq!(discovered.len(), 1);
-            assert_eq!(discovered[0].name, source_names[0]);
+            assert_eq!(*discovered[0].name, source_names[0]);
             let universes = discovered[0].get_all_universes();
             assert_eq!(universes.len(), universe_count);
             for j in 0..universe_count {
@@ -2238,7 +2238,7 @@ fn test_universe_discovery_no_universes_ipv4() {
     match dmx_recv.recv(None) {
         Err(e) => match e {
             Error::SourceDiscovered(src_name) => {
-                assert_eq!(src_name, source_names[0], "Name of source discovered doesn't match expected");
+                assert_eq!(*src_name, source_names[0], "Name of source discovered doesn't match expected");
                 let sources = dmx_recv.get_discovered_sources();
                 assert_eq!(sources.len(), 1, "Number of sources discovered doesn't match expected (1)");
                 assert!(

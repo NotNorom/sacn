@@ -1,5 +1,6 @@
 #![no_std]
 
+pub mod discovery;
 pub mod dmx_data;
 pub mod e131_definitions;
 pub mod packet;

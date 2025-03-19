@@ -10,6 +10,7 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
+use sacn_core::source_name::SourceName;
 /// UUID library used to handle the UUID's used in the CID fields, used here so that error can include the cid in messages.
 use uuid::Uuid;
 
@@ -92,7 +93,7 @@ pub enum Error {
     /// # Arguments
     /// The name of the source discovered.
     #[error("A source was discovered by a receiver with the announce_discovery_flag set to true, source name: {0}")]
-    SourceDiscovered(String),
+    SourceDiscovered(SourceName),
 
     /// Attempted to exceed the capacity of a single universe (packet::UNIVERSE_CHANNEL_CAPACITY).
     ///

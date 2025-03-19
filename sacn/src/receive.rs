@@ -25,8 +25,10 @@ use core::{
 use std::{collections::HashMap, io::Read};
 
 use sacn_core::{
+    discovery::{DiscoveredSacnSource, UniversePage},
     dmx_data::DMXData,
     e131_definitions::ACN_SDT_MULTICAST_PORT,
+    source_name::SourceName,
     time::{Duration, Timestamp},
 };
 /// Socket 2 used for the underlying UDP socket that sACN is sent over.
@@ -38,7 +40,7 @@ use uuid::Uuid;
 use crate::{
     SacnResult,
     e131_definitions::{
-        DISCOVERY_UNI_PER_PAGE, E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
+        E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
         UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
     },
     error::Error,
@@ -164,22 +166,6 @@ pub struct SacnReceiver {
     announce_timeout: bool,
 }
 
-/// Represents an sACN source/sender on the network that has been discovered by this sACN receiver by receiving universe discovery packets.
-#[derive(Clone, Debug)]
-pub struct DiscoveredSacnSource {
-    /// The name of the source, no protocol guarantee this will be unique but if it isn't then universe discovery may not work correctly.
-    pub name: String,
-
-    /// The time at which the discovered source was last updated / a discovery packet was received by the source.
-    pub last_updated: Timestamp,
-
-    /// The pages that have been sent so far by this source when enumerating the universes it is currently sending on.
-    pages: Vec<UniversePage>,
-
-    /// The last page that will be sent by this source.
-    last_page: u8,
-}
-
 /// Used for receiving dmx or other data on a particular universe using multicast.
 #[derive(Debug)]
 struct SacnNetworkReceiver {
@@ -193,21 +179,6 @@ struct SacnNetworkReceiver {
     /// This flag is set when the receiver is created as not all environments currently support IP multicast.
     /// E.g. IPv6 Windows IP Multicast is currently unsupported.
     is_multicast_enabled: bool,
-}
-
-/// Universe discovery packets are broken down into pages to allow sending a large list of universes, each page contains a list of universes and
-/// which page it is. The receiver then puts the pages together to get the complete list of universes that the discovered source is sending on.
-///
-/// The concept of pages is intentionally hidden from the end-user of the library as they are a way of fragmenting large discovery
-/// universe lists so that they can work over the network and don't play any part out-side of the protocol.
-#[derive(Eq, Ord, PartialEq, PartialOrd, Clone, Debug)]
-struct UniversePage {
-    /// The page number of this page.
-    page: u8,
-
-    /// The universes that the source is transmitting that are on this page, this may or may-not be a complete list of all universes being sent
-    /// depending on if there are more pages.
-    universes: heapless::Vec<Universe, DISCOVERY_UNI_PER_PAGE>,
 }
 
 /// Allows debug ({:?}) printing of the SacnReceiver, used during debugging.
@@ -494,7 +465,7 @@ impl SacnReceiver {
                     E131RootLayerData::DataPacket(d) => self.handle_data_packet(pdu.cid, d)?,
                     E131RootLayerData::SynchronizationPacket(s) => self.handle_sync_packet(pdu.cid, s)?,
                     E131RootLayerData::UniverseDiscoveryPacket(u) => {
-                        let discovered_src: Option<String> = self.handle_universe_discovery_packet(u);
+                        let discovered_src= self.handle_universe_discovery_packet(u);
 
                         match (discovered_src, self.announce_source_discovery) {
                             (Some(src), true) => return Err(Error::SourceDiscovered(src)),
@@ -891,13 +862,13 @@ impl SacnReceiver {
                 if self.partially_discovered_sources[index].has_all_pages() {
                     let discovered_src: DiscoveredSacnSource = self.partially_discovered_sources.remove(index);
                     self.update_discovered_srcs(discovered_src);
-                    return Some(discovery_pkt.source_name.to_string());
+                    return Some(discovery_pkt.source_name);
                 }
             }
             None => {
                 // This is the first page received from this source.
                 let discovered_src: DiscoveredSacnSource = DiscoveredSacnSource {
-                    name: discovery_pkt.source_name.to_string(),
+                    name: discovery_pkt.source_name.clone(),
                     last_page,
                     pages: vec![uni_page],
                     last_updated: Timestamp::now(),
@@ -906,7 +877,7 @@ impl SacnReceiver {
                 if page == 0 && page == last_page {
                     // Indicates that this is a single page universe discovery packet.
                     self.update_discovered_srcs(discovered_src);
-                    return Some(discovery_pkt.source_name.to_string());
+                    return Some(discovery_pkt.source_name);
                 } else {
                     // Indicates that this is a page in a set of pages as part of a sources universe discovery.
                     self.partially_discovered_sources.push(discovered_src);
@@ -961,7 +932,7 @@ impl Drop for SacnReceiver {
 /// srcs: The Vec of DiscoveredSacnSources to search.
 /// name: The human readable name of the source to find.
 fn find_discovered_src(srcs: &[DiscoveredSacnSource], name: &str) -> Option<usize> {
-    srcs.iter().position(|source| source.name == *name)
+    srcs.iter().position(|source| *source.name == *name)
 }
 
 /// In general the lower level transport layer is handled by SacnNetworkReceiver (which itself wraps a Socket).
@@ -1213,41 +1184,6 @@ impl SacnNetworkReceiver {
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
     fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
         self.socket.set_read_timeout(timeout.map(Into::into))
-    }
-}
-
-impl DiscoveredSacnSource {
-    /// Returns true if all the pages sent by this DiscoveredSacnSource have been received.
-    ///
-    /// This is based on each page containing a last-page value which indicates the number of the last page expected.
-    pub fn has_all_pages(&mut self) -> bool {
-        // https://rust-lang-nursery.github.io/rust-cookbook/algorithms/sorting.html (31/12/2019)
-        self.pages.sort_by(|a, b| a.page.cmp(&b.page));
-        for i in 0..=self.last_page {
-            if self.pages[i as usize].page != i {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    /// Returns all the universes being send by this SacnSource as discovered through the universe discovery mechanism.
-    ///
-    /// Intentionally abstracts over the underlying concept of pages as this is purely an E1.31 Universe Discovery concept and is otherwise transparent.
-    pub fn get_all_universes(&self) -> Vec<Universe> {
-        let mut uni = Vec::new();
-        for p in &self.pages {
-            uni.extend_from_slice(&p.universes);
-        }
-        uni
-    }
-
-    /// Removes the given universe from the list of universes being sent by this discovered source.
-    pub fn terminate_universe(&mut self, universe: Universe) {
-        for p in &mut self.pages {
-            p.universes.retain(|x| *x != universe);
-        }
     }
 }
 
@@ -1868,14 +1804,14 @@ mod test {
                 universes: universes.clone(),
             },
         };
-        let res: Option<String> = dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
+        let res= dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
 
         assert!(res.is_some());
-        assert_eq!(res.unwrap(), name);
+        assert_eq!(*res.unwrap(), name);
 
         assert_eq!(dmx_rcv.discovered_sources.len(), 1);
 
-        assert_eq!(dmx_rcv.discovered_sources[0].name, name);
+        assert_eq!(*dmx_rcv.discovered_sources[0].name, name);
         assert_eq!(dmx_rcv.discovered_sources[0].last_page, last_page);
         assert_eq!(dmx_rcv.discovered_sources[0].pages.len(), 1);
         assert_eq!(dmx_rcv.discovered_sources[0].pages[0].page, page);
@@ -1934,18 +1870,18 @@ mod test {
                 universes: universes_page_2.clone().into(),
             },
         };
-        let res: Option<String> = dmx_rcv.handle_universe_discovery_packet(discovery_pkt_1);
+        let res = dmx_rcv.handle_universe_discovery_packet(discovery_pkt_1);
 
         assert!(res.is_none()); // Should be none because first packet isn't complete as its only the first page.
 
-        let res2: Option<String> = dmx_rcv.handle_universe_discovery_packet(discovery_pkt_2);
+        let res2 = dmx_rcv.handle_universe_discovery_packet(discovery_pkt_2);
 
         assert!(res2.is_some()); // Source should be discovered because the second and last page is now received.
-        assert_eq!(res2.unwrap(), name);
+        assert_eq!(*res2.unwrap(), name);
 
         assert_eq!(dmx_rcv.discovered_sources.len(), 1);
 
-        assert_eq!(dmx_rcv.discovered_sources[0].name, name);
+        assert_eq!(*dmx_rcv.discovered_sources[0].name, name);
         assert_eq!(dmx_rcv.discovered_sources[0].last_page, last_page);
         assert_eq!(dmx_rcv.discovered_sources[0].pages.len(), 2);
         assert_eq!(dmx_rcv.discovered_sources[0].pages[0].page, 0);
