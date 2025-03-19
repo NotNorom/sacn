@@ -1,7 +1,10 @@
 #![warn(missing_docs)]
 //! This module contains all things `SourceName`
 
-use core::str::FromStr;
+use core::{
+    fmt::{self, Display},
+    str::FromStr,
+};
 
 use heapless::{String, Vec};
 
@@ -9,6 +12,12 @@ use heapless::{String, Vec};
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourceName {
     inner: String<{ Self::CAPACITY }>,
+}
+
+impl Display for SourceName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.inner, f)
+    }
 }
 
 impl core::ops::Deref for SourceName {
