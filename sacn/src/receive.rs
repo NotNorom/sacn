@@ -843,13 +843,12 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// discovery_pkt: The universe discovery part of the universe discovery packet to handle.
-    fn handle_universe_discovery_packet(&mut self, discovery_pkt: UniverseDiscoveryPacketFramingLayer) -> Option<String> {
-        let data: UniverseDiscoveryPacketUniverseDiscoveryLayer = discovery_pkt.data;
-
-        let page: u8 = data.page;
-        let last_page: u8 = data.last_page;
-
-        let universes = data.universes;
+    fn handle_universe_discovery_packet(&mut self, discovery_pkt: UniverseDiscoveryPacketFramingLayer) -> Option<SourceName> {
+        let UniverseDiscoveryPacketUniverseDiscoveryLayer {
+            page,
+            last_page,
+            universes,
+        } = discovery_pkt.data;
 
         let uni_page: UniversePage = UniversePage { page, universes };
 
