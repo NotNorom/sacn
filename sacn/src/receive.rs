@@ -857,7 +857,10 @@ impl SacnReceiver {
         match find_discovered_src(&self.partially_discovered_sources, &discovery_pkt.source_name) {
             Some(index) => {
                 // Some pages have already been received from this source.
-                self.partially_discovered_sources[index].pages.push(uni_page);
+                self.partially_discovered_sources[index]
+                    .pages
+                    .push(uni_page)
+                    .expect("enough capacity");
                 self.partially_discovered_sources[index].last_updated = Timestamp::now();
                 if self.partially_discovered_sources[index].has_all_pages() {
                     let discovered_src: DiscoveredSacnSource = self.partially_discovered_sources.remove(index);
@@ -870,7 +873,7 @@ impl SacnReceiver {
                 let discovered_src: DiscoveredSacnSource = DiscoveredSacnSource {
                     name: discovery_pkt.source_name.clone(),
                     last_page,
-                    pages: vec![uni_page],
+                    pages: heapless::Vec::from_slice(&[uni_page]).unwrap(),
                     last_updated: Timestamp::now(),
                 };
 
