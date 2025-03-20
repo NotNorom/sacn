@@ -431,7 +431,7 @@ impl SacnReceiver {
         }
 
         self.sequences.check_timeouts(self.announce_timeout)?;
-        self.check_waiting_data_timeouts();
+        self.remove_expired_data();
 
         if timeout == Some(Duration::from_secs(0)) {
             if cfg!(target_os = "windows") {
@@ -888,14 +888,14 @@ impl SacnReceiver {
         None // No source fully discovered.
     }
 
-    /// Goes through all the waiting data and removes any which has timed out as a sync-packet for it hasn't been received within the E131_NETWORK_DATA_LOSS_TIMEOUT
+    /// Goes through all the waiting data and removes any which has timed out as a sync-packet for it hasn't been received within the [E131_NETWORK_DATA_LOSS_TIMEOUT]
     /// period as specified by ANSI E1.31-2018 Section 11.1.2.
-    fn check_waiting_data_timeouts(&mut self) {
+    fn remove_expired_data(&mut self) {
         self.waiting_data
             .retain(|_uni, data| data.recv_timestamp.elapsed() < E131_NETWORK_DATA_LOSS_TIMEOUT);
     }
 
-    /// Goes through all discovered sources and removes any that have timed out
+    /// Goes through all discovered sources and removes any that have timed out after this period: [UNIVERSE_DISCOVERY_SOURCE_TIMEOUT]
     fn remove_expired_sources(&mut self) {
         self.partially_discovered_sources
             .retain(|s| s.last_updated.elapsed() < UNIVERSE_DISCOVERY_SOURCE_TIMEOUT);
