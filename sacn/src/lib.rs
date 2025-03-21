@@ -79,7 +79,7 @@
 //! match dmx_rcv.recv(TIMEOUT) {
 //!     Err(e) => {
 //!         match e {
-//!             sacn::error::Error::SourceDiscovered(source_name) => {
+//!             sacn::error::ReceiveError::SourceDiscovered(source_name) => {
 //!                 println!("Source name: {} discovered!", source_name);    
 //!             }
 //!             other => {
@@ -191,7 +191,7 @@
 // #![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use sacn_core::{dmx_data, e131_definitions, packet, priority, sacn_parse_pack_error, source_name, time, universe};
+pub use sacn_core::{discovery, dmx_data, e131_definitions, packet, priority, sacn_parse_pack_error, source_name, time, universe};
 
 pub mod error;
 pub mod receive;

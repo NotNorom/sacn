@@ -31,10 +31,9 @@ mod sacn_ipv6_multicast_test {
     };
 
     use sacn::{
-        SacnResult,
         dmx_data::DMXData,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, E131_TERMINATE_STREAM_PACKET_COUNT, UNIVERSE_CHANNEL_CAPACITY},
-        error::Error,
+        error::ReceiveError,
         priority::Priority,
         receive::SacnReceiver,
         source::SacnSource,
@@ -56,7 +55,10 @@ mod sacn_ipv6_multicast_test {
     #[test]
     #[ignore]
     fn test_send_recv_partial_capacity_universe_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -94,7 +96,7 @@ mod sacn_ipv6_multicast_test {
         src.send(&[universe], &TEST_DATA_PARTIAL_CAPACITY_UNIVERSE, Some(priority), None, None)
             .unwrap();
 
-        let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let received_result: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -117,7 +119,10 @@ mod sacn_ipv6_multicast_test {
     #[test]
     #[ignore]
     fn test_send_recv_single_universe_alternative_startcode_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -161,7 +166,7 @@ mod sacn_ipv6_multicast_test {
         )
         .unwrap();
 
-        let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let received_result: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -184,7 +189,10 @@ mod sacn_ipv6_multicast_test {
     #[test]
     #[ignore]
     fn test_across_alternative_startcode_universe_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -224,7 +232,7 @@ mod sacn_ipv6_multicast_test {
         sleep(Duration::from_millis(500)); // Small delay to allow the data packets to get through as per NSI-E1.31-2018 Appendix B.1 recommendation.
         src.send_sync_packet(universes[0], None).unwrap();
 
-        let sync_pkt_res: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let sync_pkt_res: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -262,7 +270,10 @@ mod sacn_ipv6_multicast_test {
     /// Note: this test assumes perfect network conditions (0% reordering, loss, duplication etc.), this should be the case for
     /// the loopback adapter with the low amount of data sent but this may be a possible cause if integration tests fail unexpectedly.
     fn test_send_recv_full_capacity_across_universe_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -305,7 +316,7 @@ mod sacn_ipv6_multicast_test {
         sleep(Duration::from_millis(500)); // Small delay to allow the data packets to get through as per NSI-E1.31-2018 Appendix B.1 recommendation.
         src.send_sync_packet(universes[0], None).unwrap();
 
-        let sync_pkt_res: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let sync_pkt_res: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -341,7 +352,10 @@ mod sacn_ipv6_multicast_test {
     #[test]
     #[ignore]
     fn test_send_recv_single_universe_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -379,7 +393,7 @@ mod sacn_ipv6_multicast_test {
         src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, None)
             .unwrap();
 
-        let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let received_result: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -404,7 +418,10 @@ mod sacn_ipv6_multicast_test {
     /// Note: this test assumes perfect network conditions (0% reordering, loss, duplication etc.), this should be the case for
     /// the loopback adapter with the low amount of data sent but this may be a possible cause if integration tests fail unexpectedly.
     fn test_send_recv_across_universe_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -441,7 +458,7 @@ mod sacn_ipv6_multicast_test {
         sleep(Duration::from_millis(500)); // Small delay to allow the data packets to get through as per NSI-E1.31-2018 Appendix B.1 recommendation. See other warnings about the possibility of theses tests failing if the network isn't perfect.
         src.send_sync_packet(universes[0], None).unwrap();
 
-        let sync_pkt_res: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let sync_pkt_res: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -477,7 +494,10 @@ mod sacn_ipv6_multicast_test {
     #[test]
     #[ignore]
     fn test_send_across_universe_multiple_receivers_sync_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread1_tx = tx.clone();
         let thread2_tx = tx.clone();
@@ -609,7 +629,10 @@ mod sacn_ipv6_multicast_test {
         let mut snd_threads = Vec::new();
         let mut rcv_threads = Vec::new();
 
-        let (rcv_tx, rcv_rx): (SyncSender<Vec<SacnResult<Vec<DMXData>>>>, Receiver<Vec<SacnResult<Vec<DMXData>>>>) = mpsc::sync_channel(0);
+        let (rcv_tx, rcv_rx): (
+            SyncSender<Vec<Result<Vec<DMXData>, ReceiveError>>>,
+            Receiver<Vec<Result<Vec<DMXData>, ReceiveError>>>,
+        ) = mpsc::sync_channel(0);
         let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0); // Used for handshaking, allows syncing the sender states.
 
         assert!(
@@ -660,7 +683,7 @@ mod sacn_ipv6_multicast_test {
                     dmx_recv.listen_universes(&[Universe::new(i).expect("in range")]).unwrap();
                 }
 
-                let mut res: Vec<SacnResult<Vec<DMXData>>> = Vec::new();
+                let mut res: Vec<Result<Vec<DMXData>, ReceiveError>> = Vec::new();
 
                 tx.send(Vec::new()).unwrap(); // Receiver notifies controlling thread it is ready.
 
@@ -681,7 +704,7 @@ mod sacn_ipv6_multicast_test {
         }
 
         for _i in 0..RCV_THREADS {
-            let res: Vec<SacnResult<Vec<DMXData>>> = rcv_rx.recv().unwrap();
+            let res: Vec<Result<Vec<DMXData>, ReceiveError>> = rcv_rx.recv().unwrap();
 
             assert_eq!(res.len(), SND_THREADS);
 
@@ -758,7 +781,7 @@ mod sacn_ipv6_multicast_test {
             match result {
                 Err(e) => {
                     match e {
-                        Error::Io(ref s) => {
+                        ReceiveError::Io(ref s) => {
                             match s.kind() {
                                 std::io::ErrorKind::WouldBlock => {
                                     // Expected to timeout / would block.
@@ -846,7 +869,7 @@ mod sacn_ipv6_multicast_test {
             match result {
                 Err(e) => {
                     match e {
-                        Error::Io(ref s) => {
+                        ReceiveError::Io(ref s) => {
                             match s.kind() {
                                 std::io::ErrorKind::WouldBlock => {
                                     // Expected to timeout / would block.
@@ -940,7 +963,7 @@ mod sacn_ipv6_multicast_test {
             match result {
                 Err(e) => {
                     match e {
-                        Error::Io(ref s) => {
+                        ReceiveError::Io(ref s) => {
                             match s.kind() {
                                 std::io::ErrorKind::WouldBlock => {
                                     // Expected to timeout / would block.
@@ -986,7 +1009,10 @@ mod sacn_ipv6_multicast_test {
     #[test]
     #[ignore]
     fn test_send_recv_two_universe_multicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -1021,8 +1047,8 @@ mod sacn_ipv6_multicast_test {
         src.send(&universes, &TEST_DATA_MULTIPLE_UNIVERSE, None, None, None).unwrap();
 
         // Get the data that was sent to the receiver.
-        let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
-        let received_result_2: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let received_result: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
+        let received_result_2: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         // Receiver can be terminated.
         rcv_thread.join().unwrap();
@@ -1325,7 +1351,7 @@ mod sacn_ipv6_multicast_test {
         let universes = match dmx_recv.recv(None) {
             Err(e) => {
                 match e {
-                    Error::SourceDiscovered(_name) => {
+                    ReceiveError::SourceDiscovered(_name) => {
                         let discovered_sources = dmx_recv.get_discovered_sources();
                         assert_eq!(discovered_sources.len(), 1);
 
@@ -1355,7 +1381,7 @@ mod sacn_ipv6_multicast_test {
             match dmx_recv.recv(None) {
                 Err(e) => {
                     match e {
-                        Error::UniverseTerminated { src_cid: _, universe: _ } => {
+                        ReceiveError::UniverseTerminated { src_cid: _, universe: _ } => {
                             // A real use-case may also want to not terminate when the source does and instead remain waiting but in this
                             // case the for the test the receiver terminates with the source.
                             break;
@@ -1569,9 +1595,9 @@ mod sacn_ipv6_unicast_test {
     };
 
     use sacn::{
-        SacnResult,
         dmx_data::DMXData,
         e131_definitions::{ACN_SDT_MULTICAST_PORT, UNIVERSE_CHANNEL_CAPACITY},
+        error::ReceiveError,
         priority::Priority,
         receive::SacnReceiver,
         source::SacnSource,
@@ -1587,7 +1613,10 @@ mod sacn_ipv6_unicast_test {
     #[test]
     #[ignore]
     fn test_send_recv_single_universe_unicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -1624,7 +1653,7 @@ mod sacn_ipv6_unicast_test {
         src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), Some(dst_ip), None)
             .unwrap();
 
-        let received_result: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let received_result: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 
@@ -1649,7 +1678,10 @@ mod sacn_ipv6_unicast_test {
     /// Note: this test assumes perfect network conditions (0% reordering, loss, duplication etc.), this should be the case for
     /// the loopback adapter with the low amount of data sent but this may be a possible cause if integration tests fail unexpectedly.
     fn test_send_recv_across_universe_unicast_ipv6() {
-        let (tx, rx): (Sender<SacnResult<Vec<DMXData>>>, Receiver<SacnResult<Vec<DMXData>>>) = mpsc::channel();
+        let (tx, rx): (
+            Sender<Result<Vec<DMXData>, ReceiveError>>,
+            Receiver<Result<Vec<DMXData>, ReceiveError>>,
+        ) = mpsc::channel();
 
         let thread_tx = tx.clone();
 
@@ -1702,7 +1734,7 @@ mod sacn_ipv6_unicast_test {
         )
         .unwrap();
 
-        let sync_pkt_res: SacnResult<Vec<DMXData>> = rx.recv().unwrap();
+        let sync_pkt_res: Result<Vec<DMXData>, ReceiveError> = rx.recv().unwrap();
 
         rcv_thread.join().unwrap();
 

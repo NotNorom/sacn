@@ -293,7 +293,7 @@ fn handle_full_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exam
     let sync_uni = Universe::new(sync_uni).map_err(SacnError::UniverseError)?;
 
     let priority: u8 = split_input[3].parse().unwrap();
-    let priority = Priority::new(priority).map_err(SacnError::PriorityError)?;
+    let priority = Priority::new(priority)?;
 
     let mut data: [u8; 513] = [0; 513];
 
@@ -371,7 +371,7 @@ fn handle_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleRe
     let sync_uni = Universe::new(sync_uni).map_err(SacnError::UniverseError)?;
 
     let priority: u8 = split_input[3].parse().unwrap();
-    let priority = Priority::new(priority).map_err(SacnError::PriorityError)?;
+    let priority = Priority::new(priority)?;
 
     let mut data: Vec<u8> = Vec::new();
 
@@ -476,7 +476,7 @@ fn handle_data_over_time_option(src: &mut SacnSource, split_input: Vec<&str>) ->
     let universe = Universe::new(universe).map_err(SacnError::UniverseError)?;
     let duration_millis: u64 = split_input[2].parse().unwrap();
     let priority: u8 = split_input[3].parse().unwrap();
-    let priority = Priority::new(priority).map_err(SacnError::PriorityError)?;
+    let priority = Priority::new(priority)?;
 
     let duration: Duration = Duration::from_millis(duration_millis);
 

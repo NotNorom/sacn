@@ -11,7 +11,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use sacn::{
     e131_definitions::ACN_SDT_MULTICAST_PORT,
-    error::Error,
+    error::SourceError,
     priority::{Priority, PriorityError},
     source::{SacnSource, SourceCreationError},
     source_name::SourceNameError,
@@ -158,7 +158,7 @@ fn test_set_name_too_long_source_name() {
 
     match src.set_name(SRC_NAME) {
         Err(e) => match e {
-            Error::SourceName(SourceNameError::SourceNameTooLong(_)) => {
+            SourceError::SourceName(SourceNameError::SourceNameTooLong(_)) => {
                 assert!(true, "Expected error returned");
             }
             _ => {
@@ -323,7 +323,7 @@ fn test_send_without_registering() {
             assert!(false, "Source didn't prevent sending without registering")
         }
         Err(e) => match e {
-            Error::UniverseNotRegistered(ref _s) => assert!(true),
+            SourceError::UniverseNotRegistered(ref _s) => assert!(true),
             _ => assert!(false, "Unexpected error type returned, {}", e),
         },
     }

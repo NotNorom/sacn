@@ -26,10 +26,11 @@ use std::{env, fs::File, io, io::prelude::*, net::SocketAddr};
 
 use error::{ExampleError, ExampleResult};
 use sacn::{
+    discovery::DiscoveredSacnSource,
     dmx_data::DMXData,
     e131_definitions::ACN_SDT_MULTICAST_PORT,
-    error::Error as SacnError,
-    receive::{DiscoveredSacnSource, SacnReceiver},
+    error::{Error as SacnError, ReceiveError},
+    receive::SacnReceiver,
     time::{Duration, sleep},
     universe::Universe,
 };
@@ -420,7 +421,7 @@ fn print_recv(res: ExampleResult<Vec<DMXData>>) {
     match res {
         Err(e) => match e {
             ExampleError::Sacn(x) => match x {
-                SacnError::UniverseTerminated { src_cid: _, universe } => {
+                SacnError::Receive(ReceiveError::UniverseTerminated { src_cid: _, universe }) => {
                     println!("Universe {universe} Terminated");
                 }
                 z => {

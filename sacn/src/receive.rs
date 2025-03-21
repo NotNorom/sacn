@@ -43,7 +43,7 @@ use crate::{
         E131_NETWORK_DATA_LOSS_TIMEOUT, E131_SEQ_DIFF_DISCARD_LOWER_BOUND, E131_SEQ_DIFF_DISCARD_UPPER_BOUND,
         UNIVERSE_DISCOVERY_SOURCE_TIMEOUT,
     },
-    error::Error,
+    error::ReceiveError,
     packet::{
         AcnRootLayerProtocol, DataPacketFramingLayer, E131RootLayer, E131RootLayerData, SynchronizationPacketFramingLayer,
         UniverseDiscoveryPacketFramingLayer, UniverseDiscoveryPacketUniverseDiscoveryLayer,
@@ -85,7 +85,7 @@ const INITIAL_SEQUENCE_NUMBER: u8 = 255;
 ///
 /// This can be changed by providing a new function to handle the situation of the user implementing a custom merge/arbitration algorithm as per
 /// ANSI E1.31-2018 Section 6.2.3.2.
-const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> SacnResult<DMXData> = discard_lowest_priority_then_previous;
+const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError> = discard_lowest_priority_then_previous;
 
 /// Allows receiving dmx or other (different startcode) data using sacn.
 ///
@@ -139,7 +139,7 @@ pub struct SacnReceiver {
 
     /// The merge function used by this receiver if DMXData for the same universe and synchronisation universe is received while there
     /// is already DMXData waiting for that universe and synchronisation address.
-    merge_func: fn(&DMXData, &DMXData) -> SacnResult<DMXData>,
+    merge_func: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError>,
 
     /// Sacn sources that have been partially discovered by only some of their universes being discovered so far with more pages to go.
     partially_discovered_sources: Vec<DiscoveredSacnSource>,
@@ -221,7 +221,7 @@ impl SacnReceiver {
     ///
     /// Will return an error if the created SacnReceiver fails to listen to the E1.31_DISCOVERY_UNIVERSE.
     /// For more details see SacnReceiver::listen_universes().
-    pub fn with_ip(ip: SocketAddr, source_limit: Option<usize>) -> SacnResult<SacnReceiver> {
+    pub fn with_ip(ip: SocketAddr, source_limit: Option<usize>) -> Result<SacnReceiver, ReceiveError> {
         if let Some(x) = source_limit {
             if x == 0 {
                 return Err(std::io::Error::new(
@@ -313,13 +313,12 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// func: The merge function to use. Should take 2 DMXData references as arguments and return a `Result<DMXData>`.
-    pub fn set_merge_fn(&mut self, func: fn(&DMXData, &DMXData) -> SacnResult<DMXData>) -> SacnResult<()> {
+    pub fn set_merge_fn(&mut self, func: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError>) {
         self.merge_func = func;
-        Ok(())
     }
 
     /// Allow only receiving on Ipv6.
-    pub fn set_ipv6_only(&mut self, val: bool) -> SacnResult<()> {
+    pub fn set_ipv6_only(&mut self, val: bool) -> Result<(), ReceiveError> {
         self.receiver.set_only_v6(val)
     }
 
@@ -329,7 +328,7 @@ impl SacnReceiver {
     /// attempt to join any multicast groups.
     ///
     /// If 1 or more universes in the list are already being listened to this method will have no effect for those universes only.
-    pub fn listen_universes(&mut self, universes: &[Universe]) -> SacnResult<()> {
+    pub fn listen_universes(&mut self, universes: &[Universe]) -> Result<(), ReceiveError> {
         for u in universes {
             if let Err(i) = self.universes.binary_search(u) {
                 // Value not found, i is the position it should be inserted
@@ -351,11 +350,11 @@ impl SacnReceiver {
     /// # Errors
     ///
     /// Returns UniverseNotFound if the given universe wasn't already being listened to.
-    pub fn mute_universe(&mut self, universe: Universe) -> SacnResult<()> {
+    pub fn mute_universe(&mut self, universe: Universe) -> Result<(), ReceiveError> {
         match self.universes.binary_search(&universe) {
             Err(_) => {
                 // Universe isn't found.
-                Err(Error::UniverseNotFound(
+                Err(ReceiveError::UniverseNotFound(
                     "Attempted to mute a universe that wasn't already being listened to".to_string(),
                 ))?
             }
@@ -418,7 +417,7 @@ impl SacnReceiver {
     /// specified by E131_NETWORK_DATA_LOSS_TIMEOUT (ANSI E1.31-2018 Appendix A).  This may not be detected immediately unless data is received for the timed-out
     /// universe from the source. If it isn't detected immediately it will be detected within an interval of E131_NETWORK_DATA_LOSS_TIMEOUT (assuming code
     /// executes in zero time).
-    pub fn recv(&mut self, timeout: Option<Duration>) -> SacnResult<Vec<DMXData>> {
+    pub fn recv(&mut self, timeout: Option<Duration>) -> Result<Vec<DMXData>, ReceiveError> {
         let mut timeout = timeout;
 
         loop {
@@ -434,9 +433,9 @@ impl SacnReceiver {
     }
 
     /// See [Self::recv]
-    fn recv_internal(&mut self, timeout: Option<Duration>) -> SacnResult<DataOrRetry> {
+    fn recv_internal(&mut self, timeout: Option<Duration>) -> Result<DataOrRetry, ReceiveError> {
         if self.universes.len() == 1 && self.universes[0] == Universe::DISCOVERY && timeout.is_none() && !self.announce_source_discovery {
-            return Err(Error::OnlyDiscoveryUniverseRegistered);
+            return Err(ReceiveError::OnlyDiscoveryUniverseRegistered);
         }
 
         self.sequences.check_timeouts(self.announce_timeout)?;
@@ -462,7 +461,9 @@ impl SacnReceiver {
         // recv is called with a longer timeout.
         let actual_timeout = timeout.map_or(E131_NETWORK_DATA_LOSS_TIMEOUT, |value| value.min(E131_NETWORK_DATA_LOSS_TIMEOUT));
 
-        self.receiver.set_timeout(Some(actual_timeout)).map_err(Error::SendTimeoutValue)?;
+        self.receiver
+            .set_timeout(Some(actual_timeout))
+            .map_err(ReceiveError::SetTimeoutValue)?;
         let start_time = Timestamp::now();
 
         let mut buf: [u8; RCV_BUF_DEFAULT_SIZE] = [0; RCV_BUF_DEFAULT_SIZE];
@@ -474,10 +475,10 @@ impl SacnReceiver {
                     E131RootLayerData::DataPacket(d) => self.handle_data_packet(pdu.cid, d)?,
                     E131RootLayerData::SynchronizationPacket(s) => self.handle_sync_packet(pdu.cid, s)?,
                     E131RootLayerData::UniverseDiscoveryPacket(u) => {
-                        let discovered_src= self.handle_universe_discovery_packet(u);
+                        let discovered_src = self.handle_universe_discovery_packet(u);
 
                         match (discovered_src, self.announce_source_discovery) {
-                            (Some(src), true) => return Err(Error::SourceDiscovered(src)),
+                            (Some(src), true) => return Err(ReceiveError::SourceDiscovered(src)),
                             _ => None,
                         }
                     }
@@ -511,7 +512,7 @@ impl SacnReceiver {
             }
             Err(err) => {
                 match err {
-                    Error::Io(ref s) => {
+                    ReceiveError::Io(ref s) => {
                         match s.kind() {
                             // Windows and Unix use different error types (WouldBlock/TimedOut) for the same error.
                             std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
@@ -639,7 +640,7 @@ impl SacnReceiver {
     /// sending on that universe and the announce_stream_termination_flag is set to true.
     ///
     /// Will return an DmxMergeError if there is an issue merging or replacing new and existing waiting data.
-    fn handle_data_packet(&mut self, cid: Uuid, data_pkt: DataPacketFramingLayer) -> SacnResult<Option<Vec<DMXData>>> {
+    fn handle_data_packet(&mut self, cid: Uuid, data_pkt: DataPacketFramingLayer) -> Result<Option<Vec<DMXData>>, ReceiveError> {
         if data_pkt.preview_data && !self.process_preview_data {
             // Don't process preview data unless receiver has process_preview_data flag set.
             return Ok(None);
@@ -648,7 +649,7 @@ impl SacnReceiver {
         if data_pkt.stream_terminated {
             self.terminate_stream(cid, &data_pkt.source_name, data_pkt.universe);
             if self.announce_stream_termination {
-                Err(Error::UniverseTerminated {
+                Err(ReceiveError::UniverseTerminated {
                     src_cid: cid,
                     universe: data_pkt.universe,
                 })?;
@@ -747,7 +748,7 @@ impl SacnReceiver {
     ///
     /// # Errors
     /// Will return an DmxMergeError if there is an issue merging or replacing new and existing waiting data.
-    fn store_waiting_data(&mut self, data: DMXData) -> SacnResult<()> {
+    fn store_waiting_data(&mut self, data: DMXData) -> Result<(), ReceiveError> {
         match self.waiting_data.remove(&data.universe) {
             Some(existing) => {
                 self.waiting_data.insert(data.universe, ((self.merge_func)(&existing, &data))?);
@@ -779,7 +780,7 @@ impl SacnReceiver {
     /// # Errors
     /// Returns an OutOfSequence error if a packet is received out of order as detected by the different between
     /// the packets sequence number and the expected sequence number as specified in ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
-    fn handle_sync_packet(&mut self, cid: Uuid, sync_pkt: SynchronizationPacketFramingLayer) -> SacnResult<Option<Vec<DMXData>>> {
+    fn handle_sync_packet(&mut self, cid: Uuid, sync_pkt: SynchronizationPacketFramingLayer) -> Result<Option<Vec<DMXData>>, ReceiveError> {
         let universe = match sync_pkt.synchronization_address {
             Some(universe) => universe,
             None => return Ok(None),
@@ -1086,7 +1087,7 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Io error if the SacnReceiver fails to bind to a socket with the given ip.
     /// For more details see socket2::Socket::new().
-    fn new(ip: SocketAddr) -> SacnResult<SacnNetworkReceiver> {
+    fn new(ip: SocketAddr) -> Result<SacnNetworkReceiver, ReceiveError> {
         Ok(SacnNetworkReceiver {
             socket: create_socket(ip)?,
             addr: ip,
@@ -1101,7 +1102,7 @@ impl SacnNetworkReceiver {
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
     ///
     /// Will return an Io error if cannot join the universes corresponding multicast group address.
-    fn listen_multicast_universe(&self, universe: Universe) -> SacnResult<()> {
+    fn listen_multicast_universe(&self, universe: Universe) -> Result<(), ReceiveError> {
         let multicast_addr = if self.addr.is_ipv4() {
             universe.to_ipv4_multicast_addr()
         } else {
@@ -1116,7 +1117,7 @@ impl SacnNetworkReceiver {
     /// # Errors
     /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
     /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    fn mute_multicast_universe(&mut self, universe: Universe) -> SacnResult<()> {
+    fn mute_multicast_universe(&mut self, universe: Universe) -> Result<(), ReceiveError> {
         let multicast_addr = if self.addr.is_ipv4() {
             universe.to_ipv4_multicast_addr()
         } else {
@@ -1152,9 +1153,9 @@ impl SacnNetworkReceiver {
 
     /// If set to true then only receive over IPv6. If false then receiving will be over both IPv4 and IPv6.
     /// This will return an error if the SacnReceiver wasn't created using an IPv6 address to bind to.
-    fn set_only_v6(&mut self, val: bool) -> SacnResult<()> {
+    fn set_only_v6(&mut self, val: bool) -> Result<(), ReceiveError> {
         if self.addr.is_ipv4() {
-            Err(Error::IpVersionError("No data available in given timeout".to_string()))
+            Err(ReceiveError::IpVersionError("No data available in given timeout".to_string()))
         } else {
             Ok(self.socket.set_only_v6(val)?)
         }
@@ -1174,7 +1175,7 @@ impl SacnNetworkReceiver {
     /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
     ///
     /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    fn recv(&mut self, buf: &mut [u8; RCV_BUF_DEFAULT_SIZE]) -> SacnResult<AcnRootLayerProtocol> {
+    fn recv(&mut self, buf: &mut [u8; RCV_BUF_DEFAULT_SIZE]) -> Result<AcnRootLayerProtocol, ReceiveError> {
         let _ = self.socket.read(buf)?;
 
         Ok(AcnRootLayerProtocol::parse(buf)?)
@@ -1203,7 +1204,7 @@ impl SacnNetworkReceiver {
 /// Will return an error if the socket cannot be created, see (Socket::new)[fn.new.Socket].
 ///
 /// Will return an error if the socket cannot be bound to the given address, see (bind)[fn.bind.Socket2].
-fn create_socket(addr: SocketAddr) -> SacnResult<Socket> {
+fn create_socket(addr: SocketAddr) -> Result<Socket, ReceiveError> {
     let socket = Socket::new(Domain::for_address(addr), Type::DGRAM, None)?;
 
     // Multiple different processes might want to listen to the sACN stream so therefore need to allow re-using the ACN port.
@@ -1241,7 +1242,7 @@ fn create_socket(addr: SocketAddr) -> SacnResult<Socket> {
 ///     See join_multicast_v4[fn.join_multicast_v4.Socket] and join_multicast_v6[fn.join_multicast_v6.Socket]
 ///
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
-fn join_multicast(socket: &Socket, multicast_addr: &SockAddr, interface_addr: Option<IpAddr>) -> SacnResult<()> {
+fn join_multicast(socket: &Socket, multicast_addr: &SockAddr, interface_addr: Option<IpAddr>) -> Result<(), ReceiveError> {
     match multicast_addr.as_socket().unwrap() {
         SocketAddr::V4(addr) => {
             match interface_addr {
@@ -1249,7 +1250,7 @@ fn join_multicast(socket: &Socket, multicast_addr: &SockAddr, interface_addr: Op
                     socket.join_multicast_v4(addr.ip(), interface_v4)?;
                 }
                 Some(IpAddr::V6(_)) => {
-                    Err(Error::IpVersionError(
+                    Err(ReceiveError::IpVersionError(
                         "Multicast address and interface_addr not same IP version".to_string(),
                     ))?;
                 }
@@ -1258,7 +1259,7 @@ fn join_multicast(socket: &Socket, multicast_addr: &SockAddr, interface_addr: Op
         }
         SocketAddr::V6(addr) => match interface_addr {
             Some(IpAddr::V4(_)) => {
-                Err(Error::IpVersionError(
+                Err(ReceiveError::IpVersionError(
                     "Multicast address and interface_addr not same IP version".to_string(),
                 ))?;
             }
@@ -1281,14 +1282,14 @@ fn join_multicast(socket: &Socket, multicast_addr: &SockAddr, interface_addr: Op
 ///     See leave_multicast_v4[fn.leave_multicast_v4.Socket] and leave_multicast_v6[fn.leave_multicast_v6.Socket]
 ///
 /// Will return an IpVersionError if addr and interface_addr are not the same IP version.
-fn leave_multicast(socket: &Socket, addr: &SockAddr, interface_addr: Option<IpAddr>) -> SacnResult<()> {
+fn leave_multicast(socket: &Socket, addr: &SockAddr, interface_addr: Option<IpAddr>) -> Result<(), ReceiveError> {
     match addr.as_socket().unwrap() {
         SocketAddr::V4(addr) => match interface_addr {
             Some(IpAddr::V4(ref interface_v4)) => {
                 socket.leave_multicast_v4(addr.ip(), interface_v4)?;
             }
             Some(IpAddr::V6(ref _interface_v6)) => {
-                Err(Error::IpVersionError(
+                Err(ReceiveError::IpVersionError(
                     "Multicast address and interface_addr not same IP version".to_string(),
                 ))?;
             }
@@ -1298,7 +1299,7 @@ fn leave_multicast(socket: &Socket, addr: &SockAddr, interface_addr: Option<IpAd
         },
         SocketAddr::V6(addr) => match interface_addr {
             Some(IpAddr::V4(_)) => {
-                Err(Error::IpVersionError(
+                Err(ReceiveError::IpVersionError(
                     "Multicast address and interface_addr not same IP version".to_string(),
                 ))?;
             }
@@ -1374,7 +1375,7 @@ impl SequenceNumbering {
     ///
     /// announce_timeout: A flag, if true it indicates than a UniverseTimeout error should be thrown if a universe times out on a source.
     ///  
-    fn check_timeouts(&mut self, announce_timeout: bool) -> SacnResult<()> {
+    fn check_timeouts(&mut self, announce_timeout: bool) -> Result<(), ReceiveError> {
         check_timeouts(&mut self.data_sequences, E131_NETWORK_DATA_LOSS_TIMEOUT, announce_timeout)?;
         check_timeouts(&mut self.sync_sequences, E131_NETWORK_DATA_LOSS_TIMEOUT, announce_timeout)
     }
@@ -1405,7 +1406,7 @@ impl SequenceNumbering {
         sequence_number: u8,
         universe: Universe,
         announce_timeout: bool,
-    ) -> SacnResult<()> {
+    ) -> Result<(), ReceiveError> {
         check_seq_number(
             &mut self.data_sequences,
             source_limit,
@@ -1442,7 +1443,7 @@ impl SequenceNumbering {
         sequence_number: u8,
         sync_uni: Universe,
         announce_timeout: bool,
-    ) -> SacnResult<()> {
+    ) -> Result<(), ReceiveError> {
         check_seq_number(
             &mut self.sync_sequences,
             source_limit,
@@ -1461,7 +1462,7 @@ impl SequenceNumbering {
     /// src_cid: The CID of the source to remove the sequence numbers of.
     ///
     /// universe: The universe being sent by the source from which to remove the sequence numbers.
-    fn remove_seq_numbers(&mut self, src_cid: Uuid, universe: Universe) -> SacnResult<()> {
+    fn remove_seq_numbers(&mut self, src_cid: Uuid, universe: Universe) -> Result<(), ReceiveError> {
         remove_source_universe_seq(&mut self.data_sequences, src_cid, universe)?;
         remove_source_universe_seq(&mut self.sync_sequences, src_cid, universe)
     }
@@ -1491,7 +1492,7 @@ fn check_seq_number(
     sequence_number: u8,
     universe: Universe,
     announce_timeout: bool,
-) -> SacnResult<()> {
+) -> Result<(), ReceiveError> {
     // Check all the timeouts at the start.
     // This is done for all sources/universes rather than just the source that sent the packet because a completely dead (no packets being sent) universe
     // would not be removed otherwise and would continue to take up space. This comes at the cost of increased processing time complexity as each
@@ -1503,9 +1504,7 @@ fn check_seq_number(
         if source_limit.is_none() || src_sequences.len() < source_limit.unwrap() {
             src_sequences.insert(cid, HashMap::new());
         } else {
-            Err(Error::SourcesExceededError(
-                format!("Already at max sources: {}", src_sequences.len()).to_string(),
-            ))?;
+            Err(ReceiveError::SourcesExceeded(src_sequences.len()))?;
         }
     };
 
@@ -1544,7 +1543,7 @@ fn check_seq_number(
 
     if seq_diff <= E131_SEQ_DIFF_DISCARD_UPPER_BOUND && seq_diff > E131_SEQ_DIFF_DISCARD_LOWER_BOUND {
         // Reject the out of order packet as per ANSI E1.31-2018 Section 6.7.2 Sequence Numbering.
-        return Err(Error::OutOfSequence(
+        return Err(ReceiveError::OutOfSequence(
             format!(
                 "Packet received with sequence number {} is out of sequence, last {}, seq-diff {}",
                 sequence_number, expected_seq.sequence_number, seq_diff
@@ -1582,7 +1581,7 @@ fn check_timeouts(
     src_sequences: &mut HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
     timeout: Duration,
     announce_timeout: bool,
-) -> SacnResult<()> {
+) -> Result<(), ReceiveError> {
     if announce_timeout {
         let mut timedout_src_id: Option<Uuid> = None;
         let mut timedout_uni: Option<Universe> = None;
@@ -1609,7 +1608,7 @@ fn check_timeouts(
                     // Remove source if all its universes have timed out
                     src_sequences.remove(&timedout_src_id.unwrap());
                 }
-                Err(Error::UniverseTimeout {
+                Err(ReceiveError::UniverseTimeout {
                     src_cid: timedout_src_id.unwrap(),
                     universe: timedout_uni.unwrap(),
                 })?;
@@ -1646,7 +1645,7 @@ fn remove_source_universe_seq(
     src_sequences: &mut HashMap<Uuid, HashMap<Universe, TimedStampedSeqNo>>,
     src_cid: Uuid,
     universe: Universe,
-) -> SacnResult<()> {
+) -> Result<(), ReceiveError> {
     match src_sequences.get_mut(&src_cid) {
         Some(x) => {
             match x.remove(&universe) {
@@ -1655,7 +1654,7 @@ fn remove_source_universe_seq(
                         // Remove the source if there are no universes registered to it.
                         match src_sequences.remove(&src_cid) {
                             Some(_x) => Ok(()),
-                            None => Err(Error::SourceNotFound(
+                            None => Err(ReceiveError::SourceNotFound(
                                 "Could not find the source so could not remove it".to_string(),
                             )),
                         }
@@ -1663,12 +1662,12 @@ fn remove_source_universe_seq(
                         Ok(())
                     }
                 }
-                None => Err(Error::UniverseNotFound(
+                None => Err(ReceiveError::UniverseNotFound(
                     "Could not find universe within source in sequence numbers so could not remove it".to_string(),
                 )),
             }
         }
-        None => Err(Error::SourceNotFound(
+        None => Err(ReceiveError::SourceNotFound(
             "Could not find the source in the sequence numbers so could not remove it".to_string(),
         )),
     }
@@ -1684,7 +1683,7 @@ fn remove_source_universe_seq(
 /// This function is only valid if both inputs have the same universe, sync addr, start_code and the data contains at least the first value (the start code).
 /// If this doesn't hold an error will be returned.
 /// Other merge functions may allow merging different start codes or not check for them.
-pub fn discard_lowest_priority_then_previous(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
+pub fn discard_lowest_priority_then_previous(i: &DMXData, n: &DMXData) -> Result<DMXData, ReceiveError> {
     if i.priority > n.priority {
         return Ok(i.clone());
     }
@@ -1703,9 +1702,9 @@ pub fn discard_lowest_priority_then_previous(i: &DMXData, n: &DMXData) -> SacnRe
 /// This function is only valid if both inputs have the same universe, sync addr, start_code and the data contains at least the first value (the start code).
 /// If this doesn't hold an error will be returned.
 /// Other merge functions may allow merging different start codes or not check for them.
-pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
+pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> Result<DMXData, ReceiveError> {
     if i.values.is_empty() || n.values.is_empty() || i.universe != n.universe || i.values[0] != n.values[0] || i.sync_uni != n.sync_uni {
-        return Err(Error::DmxMergeError(
+        return Err(ReceiveError::DmxMerge(
             "Attempted DMX merge on dmx data with different universes, synchronisation universes or data with no values".to_string(),
         ));
     }
@@ -1817,7 +1816,7 @@ mod test {
                 universes: universes.clone(),
             },
         };
-        let res= dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
+        let res = dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
 
         assert!(res.is_some());
         assert_eq!(*res.unwrap(), name);
@@ -2200,7 +2199,7 @@ mod test {
 
         // Check that the third data packet with the low sequence number is rejected correctly with the expected OutOfSequence error.
         match dmx_rcv.handle_data_packet(src_cid, data_packet3) {
-            Err(Error::OutOfSequence(_)) => {
+            Err(ReceiveError::OutOfSequence(_)) => {
                 assert!(true, "Receiver correctly rejected third data packet with correct error");
             }
             Ok(_) => {
@@ -2274,7 +2273,7 @@ mod test {
             let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
 
             match res {
-                Err(Error::OutOfSequence(_)) => {
+                Err(ReceiveError::OutOfSequence(_)) => {
                     // Data packet was rejected due to sequence number.
                     if (diff <= REJECT_RANGE_UPPER_BOUND) && (diff > REJECT_RANGE_LOWER_BOUND) {
                         assert!(true, "Rejection is correct as per ANSI E1.31-2018 Section 6.7.2");
@@ -2360,7 +2359,7 @@ mod test {
             let diff: i16 = (i as i16) - (LAST_SEQ_NUM as i16);
 
             match res {
-                Err(Error::OutOfSequence(_)) => {
+                Err(ReceiveError::OutOfSequence(_)) => {
                     // Sync packet was rejected due to sequence number.
                     if (diff <= REJECT_RANGE_UPPER_BOUND) && (diff > REJECT_RANGE_LOWER_BOUND) {
                         assert!(true, "Rejection is correct as per ANSI E1.31-2018 Section 6.7.2");
@@ -2418,7 +2417,7 @@ mod test {
 
         // Check that the third sync packet with the low sequence number is rejected correctly with the expected OutOfSequence error.
         match dmx_rcv.handle_sync_packet(src_cid, sync_packet3) {
-            Err(Error::OutOfSequence(_)) => {
+            Err(ReceiveError::OutOfSequence(_)) => {
                 assert!(true, "Receiver correctly rejected third sync packet with correct error");
             }
             Ok(_) => {
@@ -2649,7 +2648,7 @@ mod test {
 
         match SacnReceiver::with_ip(addr, source_limit) {
             Err(e) => match e {
-                Error::Io(x) => match x.kind() {
+                ReceiveError::Io(x) => match x.kind() {
                     std::io::ErrorKind::InvalidInput => {
                         assert!(true, "Correct error returned");
                     }
