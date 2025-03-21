@@ -396,13 +396,6 @@ impl SacnReceiver {
     /// Any data returned will be ready to act on immediately i.e. waiting e.g. for universe synchronisation
     /// is already handled.
     ///
-    /// # Warning
-    /// This function can overflow the stack if it is called with `None` as the timeout and not receiving anything for a while.
-    /// This happens because a buffer is allocated on the stack and this function calls itself when running
-    /// into a timeout... so the stack just fills up until overflow.
-    ///
-    /// @todo: unrecurse this
-    ///
     /// # Errors
     /// This method will return a WouldBlock (unix) or TimedOut (windows) error if there is no data ready within the given timeout.
     /// A timeout of duration 0 will do timeout checks but otherwise will return a WouldBlock/TimedOut error without checking for data.
@@ -426,6 +419,22 @@ impl SacnReceiver {
     /// universe from the source. If it isn't detected immediately it will be detected within an interval of E131_NETWORK_DATA_LOSS_TIMEOUT (assuming code
     /// executes in zero time).
     pub fn recv(&mut self, timeout: Option<Duration>) -> SacnResult<Vec<DMXData>> {
+        let mut timeout = timeout;
+
+        loop {
+            let result = self.recv_internal(timeout);
+            match result {
+                Ok(ok) => match ok {
+                    DataOrRetry::Data(data) => return Ok(data),
+                    DataOrRetry::Retry(new_timeout) => timeout = new_timeout,
+                },
+                Err(err) => return Err(err),
+            }
+        }
+    }
+
+    /// See [Self::recv]
+    fn recv_internal(&mut self, timeout: Option<Duration>) -> SacnResult<DataOrRetry> {
         if self.universes.len() == 1 && self.universes[0] == Universe::DISCOVERY && timeout.is_none() && !self.announce_source_discovery {
             return Err(Error::OnlyDiscoveryUniverseRegistered);
         }
@@ -475,7 +484,7 @@ impl SacnReceiver {
                 };
 
                 match res {
-                    Some(r) => Ok(r),
+                    Some(r) => Ok(DataOrRetry::Data(r)),
                     None => {
                         // Indicates that there is no data ready to pass up yet even if a packet was received.
                         // To stop recv blocking forever with a non-None timeout due to packets being received consistently (that reset the timeout)
@@ -491,13 +500,11 @@ impl SacnReceiver {
                                         "No data available in given timeout",
                                     ))?
                                 }
-                                // @TODO REMOVE RECURSION
-                                Some(new_timeout) => self.recv(Some(new_timeout)),
+                                Some(new_timeout) => Ok(DataOrRetry::Retry(Some(new_timeout))),
                             }
                         } else {
-                            // @TODO REMOVE RECURSION
                             // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
-                            self.recv(timeout)
+                            Ok(DataOrRetry::Retry(timeout))
                         }
                     }
                 }
@@ -526,15 +533,11 @@ impl SacnReceiver {
                                                 ))?
                                             }
                                         }
-                                        Some(new_timeout) => {
-                                            // @TODO REMOVE RECURSION
-                                            self.recv(Some(new_timeout))
-                                        }
+                                        Some(new_timeout) => Ok(DataOrRetry::Retry(Some(new_timeout))),
                                     }
                                 } else {
-                                    // @TODO REMOVE RECURSION
                                     // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
-                                    self.recv(timeout)
+                                    Ok(DataOrRetry::Retry(timeout))
                                 }
                             }
                             _ => {
@@ -1747,6 +1750,14 @@ pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> SacnResult<DMXData> {
     }
 
     Ok(r)
+}
+
+/// Action after receiving
+enum DataOrRetry {
+    /// OK variant
+    Data(Vec<DMXData>),
+    /// Retry with new timeout
+    Retry(Option<Duration>),
 }
 
 #[cfg(test)]
