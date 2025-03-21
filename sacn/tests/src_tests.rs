@@ -7,7 +7,7 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use core::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use sacn::{
     e131_definitions::ACN_SDT_MULTICAST_PORT,

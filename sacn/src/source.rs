@@ -68,7 +68,7 @@ const DEFAULT_POLL_PERIOD: Duration = Duration::from_secs(1);
 /// use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 /// use sacn::priority::Priority;
 /// use sacn::universe::Universe;
-/// use std::net::{IpAddr, SocketAddr};
+/// use core::net::{IpAddr, SocketAddr};
 ///
 /// let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 ///

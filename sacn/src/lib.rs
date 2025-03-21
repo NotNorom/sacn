@@ -28,8 +28,8 @@
 //! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 //! use sacn::universe::Universe;
 //!
-//! use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-//! use std::time::Duration;
+//! use core::net::{IpAddr, Ipv4Addr, SocketAddr};
+//! use core::time::Duration;
 //!
 //! let universe1: Universe = Universe::new(1).unwrap();
 //! let timeout: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
@@ -59,7 +59,7 @@
 //! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 //! use sacn::time::Duration;
 //!
-//! use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+//! use core::net::{IpAddr, Ipv4Addr, SocketAddr};
 //!
 //! const TIMEOUT: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
 //!
@@ -102,7 +102,7 @@
 //! use sacn::e131_definitions::ACN_SDT_MULTICAST_PORT;
 //! use sacn::priority::Priority;
 //! use sacn::universe::Universe;
-//! use std::net::{IpAddr, SocketAddr};
+//! use core::net::{IpAddr, SocketAddr};
 //!
 //! let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 //!
@@ -129,7 +129,7 @@
 //! use sacn::universe::Universe;
 //! use sacn::time::{sleep, Duration};
 //!
-//! use std::net::{IpAddr, SocketAddr};
+//! use core::net::{IpAddr, SocketAddr};
 //!
 //! let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 //!
@@ -163,7 +163,7 @@
 //! use sacn::universe::Universe;
 //! use sacn::time::{sleep, Duration};
 //!
-//! use std::net::{IpAddr, SocketAddr};
+//! use core::net::{IpAddr, SocketAddr};
 //!
 //! let local_addr: SocketAddr = SocketAddr::new(IpAddr::V4("0.0.0.0".parse().unwrap()), ACN_SDT_MULTICAST_PORT + 1);
 //!

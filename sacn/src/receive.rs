@@ -98,7 +98,7 @@ const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError
 /// use sacn::universe::Universe;
 /// use sacn::time::Duration;
 ///
-/// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+/// use core::net::{IpAddr, Ipv4Addr, SocketAddr};
 ///
 /// let universe1: Universe = Universe::new(1).expect("in range");
 /// let timeout: Option<Duration> = Some(Duration::from_secs(1)); // A timeout of None means blocking behaviour, some indicates the actual timeout.
