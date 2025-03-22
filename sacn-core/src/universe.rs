@@ -253,7 +253,7 @@ impl CompactUniverseList {
 
     /// Unmarks all universes
     pub fn clear(&mut self) {
-        self.inner.fill(0);
+        self.unmark_all();
     }
 
     /// Mark a single universe
@@ -269,6 +269,11 @@ impl CompactUniverseList {
         }
     }
 
+    /// Marks all universe
+    pub fn mark_all(&mut self) {
+        self.inner.fill(u64::MAX);
+    }
+
     /// Mark single universe
     pub fn unmark(&mut self, universe: Universe) {
         let (idx, mask) = Self::universe_to_idx_and_mask(universe);
@@ -280,6 +285,11 @@ impl CompactUniverseList {
         for u in universes {
             self.unmark(*u);
         }
+    }
+
+    /// Unmarks all universe
+    pub fn unmark_all(&mut self) {
+        self.inner.fill(0);
     }
 
     /// Check if a universe is marked. Return true if it is
