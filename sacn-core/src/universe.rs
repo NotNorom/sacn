@@ -324,11 +324,7 @@ impl CompactUniverseList {
 
     /// Creates an iterator over marked universes
     pub fn iter(&self) -> CompactUniverseListIter<'_> {
-        CompactUniverseListIter {
-            universes: &self.inner,
-            byte_idx: 0,
-            value: self.inner[0],
-        }
+        self.into_iter()
     }
 }
 
@@ -356,6 +352,18 @@ impl Display for CompactUniverseList {
         }
 
         Ok(())
+    }
+}
+
+impl<'a> IntoIterator for &'a CompactUniverseList {
+    type Item = Universe;
+    type IntoIter = CompactUniverseListIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter {
+            universes: &self.inner,
+            byte_idx: 0,
+            value: self.inner[0],
+        }
     }
 }
 
