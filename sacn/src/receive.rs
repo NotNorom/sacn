@@ -484,75 +484,69 @@ impl SacnReceiver {
                     }
                 };
 
-                match res {
-                    Some(r) => Ok(DataOrRetry::Data(r)),
+                if let Some(data) = res {
+                    return Ok(DataOrRetry::Data(data));
+                }
+
+                let Some(timeout_duration) = timeout else {
+                    // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
+                    return Ok(DataOrRetry::Retry(timeout));
+                };
+
+                // Indicates that there is no data ready to pass up yet even if a packet was received.
+                // To stop recv blocking forever with a non-None timeout due to packets being received consistently (that reset the timeout)
+                // within the receive timeout (e.g. universe discovery packets if the discovery interval < timeout) the timeout needs to be
+                // adjusted to account for the time already taken.
+                match timeout_duration.checked_sub(start_time.elapsed()) {
                     None => {
-                        // Indicates that there is no data ready to pass up yet even if a packet was received.
-                        // To stop recv blocking forever with a non-None timeout due to packets being received consistently (that reset the timeout)
-                        // within the receive timeout (e.g. universe discovery packets if the discovery interval < timeout) the timeout needs to be
-                        // adjusted to account for the time already taken.
-                        if let Some(timeout_duration) = timeout {
-                            let elapsed = start_time.elapsed();
-                            match timeout_duration.checked_sub(elapsed) {
-                                None => {
-                                    // Indicates that elapsed is bigger than timeout so its time to return.
-                                    Err(std::io::Error::new(
-                                        std::io::ErrorKind::WouldBlock,
-                                        "No data available in given timeout",
-                                    ))?
-                                }
-                                Some(new_timeout) => Ok(DataOrRetry::Retry(Some(new_timeout))),
-                            }
-                        } else {
-                            // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
-                            Ok(DataOrRetry::Retry(timeout))
-                        }
+                        // Indicates that elapsed is bigger than timeout so its time to return.
+                        Err(std::io::Error::new(
+                            std::io::ErrorKind::WouldBlock,
+                            "No data available in given timeout",
+                        ))?
                     }
+                    Some(new_timeout) => Ok(DataOrRetry::Retry(Some(new_timeout))),
                 }
             }
-            Err(err) => {
-                match err {
-                    ReceiveError::Io(ref s) => {
-                        match s.kind() {
-                            // Windows and Unix use different error types (WouldBlock/TimedOut) for the same error.
-                            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut => {
-                                if let Some(timeout_duration) = timeout {
-                                    let elapsed = start_time.elapsed();
-                                    match timeout_duration.checked_sub(elapsed) {
-                                        None => {
-                                            // Indicates that elapsed is bigger than timeout so its time to return.
-                                            if cfg!(target_os = "windows") {
-                                                // Use the right expected error for the operating system.
-                                                Err(std::io::Error::new(
-                                                    std::io::ErrorKind::TimedOut,
-                                                    "No data available in given timeout",
-                                                ))?
-                                            } else {
-                                                Err(std::io::Error::new(
-                                                    std::io::ErrorKind::WouldBlock,
-                                                    "No data available in given timeout",
-                                                ))?
-                                            }
-                                        }
-                                        Some(new_timeout) => Ok(DataOrRetry::Retry(Some(new_timeout))),
-                                    }
-                                } else {
-                                    // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
-                                    Ok(DataOrRetry::Retry(timeout))
-                                }
-                            }
-                            _ => {
-                                // Not a timeout/wouldblock error meaning the recv should stop with the given error.
-                                Err(err)
-                            }
-                        }
-                    }
-                    _ => {
-                        // Not a timeout/wouldblock error meaning the recv should stop with the given error.
-                        Err(err)
-                    }
+            Err(err) => self.handle_recv_error(err, timeout, start_time),
+        }
+    }
+
+    /// Handles errors from calling recv on the inner socket
+    fn handle_recv_error(&self, err: ReceiveError, timeout: Option<Duration>, start_time: Timestamp) -> Result<DataOrRetry, ReceiveError> {
+        let ReceiveError::Io(ref s) = err else {
+            // Not a timeout/wouldblock error meaning the recv should stop with the given error.
+            return Err(err);
+        };
+
+        // Windows and Unix use different error types (WouldBlock/TimedOut) for the same error.
+        let (std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) = s.kind() else {
+            // Not a timeout/wouldblock error meaning the recv should stop with the given error.
+            return Err(err);
+        };
+
+        let Some(timeout_duration) = timeout else {
+            // If the timeout was none then would keep looping till data is returned as the method should keep blocking till then.
+            return Ok(DataOrRetry::Retry(timeout));
+        };
+
+        match timeout_duration.checked_sub(start_time.elapsed()) {
+            None => {
+                // Indicates that elapsed is bigger than timeout so its time to return.
+                if cfg!(target_os = "windows") {
+                    // Use the right expected error for the operating system.
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut,
+                        "No data available in given timeout",
+                    ))?
+                } else {
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::WouldBlock,
+                        "No data available in given timeout",
+                    ))?
                 }
             }
+            Some(new_timeout) => Ok(DataOrRetry::Retry(Some(new_timeout))),
         }
     }
 
