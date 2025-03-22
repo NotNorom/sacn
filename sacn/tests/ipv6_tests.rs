@@ -718,8 +718,6 @@ mod sacn_ipv6_multicast_test {
 
             rcv_dmx_datas.sort_unstable(); // Sorting by universe allows easier checking as order received may vary depending on network.
 
-            println!("{:?}", rcv_dmx_datas);
-
             for k in 0..SND_THREADS {
                 assert_eq!(rcv_dmx_datas[k].universe, ((k as u16) + BASE_UNIVERSE)); // Check that the universe received is as expected.
 
