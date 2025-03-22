@@ -196,5 +196,3 @@ pub use sacn_core::{discovery, dmx_data, e131_definitions, packet, priority, sac
 pub mod error;
 pub mod receive;
 pub mod source;
-
-pub type SacnResult<T> = Result<T, error::Error>;
