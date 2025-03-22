@@ -37,9 +37,9 @@
 //!             stream_terminated: false,
 //!             force_synchronization: false,
 //!             universe: Universe::new(1).unwrap(),
-//!             data: DataPacketDmpLayer {
+//!             data: Box::new(DataPacketDmpLayer {
 //!                 property_values: heapless::Vec::from_slice(&[0, 1, 2, 3]).unwrap(),
-//!             },
+//!             }),
 //!         }),
 //!     },
 //! };
@@ -53,6 +53,9 @@
 //! );
 //! # }}
 //! ```
+
+extern crate alloc;
+use alloc::boxed::Box;
 
 /// The core crate is used for string processing during packet parsing/packing as well as to provide access to the Hash trait.
 use core::hash::{self, Hash};
@@ -369,7 +372,7 @@ pub struct DataPacketFramingLayer {
     pub universe: Universe,
 
     /// DMP layer containing the DMX data.
-    pub data: DataPacketDmpLayer,
+    pub data: Box<DataPacketDmpLayer>,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -422,7 +425,7 @@ impl Pdu for DataPacketFramingLayer {
         let universe = NetworkEndian::read_u16(&buf[UNIVERSE_INDEX..DATA_INDEX]).try_into()?;
 
         // Data layer.
-        let data = DataPacketDmpLayer::parse(&buf[DATA_INDEX..length])?;
+        let data = Box::new(DataPacketDmpLayer::parse(&buf[DATA_INDEX..length])?);
 
         Ok(DataPacketFramingLayer {
             source_name,
@@ -929,7 +932,7 @@ pub struct UniverseDiscoveryPacketUniverseDiscoveryLayer {
     pub last_page: u8,
 
     /// List of universes.
-    pub universes: Vec<Universe, DISCOVERY_UNI_PER_PAGE>,
+    pub universes: Box<Vec<Universe, DISCOVERY_UNI_PER_PAGE>>,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -972,7 +975,7 @@ impl Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
 
         // The number of universes, calculated by dividing the remaining space in the packet by the size of a single universe.
         let universes_length = (length - E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX) / E131_UNIVERSE_FIELD_LENGTH;
-        let universes = parse_universe_list(&buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX..], universes_length)?;
+        let universes = Box::new(parse_universe_list(&buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX..], universes_length)?);
 
         Ok(UniverseDiscoveryPacketUniverseDiscoveryLayer {
             page,

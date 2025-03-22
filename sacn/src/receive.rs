@@ -854,7 +854,10 @@ impl SacnReceiver {
             universes,
         } = discovery_pkt.data;
 
-        let uni_page: UniversePage = UniversePage { page, universes };
+        let uni_page: UniversePage = UniversePage {
+            page,
+            universes: *universes,
+        };
 
         // See if some pages that belong to the source that this page belongs to have already been received.
         match find_discovered_src(&self.partially_discovered_sources, &discovery_pkt.source_name) {
@@ -876,7 +879,7 @@ impl SacnReceiver {
                 let discovered_src: DiscoveredSacnSource = DiscoveredSacnSource {
                     name: discovery_pkt.source_name.clone(),
                     last_page,
-                    pages: heapless::Vec::from_slice(&[uni_page]).unwrap(),
+                    pages: Box::new(heapless::Vec::from_slice(&[uni_page]).unwrap()),
                     last_updated: Timestamp::now(),
                 };
 
@@ -1813,7 +1816,7 @@ mod test {
                 last_page,
 
                 // List of universes.
-                universes: universes.clone(),
+                universes: Box::new(universes.clone()),
             },
         };
         let res = dmx_rcv.handle_universe_discovery_packet(discovery_pkt);
@@ -2142,9 +2145,9 @@ mod test {
             stream_terminated: false,
             force_synchronization: false,
             universe,
-            data: DataPacketDmpLayer {
+            data: Box::new(DataPacketDmpLayer {
                 property_values: Vec::from_slice(&TEST_DATA_SINGLE_UNIVERSE[0..]).unwrap(),
-            },
+            }),
         }
     }
 

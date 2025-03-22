@@ -798,7 +798,7 @@ pub mod discovery_parse_tests {
                     data: UniverseDiscoveryPacketUniverseDiscoveryLayer {
                         page: 1,
                         last_page: 2,
-                        universes: Vec::from_slice(slice_to_universes(&[0x0001, 0x0203, 0x0405]).expect("in range")).unwrap(),
+                        universes: Box::new(Vec::from_slice(slice_to_universes(&[0x0001, 0x0203, 0x0405]).expect("in range")).unwrap()),
                     },
                 }),
             },
@@ -986,7 +986,7 @@ pub mod discovery_parse_tests {
                     assert_eq!(udpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(udpfl.data.page, 1);
                     assert_eq!(udpfl.data.last_page, 2);
-                    assert_eq!(udpfl.data.universes, [0x01, 0x0203, 0x0405]);
+                    assert_eq!(*udpfl.data.universes, [0x01, 0x0203, 0x0405]);
                 }
                 _ => {
                     assert!(false, "Packet not parsed as discovery-packet as expected");

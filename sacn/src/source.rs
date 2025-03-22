@@ -818,9 +818,9 @@ impl SacnSourceInternal {
                     stream_terminated: false,
                     force_synchronization: false,
                     universe,
-                    data: DataPacketDmpLayer {
+                    data: Box::new(DataPacketDmpLayer {
                         property_values: heapless::Vec::from_slice(data).unwrap(),
-                    },
+                    }),
                 }),
             },
         };
@@ -954,9 +954,9 @@ impl SacnSourceInternal {
                     stream_terminated: true,
                     force_synchronization: false,
                     universe,
-                    data: DataPacketDmpLayer {
+                    data: Box::new(DataPacketDmpLayer {
                         property_values: heapless::Vec::from_slice(&[start_code]).unwrap(),
-                    },
+                    }),
                 }),
             },
         };
@@ -1052,7 +1052,8 @@ impl SacnSourceInternal {
     ///
     /// SacnParsePackError: Returned if the discovery packet cannot be packed to send.
     fn send_universe_discovery_detailed(&self, page: u8, last_page: u8, universes: &[Universe]) -> Result<(), SourceError> {
-        let universes = heapless::Vec::from_slice(universes).map_err(|_| ParsePackError::TooManyDiscoveryUniverses(universes.len()))?;
+        let universes =
+            Box::new(heapless::Vec::from_slice(universes).map_err(|_| ParsePackError::TooManyDiscoveryUniverses(universes.len()))?);
 
         let packet = AcnRootLayerProtocol {
             pdu: E131RootLayer {

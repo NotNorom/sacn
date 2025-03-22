@@ -1,3 +1,6 @@
+extern crate alloc;
+use alloc::boxed::Box;
+
 use heapless::Vec;
 
 use crate::{e131_definitions::DISCOVERY_UNI_PER_PAGE, source_name::SourceName, time::Timestamp, universe::Universe};
@@ -12,7 +15,7 @@ pub struct DiscoveredSacnSource<const PAGE_CAPACITY: usize = { u8::MAX as usize 
     pub last_updated: Timestamp,
 
     /// The pages that have been sent so far by this source when enumerating the universes it is currently sending on.
-    pub pages: Vec<UniversePage, PAGE_CAPACITY>,
+    pub pages: Box<Vec<UniversePage, PAGE_CAPACITY>>,
 
     // pub universes: CompactUniverseList,
     /// The last page that will be sent by this source.
@@ -40,7 +43,7 @@ impl DiscoveredSacnSource {
     /// Intentionally abstracts over the underlying concept of pages as this is purely an E1.31 Universe Discovery concept and is otherwise transparent.
     pub fn get_all_universes(&self) -> Vec<Universe, { u8::MAX as usize * DISCOVERY_UNI_PER_PAGE as usize }> {
         let mut uni = Vec::new();
-        for p in &self.pages {
+        for p in &*self.pages {
             uni.extend_from_slice(&p.universes).unwrap();
         }
         uni
@@ -48,7 +51,7 @@ impl DiscoveredSacnSource {
 
     /// Removes the given universe from the list of universes being sent by this discovered source.
     pub fn terminate_universe(&mut self, universe: Universe) {
-        for p in &mut self.pages {
+        for p in &mut *self.pages {
             p.universes.retain(|x| *x != universe);
         }
     }

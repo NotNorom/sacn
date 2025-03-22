@@ -3228,9 +3228,9 @@ pub mod data_parse_tests {
                     stream_terminated: false,
                     force_synchronization: false,
                     universe: Universe::new(1).expect("in range"),
-                    data: DataPacketDmpLayer {
+                    data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_EMPTY[125..].try_into().unwrap(),
-                    },
+                    }),
                 }),
             },
         };
@@ -3257,9 +3257,9 @@ pub mod data_parse_tests {
                     stream_terminated: false,
                     force_synchronization: false,
                     universe: Universe::new(1).expect("in range"),
-                    data: DataPacketDmpLayer {
+                    data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_PARTIAL[125..].try_into().unwrap(),
-                    },
+                    }),
                 }),
             },
         };
@@ -3286,9 +3286,9 @@ pub mod data_parse_tests {
                     stream_terminated: false,
                     force_synchronization: false,
                     universe: Universe::new(1).expect("in range"),
-                    data: DataPacketDmpLayer {
+                    data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET[125..638].try_into().unwrap(),
-                    },
+                    }),
                 }),
             },
         };
@@ -3583,9 +3583,9 @@ pub mod data_parse_tests {
                     stream_terminated: false,
                     force_synchronization: false,
                     universe: Universe::new(1).expect("in range"),
-                    data: DataPacketDmpLayer {
+                    data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_MAX_SOURCE_NAME[125..638].try_into().unwrap(),
-                    },
+                    }),
                 }),
             },
         };
