@@ -26,7 +26,7 @@ use std::{collections::HashMap, io::Read};
 
 use sacn_core::{
     discovery::{DiscoveredSacnSource, UniversePage},
-    dmx_data::DMXData,
+    dmx_data::{DMXData, MergeError},
     e131_definitions::ACN_SDT_MULTICAST_PORT,
     source_name::SourceName,
     time::{Duration, Timestamp},
@@ -85,7 +85,7 @@ const INITIAL_SEQUENCE_NUMBER: u8 = 255;
 ///
 /// This can be changed by providing a new function to handle the situation of the user implementing a custom merge/arbitration algorithm as per
 /// ANSI E1.31-2018 Section 6.2.3.2.
-const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError> = discard_lowest_priority_then_previous;
+const DEFAULT_MERGE_FUNC: fn(&DMXData, &DMXData) -> Result<DMXData, MergeError> = DMXData::merge_discard_lowest_priority_then_previous;
 
 /// Allows receiving dmx or other (different startcode) data using sacn.
 ///
@@ -139,7 +139,7 @@ pub struct SacnReceiver {
 
     /// The merge function used by this receiver if DMXData for the same universe and synchronisation universe is received while there
     /// is already DMXData waiting for that universe and synchronisation address.
-    merge_func: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError>,
+    merge_func: fn(&DMXData, &DMXData) -> Result<DMXData, MergeError>,
 
     /// Sacn sources that have been partially discovered by only some of their universes being discovered so far with more pages to go.
     partially_discovered_sources: Vec<DiscoveredSacnSource>,
@@ -313,7 +313,7 @@ impl SacnReceiver {
     ///
     /// Arguments:
     /// func: The merge function to use. Should take 2 DMXData references as arguments and return a `Result<DMXData>`.
-    pub fn set_merge_fn(&mut self, func: fn(&DMXData, &DMXData) -> Result<DMXData, ReceiveError>) {
+    pub fn set_merge_fn(&mut self, func: fn(&DMXData, &DMXData) -> Result<DMXData, MergeError>) {
         self.merge_func = func;
     }
 
@@ -748,7 +748,7 @@ impl SacnReceiver {
     ///
     /// # Errors
     /// Will return an DmxMergeError if there is an issue merging or replacing new and existing waiting data.
-    fn store_waiting_data(&mut self, data: DMXData) -> Result<(), ReceiveError> {
+    fn store_waiting_data(&mut self, data: DMXData) -> Result<(), MergeError> {
         match self.waiting_data.remove(&data.universe) {
             Some(existing) => {
                 self.waiting_data.insert(data.universe, ((self.merge_func)(&existing, &data))?);
@@ -1674,84 +1674,6 @@ fn remove_source_universe_seq(
             "Could not find the source in the sequence numbers so could not remove it".to_string(),
         )),
     }
-}
-
-/// The default merge action for the receiver.
-///
-/// This discarding of the old data is the default action for compliance as specified in ANSI E1.31-2018, Section 11.2.1.
-///
-/// This can be changed if required as part of the mechanism described in ANSI E1.31-2018, Section 6.2.3.4 Requirements for Merging and Arbitrating.
-///
-/// The first argument (i) is the existing data, n is the new data.
-/// This function is only valid if both inputs have the same universe, sync addr, start_code and the data contains at least the first value (the start code).
-/// If this doesn't hold an error will be returned.
-/// Other merge functions may allow merging different start codes or not check for them.
-pub fn discard_lowest_priority_then_previous(i: &DMXData, n: &DMXData) -> Result<DMXData, ReceiveError> {
-    if i.priority > n.priority {
-        return Ok(i.clone());
-    }
-    Ok(n.clone())
-}
-
-/// Performs a highest takes priority (HTP) (per byte) DMX merge of data.
-///
-/// Note this merge is done within the explicit priority, if i or n has an explicitly higher priority it will always take precedence before this HTP merge is attempted.
-/// If either data has the preview flag set then the result will have the preview flag set.
-///
-/// Given as an example of a possible merge algorithm.
-///
-/// The first argument (i) is the existing data, n is the new data.
-///
-/// This function is only valid if both inputs have the same universe, sync addr, start_code and the data contains at least the first value (the start code).
-/// If this doesn't hold an error will be returned.
-/// Other merge functions may allow merging different start codes or not check for them.
-pub fn htp_dmx_merge(i: &DMXData, n: &DMXData) -> Result<DMXData, ReceiveError> {
-    if i.values.is_empty() || n.values.is_empty() || i.universe != n.universe || i.values[0] != n.values[0] || i.sync_uni != n.sync_uni {
-        return Err(ReceiveError::DmxMerge(
-            "Attempted DMX merge on dmx data with different universes, synchronisation universes or data with no values".to_string(),
-        ));
-    }
-
-    #[allow(clippy::comparison_chain)]
-    // allowed because performance:
-    // https://rust-lang.github.io/rust-clippy/master/index.html#comparison_chain
-    if i.priority > n.priority {
-        return Ok(i.clone());
-    } else if n.priority > i.priority {
-        return Ok(n.clone());
-    }
-    // Must have same priority.
-
-    let mut r: DMXData = DMXData {
-        universe: i.universe,
-        values: heapless::Vec::new(),
-        sync_uni: i.sync_uni,
-        priority: i.priority,
-        src_cid: None,
-        preview: i.preview || n.preview, // If either data is preview then mark the result as preview.
-        recv_timestamp: i.recv_timestamp,
-    };
-
-    let mut i_iter = i.values.iter();
-    let mut n_iter = n.values.iter();
-
-    let mut i_val = i_iter.next();
-    let mut n_val = n_iter.next();
-
-    loop {
-        let value_to_push = match (i_val, n_val) {
-            (None, None) => break,
-            (None, Some(n)) => n,
-            (Some(i), None) => i,
-            (Some(i), Some(n)) => i.max(n),
-        };
-        r.values.push(*value_to_push).expect("Should have enough capacity");
-
-        i_val = i_iter.next();
-        n_val = n_iter.next();
-    }
-
-    Ok(r)
 }
 
 /// Action after receiving

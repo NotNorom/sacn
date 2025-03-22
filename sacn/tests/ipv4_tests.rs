@@ -30,7 +30,7 @@ use sacn::{
     error::{ReceiveError, SourceError},
     packet::*,
     priority::Priority,
-    receive::{SacnReceiver, htp_dmx_merge},
+    receive::SacnReceiver,
     source::SacnSource,
     time::{Duration, Timestamp, sleep},
     universe::{Universe, slice_to_universes},
@@ -1208,7 +1208,7 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
 
     dmx_recv.listen_universes(&[universe, sync_uni]).unwrap();
 
-    dmx_recv.set_merge_fn(htp_dmx_merge);
+    dmx_recv.set_merge_fn(DMXData::merge_htp);
 
     let snd_thread_1 = thread::spawn(move || {
         let ip: SocketAddr = SocketAddr::new(
@@ -1259,26 +1259,24 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
     assert_eq!(res1.len(), 1);
     assert_eq!(
         res1[0].values,
-        htp_dmx_merge(
-            &DMXData {
-                universe,
-                values: TEST_DATA_SINGLE_UNIVERSE.as_slice().try_into().unwrap(),
-                sync_uni: Some(sync_uni),
-                priority: Priority::default(),
-                src_cid: None,
-                preview: false,
-                recv_timestamp: Timestamp::now()
-            },
-            &DMXData {
-                universe,
-                values: TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.as_slice().try_into().unwrap(),
-                sync_uni: Some(sync_uni),
-                priority: Priority::default(),
-                src_cid: None,
-                preview: false,
-                recv_timestamp: Timestamp::now()
-            },
-        )
+        DMXData {
+            universe,
+            values: TEST_DATA_SINGLE_UNIVERSE.as_slice().try_into().unwrap(),
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
+            src_cid: None,
+            preview: false,
+            recv_timestamp: Timestamp::now()
+        }
+        .merge_htp(&DMXData {
+            universe,
+            values: TEST_DATA_PARTIAL_CAPACITY_UNIVERSE.as_slice().try_into().unwrap(),
+            sync_uni: Some(sync_uni),
+            priority: Priority::default(),
+            src_cid: None,
+            preview: false,
+            recv_timestamp: Timestamp::now()
+        },)
         .unwrap()
         .values
     );

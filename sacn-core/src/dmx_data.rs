@@ -66,6 +66,104 @@ impl DMXData {
             recv_timestamp,
         }
     }
+
+    /// Checks if two dmx data packets can be merged
+    pub fn can_be_merged(&self, other: &Self) -> Result<(), MergeError> {
+        if self.universe != other.universe {
+            return Err(MergeError::UniversesDifferent);
+        }
+
+        if self.sync_uni != other.sync_uni {
+            return Err(MergeError::SyncUniversesDiffernt);
+        }
+
+        if self.values[0] != other.values[0] {
+            return Err(MergeError::StartCodeDifferent);
+        }
+
+        if self.values.is_empty() || other.values.is_empty() {
+            return Err(MergeError::ValuesEmpty);
+        }
+
+        Ok(())
+    }
+
+    /// Merge this data with other data, using passed strategy
+    pub fn merge(&self, other: &Self, strategy: fn(&Self, &Self) -> Result<Self, MergeError>) -> Result<Self, MergeError> {
+        strategy(self, other)
+    }
+
+    /// The default merge action for the receiver.
+    ///
+    /// This discarding of the old data is the default action for compliance as specified in ANSI E1.31-2018, Section 11.2.1.
+    ///
+    /// This can be changed if required as part of the mechanism described in ANSI E1.31-2018, Section 6.2.3.4 Requirements for Merging and Arbitrating.
+    ///
+    /// The first argument (i) is the existing data, n is the new data.
+    /// This function is only valid if both inputs have the same universe, sync addr, start_code and the data contains at least the first value (the start code).
+    /// If this doesn't hold an error will be returned.
+    /// Other merge functions may allow merging different start codes or not check for them.
+    pub fn merge_discard_lowest_priority_then_previous(&self, other: &Self) -> Result<Self, MergeError> {
+        if self.priority > other.priority {
+            return Ok(self.clone());
+        }
+        Ok(other.clone())
+    }
+
+    /// Performs a highest takes priority (HTP) (per byte) DMX merge of data.
+    ///
+    /// Note this merge is done within the explicit priority, if i or n has an explicitly higher priority it will always take precedence before this HTP merge is attempted.
+    /// If either data has the preview flag set then the result will have the preview flag set.
+    ///
+    /// Given as an example of a possible merge algorithm.
+    ///
+    /// The first argument (i) is the existing data, n is the new data.
+    ///
+    /// This function is only valid if both inputs have the same universe, sync addr, start_code and the data contains at least the first value (the start code).
+    /// If this doesn't hold an error will be returned.
+    /// Other merge functions may allow merging different start codes or not check for them.
+    pub fn merge_htp(&self, other: &Self) -> Result<Self, MergeError> {
+        #[allow(clippy::comparison_chain)]
+        // allowed because performance:
+        // https://rust-lang.github.io/rust-clippy/master/index.html#comparison_chain
+        if self.priority > other.priority {
+            return Ok(self.clone());
+        } else if other.priority > self.priority {
+            return Ok(other.clone());
+        }
+        // Must have same priority.
+
+        let mut r: DMXData = DMXData {
+            universe: self.universe,
+            values: heapless::Vec::new(),
+            sync_uni: self.sync_uni,
+            priority: self.priority,
+            src_cid: None,
+            preview: self.preview || other.preview, // If either data is preview then mark the result as preview.
+            recv_timestamp: self.recv_timestamp,
+        };
+
+        let mut self_iter = self.values.iter();
+        let mut other_iter = other.values.iter();
+
+        let mut self_val = self_iter.next();
+        let mut other_val = other_iter.next();
+
+        loop {
+            let value_to_push = match (self_val, other_val) {
+                (None, None) => break,
+                (None, Some(other)) => other,
+                (Some(s), None) => s,
+                (Some(s), Some(other)) => s.max(other),
+            };
+            r.values.push(*value_to_push).expect("Should have enough capacity");
+
+            self_val = self_iter.next();
+            other_val = other_iter.next();
+        }
+
+        Ok(r)
+    }
 }
 
 impl Clone for DMXData {
@@ -299,4 +397,21 @@ pub enum DMXStartCode {
     Reserved0xCE = 0xCE,
     /// ANSI E1.11 System Information Packet
     SystemInformationPacket = 0xCF,
+}
+
+/// Errors possible during merging of dmx data
+#[derive(Debug, thiserror::Error)]
+pub enum MergeError {
+    /// Attempted DMX merge with different universes
+    #[error("Attempted DMX merge with different universes")]
+    UniversesDifferent,
+    /// Attempted DMX merge with different sync universes
+    #[error("Attempted DMX merge with different sync universes")]
+    SyncUniversesDiffernt,
+    /// Attempted DMX merge with different start codes
+    #[error("Attempted DMX merge with different start codes")]
+    StartCodeDifferent,
+    /// Attempted DMX merge with no values
+    #[error("Attempted DMX merge with no values")]
+    ValuesEmpty,
 }

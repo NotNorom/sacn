@@ -10,7 +10,7 @@
 //
 // This file was created as part of a University of St Andrews Computer Science BSC Senior Honours Dissertation Project.
 
-use sacn_core::source_name::SourceName;
+use sacn_core::{dmx_data::MergeError, source_name::SourceName};
 /// UUID library used to handle the UUID's used in the CID fields, used here so that error can include the cid in messages.
 use uuid::Uuid;
 
@@ -114,7 +114,7 @@ pub enum ReceiveError {
     /// # Arguments
     /// A string describing why the error was returned.
     #[error("Error when merging DMX data, msg: {0}")]
-    DmxMerge(String),
+    DmxMerge(#[from] MergeError),
 }
 
 /// Source specific errors
