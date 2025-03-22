@@ -1,5 +1,3 @@
-#![warn(missing_docs)]
-
 //! The packet module handles the sACN packets including parsing/packing and sACN related constants.
 
 // Copyright 2020 sacn Developers

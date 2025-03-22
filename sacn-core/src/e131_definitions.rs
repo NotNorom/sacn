@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! This module contains various definitions mentioned in the ANSI E1.31 — 2018 document
 
 use crate::time::Duration;

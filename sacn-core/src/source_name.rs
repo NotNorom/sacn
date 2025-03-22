@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! This module contains all things `SourceName`
 
 use core::{

@@ -1,4 +1,7 @@
 #![no_std]
+#![warn(missing_docs)]
+
+//! Core types for sacn crate
 
 pub mod discovery;
 pub mod dmx_data;

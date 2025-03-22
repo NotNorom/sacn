@@ -1,3 +1,5 @@
+//! This module deals with types relevant to universe discovery
+
 extern crate alloc;
 use alloc::boxed::Box;
 

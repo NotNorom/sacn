@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! The errors used within the sACN crate.
 
 // Copyright 2020 sacn Developers

@@ -188,7 +188,7 @@
 //! ```
 
 #![doc(html_root_url = "https://docs.rs/sacn/")]
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use sacn_core::{discovery, dmx_data, e131_definitions, packet, priority, sacn_parse_pack_error, source_name, time, universe};

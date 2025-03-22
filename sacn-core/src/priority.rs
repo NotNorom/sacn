@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! This module contains all things `Priority` according to ANSI E1.31-2018, Section 6.2.3.
 
 use core::fmt::Display;

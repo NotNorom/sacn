@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! The receive module handles the receiving of sACN on the network.
 
 // Copyright 2020 sacn Developers

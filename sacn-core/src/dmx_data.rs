@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! This module contains types that deal with the actual dmx data
 //!
 //! DMX data is not juste the 512 data values, but also:

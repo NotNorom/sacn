@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! The source module handles generation of sACN on the network.
 
 // Copyright 2020 sacn Developers

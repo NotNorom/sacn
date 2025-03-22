@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! This module contains all things `Universe` according to ANSI E1.31-2018, Section 3.3.
 //!
 //! A more accurate name would be `Universe Name`, but I decided against it because of brevity.

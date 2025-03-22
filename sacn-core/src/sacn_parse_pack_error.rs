@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 //! The errors within the sACN crate related to parse/pack errors.
 
 // Copyright 2020 sacn Developers
