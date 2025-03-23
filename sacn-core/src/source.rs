@@ -1,6 +1,6 @@
 use core::net::SocketAddr;
 
-use crate::{priority::Priority, universe::UniverseId};
+use crate::{priority::Priority, universe_id::UniverseId};
 
 /// A [Source] is s as type that can send sacn data
 trait Source {

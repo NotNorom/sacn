@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod sync_parse_tests {
 
-    use sacn_core::{packet::*, sacn_parse_pack_error::ParsePackError, universe::UniverseId};
+    use sacn_core::{packet::*, sacn_parse_pack_error::ParsePackError, universe_id::UniverseId};
     use uuid::Uuid;
     #[rustfmt::skip]
     /// A test synchronisation packet as specified as an example in

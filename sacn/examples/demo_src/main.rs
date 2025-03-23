@@ -37,7 +37,7 @@ use sacn::{
     priority::Priority,
     source::SacnSource,
     time::{Duration, Timestamp, sleep},
-    universe::UniverseId,
+    universe_id::UniverseId,
 };
 
 /// The start code used in termination packets.

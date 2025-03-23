@@ -17,7 +17,7 @@ pub mod data_parse_tests {
         priority::Priority,
         sacn_parse_pack_error::ParsePackError,
         source_name::{SourceName, SourceNameError},
-        universe::UniverseId,
+        universe_id::UniverseId,
     };
     use uuid::Uuid;
 

@@ -5,7 +5,7 @@ use alloc::boxed::Box;
 
 use heapless::Vec;
 
-use crate::{e131_definitions::DISCOVERY_UNI_PER_PAGE, source_name::SourceName, time::Timestamp, universe::UniverseId};
+use crate::{e131_definitions::DISCOVERY_UNI_PER_PAGE, source_name::SourceName, time::Timestamp, universe_id::UniverseId};
 
 /// Represents an sACN source/sender on the network that has been discovered by this sACN receiver by receiving universe discovery packets.
 #[derive(Clone, Debug)]

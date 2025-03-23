@@ -32,7 +32,7 @@ use sacn::{
     error::{Error as SacnError, ReceiveError},
     receive::SacnReceiver,
     time::{Duration, sleep},
-    universe::UniverseId,
+    universe_id::UniverseId,
 };
 
 /// The string given by the user to receive data.

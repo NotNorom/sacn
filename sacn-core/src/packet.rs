@@ -85,7 +85,7 @@ use crate::{
     priority::Priority,
     sacn_parse_pack_error::{InsufficientData, InvalidData, ParsePackError},
     source_name::SourceName,
-    universe::UniverseId,
+    universe_id::UniverseId,
 };
 
 /// Fills the given array of bytes with the given length n with bytes of value 0.
@@ -1119,7 +1119,7 @@ mod test {
             VECTOR_UNIVERSE_DISCOVERY_UNIVERSE_LIST,
         },
         time::Duration,
-        universe::UniverseError,
+        universe_id::UniverseError,
     };
 
     /// The universe_to tests below check that the conversion from a universe to an IPv6 or IPv4 multicast address is done as

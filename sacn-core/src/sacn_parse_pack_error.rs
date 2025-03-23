@@ -15,7 +15,7 @@ use crate::{
     e131_definitions::{DISCOVERY_UNI_PER_PAGE, UNIVERSE_CHANNEL_CAPACITY},
     priority::PriorityError,
     source_name::SourceNameError,
-    universe::{UniverseId, UniverseError},
+    universe_id::{UniverseError, UniverseId},
 };
 
 /// The errors used within the SacnLibrary specifically those related to parsing and packeting packets received/sent on the network.

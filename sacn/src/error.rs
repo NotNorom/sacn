@@ -18,7 +18,7 @@ use crate::{
     sacn_parse_pack_error::ParsePackError,
     source::SourceCreationError,
     source_name::SourceNameError,
-    universe::{UniverseId, UniverseError},
+    universe_id::{UniverseError, UniverseId},
 };
 
 /// Receiver specific errors

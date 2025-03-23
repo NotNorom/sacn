@@ -46,7 +46,7 @@ use crate::{
         AcnRootLayerProtocol, DataPacketFramingLayer, E131RootLayer, E131RootLayerData, SynchronizationPacketFramingLayer,
         UniverseDiscoveryPacketFramingLayer, UniverseDiscoveryPacketUniverseDiscoveryLayer,
     },
-    universe::UniverseId,
+    universe_id::UniverseId,
 };
 
 /// The default size of the buffer used to receive E1.31 packets.
@@ -1591,7 +1591,7 @@ mod test {
 
     use super::*;
     use crate::{
-        e131_definitions::ACN_SDT_MULTICAST_PORT, packet::DataPacketDmpLayer, source_name::SourceName, universe::slice_to_universes,
+        e131_definitions::ACN_SDT_MULTICAST_PORT, packet::DataPacketDmpLayer, source_name::SourceName, universe_id::slice_to_universes,
     };
 
     const TEST_DATA_SINGLE_UNIVERSE: [u8; 512] = [

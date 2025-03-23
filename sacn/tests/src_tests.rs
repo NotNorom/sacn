@@ -15,7 +15,7 @@ use sacn::{
     priority::{Priority, PriorityError},
     source::{SacnSource, SourceCreationError},
     source_name::SourceNameError,
-    universe::{UniverseId, UniverseError, slice_to_universes},
+    universe_id::{UniverseError, UniverseId, slice_to_universes},
 };
 /// UUID library used to handle the UUID's used in the CID fields.
 use uuid::Uuid;

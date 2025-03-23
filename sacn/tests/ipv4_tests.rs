@@ -33,7 +33,7 @@ use sacn::{
     receive::SacnReceiver,
     source::SacnSource,
     time::{Duration, Timestamp, sleep},
-    universe::{UniverseId, slice_to_universes},
+    universe_id::{UniverseId, slice_to_universes},
 };
 /// Socket2 used to create sockets for testing.
 use socket2::{Domain, Socket, Type};
@@ -1897,7 +1897,8 @@ fn test_universe_discovery_interval_ipv4() {
 
             let mut src = SacnSource::with_ip(source_names[i], ip).unwrap();
 
-            src.register_universes(&[UniverseId::new(base_universe).expect("in range")]).unwrap();
+            src.register_universes(&[UniverseId::new(base_universe).expect("in range")])
+                .unwrap();
 
             tx.send(()).unwrap(); // Used to force the sender to wait till the receiver has received a universe discovery.
         }));

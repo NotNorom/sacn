@@ -38,7 +38,7 @@ mod sacn_ipv6_multicast_test {
         receive::SacnReceiver,
         source::SacnSource,
         time::{Duration, sleep},
-        universe::{UniverseId, slice_to_universes},
+        universe_id::{UniverseId, slice_to_universes},
     };
     use socket2::{Domain, Socket, Type};
     /// UUID library used to handle the UUID's used in the CID fields.
@@ -1600,7 +1600,7 @@ mod sacn_ipv6_unicast_test {
         receive::SacnReceiver,
         source::SacnSource,
         time::{Duration, sleep},
-        universe::UniverseId,
+        universe_id::UniverseId,
     };
 
     use crate::{

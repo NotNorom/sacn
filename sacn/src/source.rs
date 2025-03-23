@@ -41,7 +41,7 @@ use crate::{
     priority::Priority,
     sacn_parse_pack_error::ParsePackError,
     source_name::{SourceName, SourceNameError},
-    universe::UniverseId,
+    universe_id::UniverseId,
 };
 
 /// The name of the thread which runs periodically to perform various actions such as universe discovery adverts for the source.

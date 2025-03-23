@@ -5,7 +5,7 @@ pub mod discovery_parse_tests {
         e131_definitions::DISCOVERY_UNI_PER_PAGE,
         packet::*,
         sacn_parse_pack_error::ParsePackError,
-        universe::{UniverseId, slice_to_universes},
+        universe_id::{UniverseId, slice_to_universes},
     };
     use uuid::Uuid;
 
