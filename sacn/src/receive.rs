@@ -179,8 +179,6 @@ struct SacnNetworkReceiver {
     is_multicast_enabled: bool,
 }
 
-/// Allows debug ({:?}) printing of the SacnReceiver, used during debugging.
-///  
 impl fmt::Debug for SacnReceiver {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.receiver)?;
