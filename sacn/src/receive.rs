@@ -946,143 +946,8 @@ fn find_discovered_src(srcs: &[DiscoveredSacnSource], name: &str) -> Option<usiz
     srcs.iter().position(|source| *source.name == *name)
 }
 
-/// In general the lower level transport layer is handled by SacnNetworkReceiver (which itself wraps a Socket).
-/// Windows and linux handle multicast sockets differently.
-/// This is built for / tested with Windows 10 1909.
-#[cfg(target_os = "windows")]
-impl SacnNetworkReceiver {
-    /// Creates a new DMX receiver on the interface specified by the given address.
-    ///
-    /// If the given address is an IPv4 address then communication will only work between IPv4 devices, if the given address is IPv6 then communication
-    /// will only work between IPv6 devices by default but IPv4 receiving can be enabled using set_ipv6_only(false).
-    ///
-    /// # Errors
-    /// Will return an error if the SacnReceiver fails to bind to a socket with the given ip.
-    /// For more details see socket2::Socket::new().
-    fn new(ip: SocketAddr) -> Result<SacnNetworkReceiver, ReceiveError> {
-        Ok(SacnNetworkReceiver {
-            socket: create_socket(ip)?,
-            addr: ip,
-            is_multicast_enabled: true,
-        })
-    }
-
-    /// Connects this SacnNetworkReceiver to the multicast address which corresponds to the given universe to allow receiving packets for that universe.
-    ///
-    /// # Errors
-    /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
-    /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    ///
-    /// Will return an Io error if cannot join the universes corresponding multicast group address.
-    fn listen_multicast_universe(&self, universe: Universe) -> Result<(), ReceiveError> {
-        let multicast_addr = if self.addr.is_ipv4() {
-            universe.to_ipv4_multicast_addr()
-        } else {
-            universe.to_ipv6_multicast_addr()
-        };
-
-        Ok(join_multicast(&self.socket, &multicast_addr, None)?)
-    }
-
-    /// Removes this SacnNetworkReceiver from the multicast group which corresponds to the given universe.
-    ///
-    /// # Errors
-    /// Will return an Error if the given universe cannot be converted to an Ipv4 or Ipv6 multicast_addr depending on if the Receiver is bound to an
-    /// IPv4 or IPv6 address. See packet::universe_to_ipv4_multicast_addr and packet::universe_to_ipv6_multicast_addr.
-    fn mute_multicast_universe(&mut self, universe: Universe) -> Result<(), ReceiveError> {
-        let multicast_addr = if self.addr.is_ipv4() {
-            universe.to_ipv4_multicast_addr()
-        } else {
-            universe.to_ipv6_multicast_addr()
-        };
-
-        Ok(leave_multicast(&self.socket, &multicast_addr, None)?)
-    }
-
-    /// Sets the value of the is_multicast_enabled flag to the given value.
-    ///
-    /// If set to false then the receiver won't attempt to join any more multicast groups.
-    ///
-    /// This method does not attempt to leave multicast groups already joined through previous listen_universe calls.
-    ///
-    /// # Arguments
-    /// val: The new value for the is_multicast_enabled flag.
-    ///
-    /// # Errors
-    /// Will return an OsOperationUnsupported error if attempting to set the flag to true in an environment that multicast
-    /// isn't supported i.e. Ipv6 on Windows.
-    fn set_is_multicast_enabled(&mut self, val: bool) -> Result<(), ReceiveError> {
-        // if val && self.is_ipv6() {
-        //     Err(Error::OsOperationUnsupported(
-        //         "IPv6 multicast is currently unsupported on Windows".to_string(),
-        //     ))?;
-        // }
-        self.is_multicast_enabled = val;
-        Ok(())
-    }
-
-    /// Returns true if multicast is enabled on this receiver and false if not.
-    /// This flag is set when the receiver is created as not all environments currently support IP multicast.
-    /// E.g. IPv6 Windows IP Multicast is currently unsupported.
-    fn is_multicast_enabled(&self) -> bool {
-        return self.is_multicast_enabled;
-    }
-
-    /// If set to true then only receive over IPv6. If false then receiving will be over both IPv4 and IPv6.
-    /// This will return an error if the SacnReceiver wasn't created using an IPv6 address to bind to.
-    fn set_only_v6(&mut self, val: bool) -> Result<(), ReceiveError> {
-        if self.addr.is_ipv4() {
-            Err(ReceiveError::IpVersionError("No data available in given timeout".to_string()))
-        } else {
-            Ok(self.socket.set_only_v6(val)?)
-        }
-    }
-
-    /// Returns a packet if there is one available.
-    ///
-    /// The packet may not be ready to transmit if it is awaiting synchronisation.
-    /// Will only block if set_timeout was called with a timeout of None so otherwise (and by default) it won't
-    /// block so may return a WouldBlock/TimedOut error to indicate that there was no data ready.
-    ///
-    /// IMPORTANT NOTE:
-    /// An explicit lifetime is given to the AcnRootLayerProtocol which comes from the lifetime of the given buffer.
-    /// The compiler will prevent usage of the returned AcnRootLayerProtocol after the buffer is dropped normally but may not in the case
-    /// of unsafe code .
-    ///
-    /// Arguments:
-    /// buf: The buffer to use for storing the received data into. This buffer shouldn't be accessed or used directly as the data
-    /// is returned formatted properly in the AcnRootLayerProtocol. This buffer is used as memory space for the returned AcnRootLayerProtocol.
-    ///
-    /// # Errors
-    /// May return an error if there is an issue receiving data from the underlying socket, see (recv)[fn.recv.Socket].
-    ///
-    /// May return an error if there is an issue parsing the data from the underlying socket, see (parse)[fn.AcnRootLayerProtocol::parse.packet].
-    fn recv(&mut self, buf: &mut [u8; RCV_BUF_DEFAULT_SIZE]) -> Result<AcnRootLayerProtocol, ReceiveError> {
-        self.socket.read(buf)?;
-
-        Ok(AcnRootLayerProtocol::parse(buf)?)
-    }
-
-    /// Set the timeout for the recv operation.
-    ///
-    /// Arguments:
-    /// timeout: The new timeout for the receive operation, a value of None means the recv operation will become blocking.
-    ///
-    /// Errors:
-    /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
-    fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
-        Ok(self.socket.set_read_timeout(timeout.map(Into::into))?)
-    }
-
-    /// Returns true if this SacnNetworkReceiver is bound to an Ipv6 address.
-    fn is_ipv6(&self) -> bool {
-        return self.addr.is_ipv6();
-    }
-}
-
 /// Windows and linux handle multicast sockets differently.
 /// This is built for / tested with Fedora 30/31.
-#[cfg(not(target_os = "windows"))]
 impl SacnNetworkReceiver {
     /// Creates a new DMX receiver on the interface specified by the given address.
     ///
@@ -1113,8 +978,15 @@ impl SacnNetworkReceiver {
         } else {
             universe.to_ipv6_multicast_addr()
         };
+        #[cfg(target_os = "windows")]
+        {
+            join_multicast(&self.socket, &multicast_addr, None)
+        }
 
-        join_multicast(&self.socket, &multicast_addr, Some(self.addr.ip()))
+        #[cfg(not(target_os = "windows"))]
+        {
+            join_multicast(&self.socket, &multicast_addr, Some(self.addr.ip()))
+        }
     }
 
     /// Removes this SacnNetworkReceiver from the multicast group which corresponds to the given universe.
@@ -1129,7 +1001,15 @@ impl SacnNetworkReceiver {
             universe.to_ipv6_multicast_addr()
         };
 
-        leave_multicast(&self.socket, &multicast_addr, Some(self.addr.ip()))
+        #[cfg(target_os = "windows")]
+        {
+            leave_multicast(&self.socket, &multicast_addr, None)
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            leave_multicast(&self.socket, &multicast_addr, Some(self.addr.ip()))
+        }
     }
 
     /// Sets the value of the is_multicast_enabled flag to the given value.
@@ -1145,6 +1025,15 @@ impl SacnNetworkReceiver {
     /// Will return an OsOperationUnsupported error if attempting to set the flag to true in an environment that multicast
     /// isn't supported i.e. Ipv6 on Windows. Note that this is the UNIX implementation
     fn set_is_multicast_enabled(&mut self, val: bool) -> Result<(), ReceiveError> {
+        #[cfg(target_os = "windows")]
+        {
+            if val && self.is_ipv6() {
+                Err(ReceiveError::OsOperationUnsupported(
+                    "IPv6 multicast is currently unsupported on Windows".to_string(),
+                ))?;
+            }
+        }
+
         self.is_multicast_enabled = val;
         Ok(())
     }
@@ -1195,6 +1084,11 @@ impl SacnNetworkReceiver {
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
     fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
         self.socket.set_read_timeout(timeout.map(Into::into))
+    }
+
+    /// Returns true if this SacnNetworkReceiver is bound to an Ipv6 address.
+    fn is_ipv6(&self) -> bool {
+        self.addr.is_ipv6()
     }
 }
 
