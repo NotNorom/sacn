@@ -13,20 +13,20 @@ use core::cmp::Ordering;
 use heapless::Vec;
 use uuid::Uuid;
 
-use crate::{e131_definitions::UNIVERSE_CHANNEL_CAPACITY, priority::Priority, time::Timestamp, universe::Universe};
+use crate::{e131_definitions::UNIVERSE_CHANNEL_CAPACITY, priority::Priority, time::Timestamp, universe::UniverseId};
 
 /// Holds a universes worth of DMX data.
 #[derive(Debug)]
 pub struct DMXData {
     /// The universe that the data was sent to.
-    pub universe: Universe,
+    pub universe: UniverseId,
 
     /// The actual universe data, if less than 512 values in length then implies trailing 0's to pad to a full-universe of data.
     pub values: Vec<u8, UNIVERSE_CHANNEL_CAPACITY>,
 
     /// The universe the data is (or was if now acted upon) waiting for a synchronisation packet from.
     /// 0 indicates it isn't waiting for a universe synchronisation packet.
-    pub sync_uni: Option<Universe>,
+    pub sync_uni: Option<UniverseId>,
 
     /// The priority of the data, this may be useful for receivers which want to implement their own implementing merge algorithms.
     /// Must be less than packet::E131_MAX_PRIORITY.
@@ -47,9 +47,9 @@ pub struct DMXData {
 impl DMXData {
     /// Create new DMXData with parameters
     pub fn new(
-        universe: Universe,
+        universe: UniverseId,
         values: Vec<u8, UNIVERSE_CHANNEL_CAPACITY>,
-        sync_uni: Option<Universe>,
+        sync_uni: Option<UniverseId>,
         priority: Priority,
         src_cid: Option<Uuid>,
         preview: bool,

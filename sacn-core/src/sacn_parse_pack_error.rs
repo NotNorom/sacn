@@ -15,7 +15,7 @@ use crate::{
     e131_definitions::{DISCOVERY_UNI_PER_PAGE, UNIVERSE_CHANNEL_CAPACITY},
     priority::PriorityError,
     source_name::SourceNameError,
-    universe::{Universe, UniverseError},
+    universe::{UniverseId, UniverseError},
 };
 
 /// The errors used within the SacnLibrary specifically those related to parsing and packeting packets received/sent on the network.
@@ -57,7 +57,7 @@ pub enum ParsePackError {
     /// # Arguments
     /// The universe that's out of order
     #[error("Universe {} is out of order, discovery packet universe list must be in accending order!", .0)]
-    ParseInvalidUniverseOrder(Universe),
+    ParseInvalidUniverseOrder(UniverseId),
 
     /// When packing a packet into a buffer invalid data encountered.
     ///

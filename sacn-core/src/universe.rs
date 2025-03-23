@@ -18,15 +18,15 @@ use crate::e131_definitions::ACN_SDT_MULTICAST_PORT;
 /// Universe value
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Universe(NonZeroU16);
+pub struct UniverseId(NonZeroU16);
 
-impl Display for Universe {
+impl Display for UniverseId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl TryFrom<u16> for Universe {
+impl TryFrom<u16> for UniverseId {
     type Error = UniverseError;
 
     fn try_from(raw_universe: u16) -> Result<Self, Self::Error> {
@@ -34,31 +34,31 @@ impl TryFrom<u16> for Universe {
     }
 }
 
-impl From<Universe> for u16 {
-    fn from(universe: Universe) -> Self {
+impl From<UniverseId> for u16 {
+    fn from(universe: UniverseId) -> Self {
         universe.0.get()
     }
 }
 
-impl Default for Universe {
+impl Default for UniverseId {
     fn default() -> Self {
         Self(NonZeroU16::MIN)
     }
 }
 
-impl PartialEq<u16> for Universe {
+impl PartialEq<u16> for UniverseId {
     fn eq(&self, other: &u16) -> bool {
         self.0.get().eq(other)
     }
 }
 
-impl PartialEq<Option<u16>> for Universe {
+impl PartialEq<Option<u16>> for UniverseId {
     fn eq(&self, other: &Option<u16>) -> bool {
         self.0.get().eq(&other.unwrap_or_default())
     }
 }
 
-impl Universe {
+impl UniverseId {
     /// Special case value used for universe discovery as defined in ANSI E1.31-2018 Appendix A: Defined Parameters (Normative)
     pub const DISCOVERY_RAW: u16 = 64214;
     /// See [Self::DISCOVERY_RAW]
@@ -169,10 +169,10 @@ impl Universe {
 /// This type is an attempt at making it easier to convert between `&[u16]` and `&[Universe]`.
 #[derive(Debug)]
 #[repr(transparent)]
-struct UniverseSlice<'a>(&'a [Universe]);
+struct UniverseSlice<'a>(&'a [UniverseId]);
 
 impl<'a> core::ops::Deref for UniverseSlice<'a> {
-    type Target = &'a [Universe];
+    type Target = &'a [UniverseId];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -189,7 +189,7 @@ impl<'a> TryFrom<&'a [u16]> for UniverseSlice<'a> {
     type Error = UniverseError;
     fn try_from(value: &'a [u16]) -> Result<Self, Self::Error> {
         for uni in value {
-            Universe::in_range(*uni)?;
+            UniverseId::in_range(*uni)?;
         }
 
         let result = unsafe { slice_to_universes_unchecked(value) };
@@ -200,11 +200,11 @@ impl<'a> TryFrom<&'a [u16]> for UniverseSlice<'a> {
 /// Converts a slice of u16 to a slice of Universe
 ///
 /// Returns an error if at least one of the values is invalid.
-pub const fn slice_to_universes(raw: &[u16]) -> Result<&[Universe], UniverseError> {
+pub const fn slice_to_universes(raw: &[u16]) -> Result<&[UniverseId], UniverseError> {
     // using an ugly while- instead of for loop because we're in a const function
     let mut idx = 0;
     while idx < raw.len() {
-        if let Err(e) = Universe::in_range(raw[idx]) {
+        if let Err(e) = UniverseId::in_range(raw[idx]) {
             return Err(e);
         }
         idx += 1;
@@ -218,8 +218,8 @@ pub const fn slice_to_universes(raw: &[u16]) -> Result<&[Universe], UniverseErro
 ///
 /// # Safety
 /// All values must be in the valid range of a universe. See [Universe::in_range]
-pub const unsafe fn slice_to_universes_unchecked(raw: &[u16]) -> &[Universe] {
-    unsafe { &*slice_from_raw_parts(raw.as_ptr() as *const Universe, raw.len()) }
+pub const unsafe fn slice_to_universes_unchecked(raw: &[u16]) -> &[UniverseId] {
+    unsafe { &*slice_from_raw_parts(raw.as_ptr() as *const UniverseId, raw.len()) }
 }
 
 /// Container for keeping track of universes in a compact way
@@ -256,13 +256,13 @@ impl CompactUniverseList {
     }
 
     /// Mark a single universe
-    pub fn mark(&mut self, universe: Universe) {
+    pub fn mark(&mut self, universe: UniverseId) {
         let (idx, mask) = Self::universe_to_idx_and_mask(universe);
         self.inner[idx as usize] |= mask;
     }
 
     /// Mark all universes in slice
-    pub fn mark_slice(&mut self, universes: &[Universe]) {
+    pub fn mark_slice(&mut self, universes: &[UniverseId]) {
         for u in universes {
             self.mark(*u);
         }
@@ -274,13 +274,13 @@ impl CompactUniverseList {
     }
 
     /// Mark single universe
-    pub fn unmark(&mut self, universe: Universe) {
+    pub fn unmark(&mut self, universe: UniverseId) {
         let (idx, mask) = Self::universe_to_idx_and_mask(universe);
         self.inner[idx as usize] &= !mask;
     }
 
     /// Unmark all universes in slice
-    pub fn unmark_slice(&mut self, universes: &[Universe]) {
+    pub fn unmark_slice(&mut self, universes: &[UniverseId]) {
         for u in universes {
             self.unmark(*u);
         }
@@ -292,7 +292,7 @@ impl CompactUniverseList {
     }
 
     /// Check if a universe is marked. Return true if it is
-    pub fn is_marked(&self, universe: Universe) -> bool {
+    pub fn is_marked(&self, universe: UniverseId) -> bool {
         let (idx, mask) = Self::universe_to_idx_and_mask(universe);
         self.inner[idx as usize] & mask != 0
     }
@@ -318,9 +318,9 @@ impl CompactUniverseList {
     /// Calculates the bit position of a given universe
     /// Returns:
     /// (byte index, mask)
-    fn universe_to_idx_and_mask(universe: Universe) -> (u16, u64) {
+    fn universe_to_idx_and_mask(universe: UniverseId) -> (u16, u64) {
         let universe = match universe.get() {
-            Universe::DISCOVERY_RAW => 0,
+            UniverseId::DISCOVERY_RAW => 0,
             u => u,
         };
 
@@ -365,7 +365,7 @@ impl Display for CompactUniverseList {
 }
 
 impl<'a> IntoIterator for &'a CompactUniverseList {
-    type Item = Universe;
+    type Item = UniverseId;
     type IntoIter = CompactUniverseListIter<'a>;
     fn into_iter(self) -> Self::IntoIter {
         Self::IntoIter {
@@ -387,7 +387,7 @@ pub struct CompactUniverseListIter<'a> {
 }
 
 impl Iterator for CompactUniverseListIter<'_> {
-    type Item = Universe;
+    type Item = UniverseId;
 
     /// check if byte_index is or will be out of range, if true:
     ///   return None,
@@ -417,8 +417,8 @@ impl Iterator for CompactUniverseListIter<'_> {
 
         let universe = self.byte_idx * 64 + idx;
         let universe = match universe {
-            0 => Universe::DISCOVERY,
-            u => unsafe { Universe::unchecked_new(u) },
+            0 => UniverseId::DISCOVERY,
+            u => unsafe { UniverseId::unchecked_new(u) },
         };
 
         Some(universe)
@@ -435,47 +435,47 @@ mod test_universe_types {
         assert_eq!(active_universes.marked_count(), 0);
         assert_eq!(active_universes.unmarked_count(), 64_000);
 
-        active_universes.mark(Universe::MIN);
+        active_universes.mark(UniverseId::MIN);
         assert_eq!(active_universes.marked_count(), 1);
         assert_eq!(active_universes.unmarked_count(), 63_999);
-        assert!(active_universes.is_marked(Universe::MIN));
+        assert!(active_universes.is_marked(UniverseId::MIN));
 
-        active_universes.mark(Universe::new(63).unwrap());
+        active_universes.mark(UniverseId::new(63).unwrap());
         assert_eq!(active_universes.marked_count(), 2);
         assert_eq!(active_universes.unmarked_count(), 63_998);
-        assert!(active_universes.is_marked(Universe::new(63).unwrap()));
+        assert!(active_universes.is_marked(UniverseId::new(63).unwrap()));
 
-        active_universes.mark(Universe::new(64).unwrap());
+        active_universes.mark(UniverseId::new(64).unwrap());
         assert_eq!(active_universes.marked_count(), 3);
         assert_eq!(active_universes.unmarked_count(), 63_997);
-        assert!(active_universes.is_marked(Universe::new(64).unwrap()));
+        assert!(active_universes.is_marked(UniverseId::new(64).unwrap()));
 
-        active_universes.mark(Universe::new(65).unwrap());
+        active_universes.mark(UniverseId::new(65).unwrap());
         assert_eq!(active_universes.marked_count(), 4);
         assert_eq!(active_universes.unmarked_count(), 63_996);
-        assert!(active_universes.is_marked(Universe::new(65).unwrap()));
+        assert!(active_universes.is_marked(UniverseId::new(65).unwrap()));
 
-        active_universes.mark(Universe::MAX);
+        active_universes.mark(UniverseId::MAX);
         assert_eq!(active_universes.marked_count(), 5);
         assert_eq!(active_universes.unmarked_count(), 63_995);
-        assert!(active_universes.is_marked(Universe::MAX));
+        assert!(active_universes.is_marked(UniverseId::MAX));
 
-        active_universes.mark(Universe::DISCOVERY);
+        active_universes.mark(UniverseId::DISCOVERY);
         assert_eq!(active_universes.marked_count(), 6);
         assert_eq!(active_universes.unmarked_count(), 63_994);
-        assert!(active_universes.is_marked(Universe::DISCOVERY));
+        assert!(active_universes.is_marked(UniverseId::DISCOVERY));
 
-        active_universes.unmark_slice(&[Universe::MIN, Universe::MAX]);
+        active_universes.unmark_slice(&[UniverseId::MIN, UniverseId::MAX]);
         assert_eq!(active_universes.marked_count(), 4);
         assert_eq!(active_universes.unmarked_count(), 63_996);
 
-        assert!(active_universes.is_marked(Universe::new(63).unwrap()));
-        assert!(active_universes.is_marked(Universe::new(64).unwrap()));
-        assert!(active_universes.is_marked(Universe::new(65).unwrap()));
-        assert!(active_universes.is_marked(Universe::DISCOVERY));
+        assert!(active_universes.is_marked(UniverseId::new(63).unwrap()));
+        assert!(active_universes.is_marked(UniverseId::new(64).unwrap()));
+        assert!(active_universes.is_marked(UniverseId::new(65).unwrap()));
+        assert!(active_universes.is_marked(UniverseId::DISCOVERY));
 
-        assert!(!active_universes.is_marked(Universe::MIN));
-        assert!(!active_universes.is_marked(Universe::MAX));
+        assert!(!active_universes.is_marked(UniverseId::MIN));
+        assert!(!active_universes.is_marked(UniverseId::MAX));
 
         active_universes.clear();
         assert_eq!(active_universes.marked_count(), 0);
@@ -485,51 +485,51 @@ mod test_universe_types {
     #[test]
     fn test_compact_universe_storage_iter() {
         let mut list = CompactUniverseList::new();
-        list.mark(Universe::new(1).unwrap());
-        list.mark(Universe::new(2).unwrap());
-        list.mark(Universe::new(3).unwrap());
+        list.mark(UniverseId::new(1).unwrap());
+        list.mark(UniverseId::new(2).unwrap());
+        list.mark(UniverseId::new(3).unwrap());
 
         let mut iter = list.iter();
-        assert_eq!(iter.next(), Some(Universe::new(1).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(2).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(3).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(1).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(2).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(3).unwrap()));
         assert_eq!(iter.next(), None);
 
-        list.mark(Universe::new(63).unwrap());
-        list.mark(Universe::new(64).unwrap());
-        list.mark(Universe::new(65).unwrap());
+        list.mark(UniverseId::new(63).unwrap());
+        list.mark(UniverseId::new(64).unwrap());
+        list.mark(UniverseId::new(65).unwrap());
 
-        list.mark(Universe::new(127).unwrap());
-        list.mark(Universe::new(128).unwrap());
-        list.mark(Universe::new(129).unwrap());
+        list.mark(UniverseId::new(127).unwrap());
+        list.mark(UniverseId::new(128).unwrap());
+        list.mark(UniverseId::new(129).unwrap());
 
         let mut iter = list.iter();
-        assert_eq!(iter.next(), Some(Universe::new(1).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(2).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(3).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(63).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(64).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(65).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(127).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(128).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(129).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(1).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(2).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(3).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(63).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(64).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(65).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(127).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(128).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(129).unwrap()));
         assert_eq!(iter.next(), None);
 
-        list.mark(Universe::MAX);
-        list.mark(Universe::DISCOVERY);
+        list.mark(UniverseId::MAX);
+        list.mark(UniverseId::DISCOVERY);
 
         let mut iter = list.iter();
-        assert_eq!(iter.next(), Some(Universe::DISCOVERY));
-        assert_eq!(iter.next(), Some(Universe::new(1).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(2).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(3).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(63).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(64).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(65).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(127).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(128).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::new(129).unwrap()));
-        assert_eq!(iter.next(), Some(Universe::MAX));
+        assert_eq!(iter.next(), Some(UniverseId::DISCOVERY));
+        assert_eq!(iter.next(), Some(UniverseId::new(1).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(2).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(3).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(63).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(64).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(65).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(127).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(128).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::new(129).unwrap()));
+        assert_eq!(iter.next(), Some(UniverseId::MAX));
         assert_eq!(iter.next(), None);
     }
 }
@@ -543,6 +543,6 @@ pub enum UniverseError {
     ///
     /// # Arguments
     /// 0: Value of invalid universe
-    #[error("Invalid universe used. Must be in the range [{} - {}], universe: {}", Universe::MIN_RAW, Universe::MAX_RAW, .0)]
+    #[error("Invalid universe used. Must be in the range [{} - {}], universe: {}", UniverseId::MIN_RAW, UniverseId::MAX_RAW, .0)]
     InvalidValue(u16),
 }

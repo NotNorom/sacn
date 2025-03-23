@@ -85,7 +85,7 @@ use crate::{
     priority::Priority,
     sacn_parse_pack_error::{InsufficientData, InvalidData, ParsePackError},
     source_name::SourceName,
-    universe::Universe,
+    universe::UniverseId,
 };
 
 /// Fills the given array of bytes with the given length n with bytes of value 0.
@@ -352,7 +352,7 @@ pub struct DataPacketFramingLayer {
     pub priority: Priority,
 
     /// Synchronization address.
-    pub synchronization_address: Option<Universe>,
+    pub synchronization_address: Option<UniverseId>,
 
     /// The sequence number of this packet.
     pub sequence_number: u8,
@@ -367,7 +367,7 @@ pub struct DataPacketFramingLayer {
     pub force_synchronization: bool,
 
     /// The universe DMX data is transmitted for.
-    pub universe: Universe,
+    pub universe: UniverseId,
 
     /// DMP layer containing the DMX data.
     pub data: Box<DataPacketDmpLayer>,
@@ -407,7 +407,7 @@ impl Pdu for DataPacketFramingLayer {
             let raw = NetworkEndian::read_u16(&buf[SYNC_ADDR_INDEX..SEQ_NUM_INDEX]);
             match raw {
                 0 => None,
-                _ => Some(Universe::new(raw)?),
+                _ => Some(UniverseId::new(raw)?),
             }
         };
 
@@ -705,7 +705,7 @@ pub struct SynchronizationPacketFramingLayer {
     /// The address to synchronize.
     ///
     /// None indicates a raw value of 0.
-    pub synchronization_address: Option<Universe>,
+    pub synchronization_address: Option<UniverseId>,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -742,7 +742,7 @@ impl Pdu for SynchronizationPacketFramingLayer {
             let raw = NetworkEndian::read_u16(
                 &buf[E131_SYNC_FRAMING_LAYER_SYNC_ADDRESS_FIELD_INDEX..E131_SYNC_FRAMING_LAYER_RESERVE_FIELD_INDEX],
             );
-            let universe = Universe::new(raw)?;
+            let universe = UniverseId::new(raw)?;
             Some(universe)
         };
 
@@ -930,7 +930,7 @@ pub struct UniverseDiscoveryPacketUniverseDiscoveryLayer {
     pub last_page: u8,
 
     /// List of universes.
-    pub universes: Box<Vec<Universe, DISCOVERY_UNI_PER_PAGE>>,
+    pub universes: Box<Vec<UniverseId, DISCOVERY_UNI_PER_PAGE>>,
 }
 
 // Calculate the indexes of the fields within the buffer based on the size of the fields previous.
@@ -1020,7 +1020,7 @@ impl Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
             }
         }
 
-        let universes: Vec<u16, DISCOVERY_UNI_PER_PAGE> = self.universes.iter().map(Universe::get).collect();
+        let universes: Vec<u16, DISCOVERY_UNI_PER_PAGE> = self.universes.iter().map(UniverseId::get).collect();
         NetworkEndian::write_u16_into(
             &universes,
             &mut buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX
@@ -1075,7 +1075,7 @@ impl Hash for UniverseDiscoveryPacketUniverseDiscoveryLayer {
 /// ParseInvalidUniverseOrder: If the universes are not sorted in ascending order with no duplicates.
 ///
 /// ParseInsufficientData: If the buffer doesn't contain sufficient bytes and so cannot be parsed into the specified number of u16 universes.
-fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOVERY_UNI_PER_PAGE>, ParsePackError> {
+fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<UniverseId, DISCOVERY_UNI_PER_PAGE>, ParsePackError> {
     let mut universes = Vec::new();
     let mut i = 0;
 
@@ -1096,11 +1096,11 @@ fn parse_universe_list(buf: &[u8], length: usize) -> Result<Vec<Universe, DISCOV
 
         if (u as i32) > last_universe {
             // Enforce assending ordering of universes as per ANSI E1.31-2018 Section 8.5.
-            universes.push(Universe::try_from(u)?).expect("should be enough capacity");
+            universes.push(UniverseId::try_from(u)?).expect("should be enough capacity");
             last_universe = u as i32;
             i += E131_UNIVERSE_FIELD_LENGTH; // Jump to the next universe.
         } else {
-            Err(ParsePackError::ParseInvalidUniverseOrder(Universe::try_from(u)?))?;
+            Err(ParsePackError::ParseInvalidUniverseOrder(UniverseId::try_from(u)?))?;
         }
     }
 
@@ -1127,7 +1127,7 @@ mod test {
     #[test]
     fn test_universe_to_ipv4_lowest_byte_normal() {
         let val: u16 = 119;
-        let universe = Universe::try_from(val).expect("Valid value for universe");
+        let universe = UniverseId::try_from(val).expect("Valid value for universe");
 
         let address = universe.to_ipv4_multicast_addr();
         assert!(address.as_socket().unwrap().ip().is_multicast());
@@ -1144,7 +1144,7 @@ mod test {
     #[test]
     fn test_universe_to_ip_ipv4_both_bytes_normal() {
         let val: u16 = 300;
-        let universe = Universe::try_from(val).expect("Valid value for universe");
+        let universe = UniverseId::try_from(val).expect("Valid value for universe");
 
         let address = universe.to_ipv4_multicast_addr();
         assert!(address.as_socket().unwrap().ip().is_multicast());
@@ -1160,13 +1160,13 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv4_limit_high() {
-        let res = Universe::MAX.to_ipv4_multicast_addr();
+        let res = UniverseId::MAX.to_ipv4_multicast_addr();
         assert!(res.as_socket().unwrap().ip().is_multicast());
 
         assert_eq!(
             res.as_socket_ipv4().unwrap(),
             SocketAddrV4::new(
-                Ipv4Addr::new(239, 255, (Universe::MAX_RAW / 256) as u8, (Universe::MAX_RAW % 256) as u8),
+                Ipv4Addr::new(239, 255, (UniverseId::MAX_RAW / 256) as u8, (UniverseId::MAX_RAW % 256) as u8),
                 ACN_SDT_MULTICAST_PORT
             )
         );
@@ -1174,14 +1174,14 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv4_limit_low() {
-        let res = Universe::MIN.to_ipv4_multicast_addr();
+        let res = UniverseId::MIN.to_ipv4_multicast_addr();
 
         assert!(res.as_socket().unwrap().ip().is_multicast());
 
         assert_eq!(
             res.as_socket_ipv4().unwrap(),
             SocketAddrV4::new(
-                Ipv4Addr::new(239, 255, (Universe::MIN_RAW / 256) as u8, (Universe::MIN_RAW % 256) as u8),
+                Ipv4Addr::new(239, 255, (UniverseId::MIN_RAW / 256) as u8, (UniverseId::MIN_RAW % 256) as u8),
                 ACN_SDT_MULTICAST_PORT
             )
         );
@@ -1189,24 +1189,24 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv4_out_range_low() {
-        let result = Universe::try_from(0);
+        let result = UniverseId::try_from(0);
 
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be higher than {}",
-            Universe::MIN_RAW
+            UniverseId::MIN_RAW
         );
     }
 
     #[test]
     fn test_universe_to_ip_ipv4_out_range_high() {
-        let result = Universe::try_from(Universe::MAX_RAW + 10);
+        let result = UniverseId::try_from(UniverseId::MAX_RAW + 10);
         // let result = universe_to_ipv4_multicast_addr(E131_MAX_MULTICAST_UNIVERSE + 10);
 
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be lower than {}",
-            Universe::MAX_RAW
+            UniverseId::MAX_RAW
         );
     }
 
@@ -1214,7 +1214,7 @@ mod test {
     fn test_universe_to_ipv6_lowest_byte_normal() {
         let val: u16 = 119;
 
-        let universe = Universe::try_from(val).expect("Valid value for universe");
+        let universe = UniverseId::try_from(val).expect("Valid value for universe");
         let address = universe.to_ipv6_multicast_addr();
 
         assert!(address.as_socket().unwrap().ip().is_multicast());
@@ -1230,7 +1230,7 @@ mod test {
     #[test]
     fn test_universe_to_ip_ipv6_both_bytes_normal() {
         let val: u16 = 300;
-        let universe = Universe::try_from(val).expect("Valid value for universe");
+        let universe = UniverseId::try_from(val).expect("Valid value for universe");
         let address = universe.to_ipv6_multicast_addr();
 
         assert!(address.as_socket().unwrap().ip().is_multicast());
@@ -1245,11 +1245,11 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv6_limit_high() {
-        let address = Universe::MAX.to_ipv6_multicast_addr();
+        let address = UniverseId::MAX.to_ipv6_multicast_addr();
 
         assert!(address.as_socket().unwrap().ip().is_multicast());
 
-        let low_16: u16 = ((Universe::MAX_RAW / 256) << 8) | (Universe::MAX_RAW % 256);
+        let low_16: u16 = ((UniverseId::MAX_RAW / 256) << 8) | (UniverseId::MAX_RAW % 256);
 
         assert_eq!(
             address.as_socket_ipv6().unwrap(),
@@ -1259,11 +1259,11 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv6_limit_low() {
-        let address = Universe::MIN.to_ipv6_multicast_addr();
+        let address = UniverseId::MIN.to_ipv6_multicast_addr();
 
         assert!(address.as_socket().unwrap().ip().is_multicast());
 
-        let low_16: u16 = ((Universe::MIN_RAW / 256) << 8) | (Universe::MIN_RAW % 256);
+        let low_16: u16 = ((UniverseId::MIN_RAW / 256) << 8) | (UniverseId::MIN_RAW % 256);
 
         assert_eq!(
             address.as_socket_ipv6().unwrap(),
@@ -1273,23 +1273,23 @@ mod test {
 
     #[test]
     fn test_universe_to_ip_ipv6_out_range_low() {
-        let result = Universe::try_from(0);
+        let result = UniverseId::try_from(0);
 
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be higher than {}",
-            Universe::MIN_RAW
+            UniverseId::MIN_RAW
         );
     }
 
     #[test]
     fn test_universe_to_ip_ipv6_out_range_high() {
-        let result = Universe::try_from(Universe::MAX_RAW + 10);
+        let result = UniverseId::try_from(UniverseId::MAX_RAW + 10);
 
         assert!(
             matches!(result, Err(UniverseError::InvalidValue(_))),
             "Universe must be lower than {}",
-            Universe::MAX_RAW
+            UniverseId::MAX_RAW
         );
     }
 
@@ -1306,7 +1306,7 @@ mod test {
         assert_eq!(VECTOR_UNIVERSE_DISCOVERY_UNIVERSE_LIST, 0x0000_0001);
         assert_eq!(E131_UNIVERSE_DISCOVERY_INTERVAL, Duration::from_secs(10));
         assert_eq!(E131_NETWORK_DATA_LOSS_TIMEOUT, Duration::from_millis(2500));
-        assert_eq!(Universe::DISCOVERY_RAW, 64214);
+        assert_eq!(UniverseId::DISCOVERY_RAW, 64214);
         assert_eq!(ACN_SDT_MULTICAST_PORT, 5568);
     }
 }

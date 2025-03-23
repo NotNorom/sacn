@@ -33,7 +33,7 @@ use sacn::{
     receive::SacnReceiver,
     source::SacnSource,
     time::{Duration, Timestamp, sleep},
-    universe::{Universe, slice_to_universes},
+    universe::{UniverseId, slice_to_universes},
 };
 /// Socket2 used to create sockets for testing.
 use socket2::{Domain, Socket, Type};
@@ -166,7 +166,7 @@ fn test_send_single_universe_multiple_receivers_multicast_ipv4() {
     let thread1_tx = tx.clone();
     let thread2_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let rcv_thread1 = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
@@ -251,10 +251,10 @@ fn test_send_across_universe_multiple_receivers_sync_multicast_ipv4() {
     let thread1_tx = tx.clone();
     let thread2_tx = tx.clone();
 
-    let universe1 = Universe::new(1).expect("in range");
-    let universe2 = Universe::new(2).expect("in range");
+    let universe1 = UniverseId::new(1).expect("in range");
+    let universe2 = UniverseId::new(2).expect("in range");
 
-    let sync_uni = Universe::new(3).expect("in range");
+    let sync_uni = UniverseId::new(3).expect("in range");
 
     let rcv_thread1 = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
@@ -365,7 +365,7 @@ fn test_send_recv_single_universe_unicast_ipv4() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
@@ -417,7 +417,7 @@ fn test_send_recv_single_universe_unicast_ipv4() {
 #[ignore]
 fn test_send_recv_single_universe_multicast_ipv4() {
     // The universe and priority of the data used in this test.
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
     let priority = Priority::default();
 
     // Allows control of the receiver and sender so that they can be put into the correct state for the test.
@@ -499,7 +499,7 @@ fn test_send_recv_single_universe_overflow_sequence_number_multicast_ipv4() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     // By having the receiver be 'remote' and then send back to the sender it means the sender can check the data it has sent is correct.
     let rcv_thread = thread::spawn(move || {
@@ -562,7 +562,7 @@ fn test_send_recv_diff_priority_same_universe_multicast_ipv4() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
@@ -637,7 +637,7 @@ fn test_send_recv_two_packets_same_priority_same_universe_multicast_ipv4() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
@@ -714,7 +714,7 @@ fn test_send_recv_sync_then_nosync_packet_same_universe_multicast_ipv4() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
     let timeout: Option<Duration> = Some(Duration::from_secs(2));
 
     let rcv_thread = thread::spawn(move || {
@@ -871,7 +871,7 @@ fn test_send_recv_single_universe_alternative_startcode_multicast_ipv4() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let rcv_thread = thread::spawn(move || {
         let mut dmx_recv = SacnReceiver::with_ip(
@@ -1084,8 +1084,8 @@ fn test_send_recv_across_universe_unicast_ipv4() {
 #[test]
 #[ignore]
 fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
-    let universe_1 = Universe::new(1).expect("in range");
-    let universe_2 = Universe::new(2).expect("in range");
+    let universe_1 = UniverseId::new(1).expect("in range");
+    let universe_2 = UniverseId::new(2).expect("in range");
 
     let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
@@ -1138,7 +1138,7 @@ fn test_two_senders_one_recv_different_universes_multicast_ipv4() {
 #[test]
 #[ignore]
 fn test_two_senders_one_recv_same_universe_no_sync_multicast_ipv4() {
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let mut dmx_recv = SacnReceiver::with_ip(SocketAddr::new(Ipv4Addr::new(0, 0, 0, 0).into(), ACN_SDT_MULTICAST_PORT), None).unwrap();
 
@@ -1197,8 +1197,8 @@ fn test_two_senders_one_recv_same_universe_custom_merge_fn_sync_multicast_ipv4()
 
     let snd_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
-    let sync_uni = Universe::new(2).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
+    let sync_uni = UniverseId::new(2).expect("in range");
 
     let mut dmx_recv = SacnReceiver::with_ip(
         SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT),
@@ -1330,7 +1330,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -1353,7 +1353,7 @@ fn test_two_senders_two_recv_multicast_ipv4() {
 
             // Receivers listen to all universes
             for i in base_universe..((num_snd_threads as u16) + base_universe) {
-                dmx_recv.listen_universes(&[Universe::new(i).expect("in range")]).unwrap();
+                dmx_recv.listen_universes(&[UniverseId::new(i).expect("in range")]).unwrap();
             }
 
             let mut res: Vec<Result<Vec<DMXData>, ReceiveError>> = Vec::new();
@@ -1455,7 +1455,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -1478,7 +1478,7 @@ fn test_three_senders_two_recv_multicast_ipv4() {
 
             // Receivers listen to all universes
             for i in base_universe..((num_snd_threads as u16) + base_universe) {
-                dmx_recv.listen_universes(&[Universe::new(i).expect("in range")]).unwrap();
+                dmx_recv.listen_universes(&[UniverseId::new(i).expect("in range")]).unwrap();
             }
 
             let mut res: Vec<Result<Vec<DMXData>, ReceiveError>> = Vec::new();
@@ -1580,7 +1580,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -1603,7 +1603,7 @@ fn test_two_senders_three_recv_multicast_ipv4() {
 
             // Receivers listen to all universes
             for i in base_universe..((num_snd_threads as u16) + base_universe) {
-                dmx_recv.listen_universes(&[Universe::new(i).expect("in range")]).unwrap();
+                dmx_recv.listen_universes(&[UniverseId::new(i).expect("in range")]).unwrap();
             }
 
             let mut res: Vec<Result<Vec<DMXData>, ReceiveError>> = Vec::new();
@@ -1705,7 +1705,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -1728,7 +1728,7 @@ fn test_three_senders_three_recv_multicast_ipv4() {
 
             // Receivers listen to all universes
             for i in base_universe..((num_snd_threads as u16) + base_universe) {
-                dmx_recv.listen_universes(&[Universe::new(i).expect("in range")]).unwrap();
+                dmx_recv.listen_universes(&[UniverseId::new(i).expect("in range")]).unwrap();
             }
 
             let mut res: Vec<Result<Vec<DMXData>, ReceiveError>> = Vec::new();
@@ -1807,7 +1807,7 @@ fn test_universe_discovery_one_universe_one_source_ipv4() {
 
             let mut universes = Vec::new();
             for j in 0..universe_count {
-                universes.push(Universe::new(((i + j) as u16) + base_universe).expect("in range"));
+                universes.push(UniverseId::new(((i + j) as u16) + base_universe).expect("in range"));
             }
 
             src.register_universes(&universes).unwrap();
@@ -1897,7 +1897,7 @@ fn test_universe_discovery_interval_ipv4() {
 
             let mut src = SacnSource::with_ip(source_names[i], ip).unwrap();
 
-            src.register_universes(&[Universe::new(base_universe).expect("in range")]).unwrap();
+            src.register_universes(&[UniverseId::new(base_universe).expect("in range")]).unwrap();
 
             tx.send(()).unwrap(); // Used to force the sender to wait till the receiver has received a universe discovery.
         }));
@@ -1966,7 +1966,7 @@ fn test_universe_discovery_interval_ipv4() {
 #[ignore]
 fn test_universe_discovery_interval_with_updates_ipv4() {
     let number_of_snd_threads: usize = 1;
-    let base_universe = Universe::new(1).expect("in range");
+    let base_universe = UniverseId::new(1).expect("in range");
     let source_names: [&str; 1] = ["Source 1"];
     let interval_expected_millis: u128 = E131_UNIVERSE_DISCOVERY_INTERVAL.as_millis(); // Expected discovery packet interval is every 10 seconds (10000 milliseconds).
     let interval_tolerance_millis: u128 = 1000; // Allow up to a second either side of this interval to account for random variations.
@@ -2080,7 +2080,7 @@ fn test_universe_discovery_multiple_universe_one_source_ipv4() {
 
             let mut universes = Vec::new();
             for j in 0..universe_count {
-                universes.push(Universe::new(((i + j) as u16) + base_universe).expect("in range"));
+                universes.push(UniverseId::new(((i + j) as u16) + base_universe).expect("in range"));
             }
 
             src.register_universes(&universes).unwrap();
@@ -2171,7 +2171,7 @@ fn test_universe_discovery_multiple_pages_one_source_ipv4() {
 
             let mut universes = Vec::new();
             for j in 0..universe_count {
-                universes.push(Universe::new(((i + j) as u16) + base_universe).expect("in range"));
+                universes.push(UniverseId::new(((i + j) as u16) + base_universe).expect("in range"));
             }
 
             src.register_universes(&universes).unwrap();
@@ -2342,7 +2342,7 @@ fn test_receiver_sources_exceeded_3() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -2362,7 +2362,7 @@ fn test_receiver_sources_exceeded_3() {
 
     // Receivers listen to all universes
     for i in base_universe..((num_snd_threads as u16) + base_universe) {
-        dmx_recv.listen_universes(&[Universe::new(i).expect("in range")]).unwrap();
+        dmx_recv.listen_universes(&[UniverseId::new(i).expect("in range")]).unwrap();
     }
 
     for _ in 0..num_snd_threads {
@@ -2432,7 +2432,7 @@ fn test_receiver_source_limit_2() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -2453,7 +2453,7 @@ fn test_receiver_source_limit_2() {
 
     // Receivers listen to all universes
     for i in base_universe..((num_snd_threads as u16) + base_universe) {
-        let universe = Universe::new(i).expect("in range");
+        let universe = UniverseId::new(i).expect("in range");
         dmx_recv.listen_universes(&[universe]).unwrap();
     }
 
@@ -2483,7 +2483,7 @@ fn test_receiver_source_limit_2_termination_check() {
 
     let (snd_tx, snd_rx): (SyncSender<()>, Receiver<()>) = mpsc::sync_channel(0); // Used for handshaking, allows syncing the sender states.
 
-    let base_universe = Universe::new(2).expect("in range");
+    let base_universe = UniverseId::new(2).expect("in range");
 
     for i in 0..num_snd_threads {
         let tx = snd_tx.clone();
@@ -2499,7 +2499,7 @@ fn test_receiver_source_limit_2_termination_check() {
 
             let priority = Priority::default();
 
-            let universe = Universe::new((i as u16) + base_universe.get()).expect("in range");
+            let universe = UniverseId::new((i as u16) + base_universe.get()).expect("in range");
 
             src.register_universe(universe).unwrap(); // Senders all send on different universes.
 
@@ -2525,7 +2525,7 @@ fn test_receiver_source_limit_2_termination_check() {
 
     // Receivers listen to all universes
     for i in base_universe.get()..((num_snd_threads as u16) + base_universe.get()) {
-        let universe = Universe::new(i).expect("in range");
+        let universe = UniverseId::new(i).expect("in range");
         dmx_recv.listen_universes(&[universe]).unwrap();
     }
 
@@ -2577,7 +2577,7 @@ fn test_receiver_source_limit_2_termination_check() {
 #[ignore]
 fn test_preview_data_2_receiver_1_sender() {
     let num_recv_threads: usize = 2;
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
     let normal_data: [u8; 4] = [0, 1, 2, 3];
     let preview_data: [u8; 4] = [9, 10, 11, 12];
     let timeout: Option<Duration> = Some(Duration::from_secs(3));
@@ -2708,7 +2708,7 @@ fn test_source_1_universe_timeout() {
 
     let thread_tx = tx.clone();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let snd_thread = thread::spawn(move || {
         let ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT + 1);
@@ -2802,8 +2802,8 @@ fn test_source_2_universe_1_timeout() {
 
     let thread_tx = tx.clone();
 
-    let universe_no_timeout = Universe::new(1).expect("in range");
-    let universe_with_timeout = Universe::new(2).expect("in range");
+    let universe_no_timeout = UniverseId::new(1).expect("in range");
+    let universe_with_timeout = UniverseId::new(2).expect("in range");
 
     let snd_thread = thread::spawn(move || {
         let ip: SocketAddr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), ACN_SDT_MULTICAST_PORT + 1);
@@ -3012,8 +3012,8 @@ fn test_send_recv_wrong_multicast_universe() {
 
     let thread_tx = tx.clone();
 
-    let multicast_universe = Universe::new(1).expect("in range");
-    let actual_universe = Universe::new(2).expect("in range");
+    let multicast_universe = UniverseId::new(1).expect("in range");
+    let actual_universe = UniverseId::new(2).expect("in range");
 
     let snd_thread = thread::spawn(move || {
         let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
@@ -3188,8 +3188,8 @@ fn test_send_sync_timeout() {
 
     let thread_tx = tx.clone();
 
-    let data_universe = Universe::new(1).expect("in range");
-    let sync_universe = Universe::new(2).expect("in range");
+    let data_universe = UniverseId::new(1).expect("in range");
+    let sync_universe = UniverseId::new(2).expect("in range");
 
     let snd_thread = thread::spawn(move || {
         let ip: SocketAddr = SocketAddr::new(TEST_NETWORK_INTERFACE_IPV4[0].parse().unwrap(), ACN_SDT_MULTICAST_PORT + 1);
@@ -3271,7 +3271,7 @@ fn test_ansi_e131_appendix_b_runthrough_ipv4() {
     let thread_tx = tx.clone();
 
     let data_universes = slice_to_universes(&[1, 2]).expect("in range");
-    let sync_universe = Universe::new(7962).expect("in range");
+    let sync_universe = UniverseId::new(7962).expect("in range");
     let priority = Priority::default();
     let source_name = "Source_A";
     let data = [0x00, 0xe, 0x0, 0xc, 0x1, 0x7, 0x1, 0x4, 0x8, 0x0, 0xd, 0xa, 0x7, 0xa];
@@ -3422,7 +3422,7 @@ fn test_discover_recv_sync_runthrough_ipv4() {
     let data_universes = slice_to_universes(&[1, 2]).expect("in range");
 
     // The universe used for synchronisation packets.
-    let sync_universe = Universe::new(4).expect("in range");
+    let sync_universe = UniverseId::new(4).expect("in range");
 
     // The source name
     let source_name: &str = "Test Source";
@@ -3558,7 +3558,7 @@ fn test_discover_recv_sync_runthrough_ipv4() {
 /// Assert parameters are correct sizes / in-range as appropriate.
 fn generate_data_packet_raw(
     cid: [u8; 16],
-    universe: Universe,
+    universe: UniverseId,
     source_name: String,
     priority: Priority,
     seq_num: u8,
@@ -3646,7 +3646,7 @@ fn generate_data_packet_raw(
 }
 
 /// Generates a sync packet as raw bytes with the given parameters.
-fn generate_sync_packet_raw(cid: [u8; 16], sync_addr: Universe, seq_num: u8) -> Vec<u8> {
+fn generate_sync_packet_raw(cid: [u8; 16], sync_addr: UniverseId, seq_num: u8) -> Vec<u8> {
     // Root ACN Layer
     let mut sync_packet = Vec::new();
 
@@ -3705,7 +3705,7 @@ fn test_data_packet_transmit_format() {
     let options: u8 = 0; // Checks that the options field is transmitted as 0's.
     let priority = Priority::new(150).expect("in range");
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let source_name = "SourceName".to_string() +
                         "\0\0\0\0\0\0\0\0\0\0" +
@@ -3773,7 +3773,7 @@ fn test_terminate_packet_transmit_format() {
 
     let start_code: u8 = 0;
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     source.register_universes(&[universe]).unwrap();
 
@@ -3796,7 +3796,7 @@ fn test_terminate_packet_transmit_format() {
 fn test_sync_packet_transmit_format() {
     let cid: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-    let sync_addr = Universe::new(1).expect("in range");
+    let sync_addr = UniverseId::new(1).expect("in range");
 
     // Sequence number of initial synchronisation packet is expected to be 0.
     let sequence_num: u8 = 0;
@@ -3935,7 +3935,7 @@ fn test_discovery_packet_transmit_format() {
     recv_socket.bind(&addr.into()).unwrap();
 
     // Receiving on the discovery universe shows that the discovery universe is correctly used for discovery packets as per ANSI E1.31-2018 Section 6.2.7.
-    let address = Universe::DISCOVERY.to_ipv4_multicast_addr().as_socket_ipv4();
+    let address = UniverseId::DISCOVERY.to_ipv4_multicast_addr().as_socket_ipv4();
 
     recv_socket
         .join_multicast_v4(address.unwrap().ip(), &Ipv4Addr::new(0, 0, 0, 0))
@@ -3946,9 +3946,9 @@ fn test_discovery_packet_transmit_format() {
     // Register the universes, note be = BigEndian which is used as network byte order is BigEndian.
     source
         .register_universes(&[
-            Universe::from_be_bytes(UNIVERSES[0..2].try_into().unwrap()).expect("in range"),
-            Universe::from_be_bytes(UNIVERSES[2..4].try_into().unwrap()).expect("in range"),
-            Universe::from_be_bytes(UNIVERSES[4..6].try_into().unwrap()).expect("in range"),
+            UniverseId::from_be_bytes(UNIVERSES[0..2].try_into().unwrap()).expect("in range"),
+            UniverseId::from_be_bytes(UNIVERSES[2..4].try_into().unwrap()).expect("in range"),
+            UniverseId::from_be_bytes(UNIVERSES[4..6].try_into().unwrap()).expect("in range"),
         ])
         .unwrap();
 
@@ -3973,7 +3973,7 @@ fn test_discovery_packet_transmit_format() {
 fn test_sync_packet_transmit_seq_numbers() {
     let cid: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     // Sequence number of initial synchronisation packet is expected to be 0.
     let sequence_num: u8 = 0;
@@ -4289,7 +4289,7 @@ fn test_register_terminate_universe() {
     )
     .unwrap();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     src.register_universe(universe).unwrap();
 
@@ -4310,7 +4310,7 @@ fn test_terminate_universe_no_register() {
     )
     .unwrap();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     match src.terminate_stream(universe, 0) {
         Err(e) => match e {
@@ -4330,7 +4330,7 @@ fn test_terminate_universe_no_register() {
 #[test]
 #[ignore]
 fn test_send_empty() {
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     let mut src = SacnSource::with_cid_ip(
         "Test name",

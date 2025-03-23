@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod sync_parse_tests {
 
-    use sacn_core::{packet::*, sacn_parse_pack_error::ParsePackError, universe::Universe};
+    use sacn_core::{packet::*, sacn_parse_pack_error::ParsePackError, universe::UniverseId};
     use uuid::Uuid;
     #[rustfmt::skip]
     /// A test synchronisation packet as specified as an example in
@@ -410,7 +410,7 @@ pub mod sync_parse_tests {
                 cid: Uuid::from_slice(&TEST_SYNCHRONIZATION_PACKET[22..38]).unwrap(),
                 data: E131RootLayerData::SynchronizationPacket(SynchronizationPacketFramingLayer {
                     sequence_number: 0x70,
-                    synchronization_address: Some(Universe::new(7962).expect("in range")),
+                    synchronization_address: Some(UniverseId::new(7962).expect("in range")),
                 }),
             },
         };
@@ -609,7 +609,7 @@ pub mod sync_parse_tests {
             Ok(p) => match p.pdu.data {
                 E131RootLayerData::SynchronizationPacket(spfl) => {
                     assert_eq!(spfl.sequence_number, 0x70);
-                    assert_eq!(spfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(spfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                 }
                 _ => {
                     assert!(false, "Packet not parsed as sync-packet as expected");

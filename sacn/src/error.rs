@@ -18,7 +18,7 @@ use crate::{
     sacn_parse_pack_error::ParsePackError,
     source::SourceCreationError,
     source_name::SourceNameError,
-    universe::{Universe, UniverseError},
+    universe::{UniverseId, UniverseError},
 };
 
 /// Receiver specific errors
@@ -80,7 +80,7 @@ pub enum ReceiveError {
         /// The CID of the source which timed out.
         src_cid: Uuid,
         /// The universe that timed out.
-        universe: Universe,
+        universe: UniverseId,
     },
 
     /// A source terminated a universe and this was detected when trying to receive data.
@@ -90,7 +90,7 @@ pub enum ReceiveError {
         /// the cid of the source which sent the termination packet
         src_cid: Uuid,
         /// The universe that the termination packet is for.
-        universe: Universe,
+        universe: UniverseId,
     },
 
     /// When looking for a specific universe it wasn't found. This might happen for example if trying to mute a universe on a receiver that
@@ -138,7 +138,7 @@ pub enum SourceError {
 
     /// Synchronisation universe not allowed
     #[error("Synchronisation universe not allowed")]
-    SyncUniverseNotAllowed(Universe),
+    SyncUniverseNotAllowed(UniverseId),
 
     /// Attempted to use a sender which has already been terminated.
     ///
@@ -171,7 +171,7 @@ pub enum SourceError {
     /// # Arguments
     /// The universe that is not registered
     #[error("Attempted to use a universe that wasn't first registered for use, msg: {0}")]
-    UniverseNotRegistered(Universe),
+    UniverseNotRegistered(UniverseId),
 
     /// Attempted to exceed the capacity of a single universe (packet::UNIVERSE_CHANNEL_CAPACITY).
     ///

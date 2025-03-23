@@ -15,7 +15,7 @@ use sacn::{
     priority::{Priority, PriorityError},
     source::{SacnSource, SourceCreationError},
     source_name::SourceNameError,
-    universe::{Universe, UniverseError, slice_to_universes},
+    universe::{UniverseId, UniverseError, slice_to_universes},
 };
 /// UUID library used to handle the UUID's used in the CID fields.
 use uuid::Uuid;
@@ -316,7 +316,7 @@ fn test_send_without_registering() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
 
     let priority = Priority::default();
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     match src.send(&[universe], &TEST_DATA_SINGLE_UNIVERSE, Some(priority), None, None) {
         Ok(_) => {
@@ -346,7 +346,7 @@ fn test_send_single_universe() {
 
     let priority = Priority::default();
 
-    let universe = Universe::new(1).expect("in range");
+    let universe = UniverseId::new(1).expect("in range");
 
     src.register_universe(universe).unwrap();
 
@@ -373,7 +373,7 @@ fn test_send_across_universe() {
 #[test]
 fn test_register_discovery_universe() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
-    match src.register_universes(&[Universe::DISCOVERY]) {
+    match src.register_universes(&[UniverseId::DISCOVERY]) {
         Err(e) => {
             assert!(
                 false,
@@ -392,7 +392,7 @@ fn test_register_discovery_universe() {
 #[test]
 fn test_register_max_universe() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
-    match src.register_universes(&[Universe::MAX]) {
+    match src.register_universes(&[UniverseId::MAX]) {
         Err(e) => {
             assert!(
                 false,
@@ -411,7 +411,7 @@ fn test_register_max_universe() {
 #[test]
 fn test_register_min_universe() {
     let mut src = SacnSource::new_v4("Controller").unwrap();
-    match src.register_universes(&[Universe::MIN]) {
+    match src.register_universes(&[UniverseId::MIN]) {
         Err(e) => {
             assert!(
                 false,
@@ -428,7 +428,7 @@ fn test_register_min_universe() {
 /// Attempts to send a synchronisation packet with the synchronisation address/universe set to 0 which should be rejected as per ANSI E1.31-2018 Section 6.3.3.1.
 #[test]
 fn test_sync_addr_0() {
-    let sync_uni = Universe::new(0);
+    let sync_uni = UniverseId::new(0);
 
     assert!(matches!(sync_uni, Err(UniverseError::InvalidValue(0))));
 }

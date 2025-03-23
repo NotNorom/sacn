@@ -5,7 +5,7 @@ use alloc::boxed::Box;
 
 use heapless::Vec;
 
-use crate::{e131_definitions::DISCOVERY_UNI_PER_PAGE, source_name::SourceName, time::Timestamp, universe::Universe};
+use crate::{e131_definitions::DISCOVERY_UNI_PER_PAGE, source_name::SourceName, time::Timestamp, universe::UniverseId};
 
 /// Represents an sACN source/sender on the network that has been discovered by this sACN receiver by receiving universe discovery packets.
 #[derive(Clone, Debug)]
@@ -43,7 +43,7 @@ impl DiscoveredSacnSource {
     /// Returns all the universes being send by this SacnSource as discovered through the universe discovery mechanism.
     ///
     /// Intentionally abstracts over the underlying concept of pages as this is purely an E1.31 Universe Discovery concept and is otherwise transparent.
-    pub fn get_all_universes(&self) -> Vec<Universe, { u8::MAX as usize * DISCOVERY_UNI_PER_PAGE as usize }> {
+    pub fn get_all_universes(&self) -> Vec<UniverseId, { u8::MAX as usize * DISCOVERY_UNI_PER_PAGE as usize }> {
         let mut uni = Vec::new();
         for p in &*self.pages {
             uni.extend_from_slice(&p.universes).unwrap();
@@ -52,7 +52,7 @@ impl DiscoveredSacnSource {
     }
 
     /// Removes the given universe from the list of universes being sent by this discovered source.
-    pub fn terminate_universe(&mut self, universe: Universe) {
+    pub fn terminate_universe(&mut self, universe: UniverseId) {
         for p in &mut *self.pages {
             p.universes.retain(|x| *x != universe);
         }
@@ -71,5 +71,5 @@ pub struct UniversePage {
 
     /// The universes that the source is transmitting that are on this page, this may or may-not be a complete list of all universes being sent
     /// depending on if there are more pages.
-    pub universes: Vec<Universe, DISCOVERY_UNI_PER_PAGE>,
+    pub universes: Vec<UniverseId, DISCOVERY_UNI_PER_PAGE>,
 }

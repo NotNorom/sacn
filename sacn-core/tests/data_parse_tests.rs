@@ -17,7 +17,7 @@ pub mod data_parse_tests {
         priority::Priority,
         sacn_parse_pack_error::ParsePackError,
         source_name::{SourceName, SourceNameError},
-        universe::Universe,
+        universe::UniverseId,
     };
     use uuid::Uuid;
 
@@ -3222,12 +3222,12 @@ pub mod data_parse_tests {
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: SourceName::from_str("Source_A").unwrap(),
                     priority: Priority::default(),
-                    synchronization_address: Some(Universe::new(7962).expect("in range")),
+                    synchronization_address: Some(UniverseId::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: Universe::new(1).expect("in range"),
+                    universe: UniverseId::new(1).expect("in range"),
                     data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_EMPTY[125..].try_into().unwrap(),
                     }),
@@ -3251,12 +3251,12 @@ pub mod data_parse_tests {
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: SourceName::from_str("Source_A").unwrap(),
                     priority: Priority::default(),
-                    synchronization_address: Some(Universe::new(7962).expect("in range")),
+                    synchronization_address: Some(UniverseId::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: Universe::new(1).expect("in range"),
+                    universe: UniverseId::new(1).expect("in range"),
                     data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_PARTIAL[125..].try_into().unwrap(),
                     }),
@@ -3280,12 +3280,12 @@ pub mod data_parse_tests {
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: SourceName::from_str("Source_A").unwrap(),
                     priority: Priority::default(),
-                    synchronization_address: Some(Universe::new(7962).expect("in range")),
+                    synchronization_address: Some(UniverseId::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: Universe::new(1).expect("in range"),
+                    universe: UniverseId::new(1).expect("in range"),
                     data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET[125..638].try_into().unwrap(),
                     }),
@@ -3577,12 +3577,12 @@ pub mod data_parse_tests {
                         .try_into()
                         .unwrap(),
                     priority: Priority::default(),
-                    synchronization_address: Some(Universe::new(7962).expect("in range")),
+                    synchronization_address: Some(UniverseId::new(7962).expect("in range")),
                     sequence_number: 154,
                     preview_data: false,
                     stream_terminated: false,
                     force_synchronization: false,
-                    universe: Universe::new(1).expect("in range"),
+                    universe: UniverseId::new(1).expect("in range"),
                     data: Box::new(DataPacketDmpLayer {
                         property_values: TEST_DATA_PACKET_MAX_SOURCE_NAME[125..638].try_into().unwrap(),
                     }),
@@ -3642,7 +3642,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(*dpfl.source_name, "Source_A");
                     assert_eq!(dpfl.priority, Priority::MIN);
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3745,7 +3745,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3788,7 +3788,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3831,7 +3831,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3874,7 +3874,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3917,7 +3917,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -3960,7 +3960,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -4003,7 +4003,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
@@ -4046,7 +4046,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(dpfl.preview_data);
                     assert!(!dpfl.stream_terminated);
@@ -4276,7 +4276,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
@@ -4319,7 +4319,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);
@@ -4349,7 +4349,7 @@ pub mod data_parse_tests {
                 E131RootLayerData::DataPacket(dpfl) => {
                     assert_eq!(dpfl.source_name, "Source_A".try_into().unwrap());
                     assert_eq!(dpfl.priority, Priority::default());
-                    assert_eq!(dpfl.synchronization_address, Some(Universe::new(7962).expect("in range")));
+                    assert_eq!(dpfl.synchronization_address, Some(UniverseId::new(7962).expect("in range")));
                     assert_eq!(dpfl.sequence_number, 154);
                     assert!(!dpfl.preview_data);
                     assert!(dpfl.stream_terminated);

@@ -32,7 +32,7 @@ use sacn::{
     error::{Error as SacnError, ReceiveError},
     receive::SacnReceiver,
     time::{Duration, sleep},
-    universe::Universe,
+    universe::UniverseId,
 };
 
 /// The string given by the user to receive data.
@@ -260,7 +260,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
                     let raw_universe: u16 = split_input[1].parse().unwrap();
-                    let universe = Universe::new(raw_universe).map_err(SacnError::UniverseError)?;
+                    let universe = UniverseId::new(raw_universe).map_err(SacnError::UniverseError)?;
                     dmx_recv.listen_universes(&[universe])?;
                 }
                 ACTION_STOP_LISTEN_UNIVERSE => {
@@ -269,7 +269,7 @@ fn handle_input(dmx_recv: &mut SacnReceiver) -> ExampleResult<bool> {
                         Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Insufficient parts ( < 2 )"))?;
                     }
                     let raw_universe: u16 = split_input[1].parse().unwrap();
-                    let universe = Universe::new(raw_universe).map_err(SacnError::UniverseError)?;
+                    let universe = UniverseId::new(raw_universe).map_err(SacnError::UniverseError)?;
 
                     dmx_recv.mute_universe(universe)?;
                 }

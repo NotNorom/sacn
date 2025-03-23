@@ -5,7 +5,7 @@ pub mod discovery_parse_tests {
         e131_definitions::DISCOVERY_UNI_PER_PAGE,
         packet::*,
         sacn_parse_pack_error::ParsePackError,
-        universe::{Universe, slice_to_universes},
+        universe::{UniverseId, slice_to_universes},
     };
     use uuid::Uuid;
 
@@ -1188,7 +1188,7 @@ pub mod discovery_parse_tests {
             2
         ]).unwrap();
 
-        let range = Universe::MIN_RAW..=universes_to_generate;
+        let range = UniverseId::MIN_RAW..=universes_to_generate;
         for i in range {
             let vals = i.to_be_bytes();
             test_universe_discovery_packet.push(vals[0]).unwrap();

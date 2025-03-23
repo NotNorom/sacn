@@ -41,7 +41,7 @@ use crate::{
     priority::Priority,
     sacn_parse_pack_error::ParsePackError,
     source_name::{SourceName, SourceNameError},
-    universe::Universe,
+    universe::UniverseId,
 };
 
 /// The name of the thread which runs periodically to perform various actions such as universe discovery adverts for the source.
@@ -123,16 +123,16 @@ struct SacnSourceInternal {
 
     /// The sequence numbers used for data packets, keeps a reference of the next sequence number to use for each universe.
     /// Sequence numbers are always in the range [0, 255].
-    data_sequences: RefCell<HashMap<Universe, u8>>,
+    data_sequences: RefCell<HashMap<UniverseId, u8>>,
 
     /// The sequence numbers used for sync packets, keeps a reference of the next sequence number to use for each universe.
     /// Sequence numbers are always in the range [0, 255].
-    sync_sequences: RefCell<HashMap<Universe, u8>>,
+    sync_sequences: RefCell<HashMap<UniverseId, u8>>,
 
     /// A list of the universes registered to send by this source, used for universe discovery.
     /// Always sorted with lowest universe first to allow quicker usage.
     /// This may never contain duplicate universe values.
-    universes: Vec<Universe>,
+    universes: Vec<UniverseId>,
 
     /// Flag that indicates if the SacnSourceInternal is running (the update thread should be triggering periodic discovery packets).
     running: bool,
@@ -242,7 +242,7 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    pub fn register_universes(&mut self, universes: &[Universe]) -> Result<(), SourceError> {
+    pub fn register_universes(&mut self, universes: &[UniverseId]) -> Result<(), SourceError> {
         unlock_internal_mut(&mut self.internal)?.register_universes(universes);
         Ok(())
     }
@@ -264,7 +264,7 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    pub fn register_universe(&mut self, universe: Universe) -> Result<(), SourceError> {
+    pub fn register_universe(&mut self, universe: UniverseId) -> Result<(), SourceError> {
         unlock_internal_mut(&mut self.internal)?.register_universe(universe);
         Ok(())
     }
@@ -310,11 +310,11 @@ impl SacnSource {
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
     pub fn send(
         &mut self,
-        universes: &[Universe],
+        universes: &[UniverseId],
         data: &[u8],
         priority: Option<Priority>,
         dst_ip: Option<SocketAddr>,
-        synchronisation_addr: Option<Universe>,
+        synchronisation_addr: Option<UniverseId>,
     ) -> Result<usize, SourceError> {
         unlock_internal_mut(&mut self.internal)?.send(universes, data, priority, dst_ip, synchronisation_addr)
     }
@@ -340,7 +340,7 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    pub fn send_sync_packet(&mut self, universe: Universe, dst_ip: Option<SocketAddr>) -> Result<(), SourceError> {
+    pub fn send_sync_packet(&mut self, universe: UniverseId, dst_ip: Option<SocketAddr>) -> Result<(), SourceError> {
         unlock_internal_mut(&mut self.internal)?.send_sync_packet(universe, dst_ip)
     }
 
@@ -355,7 +355,7 @@ impl SacnSource {
     ///
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    pub fn terminate_stream(&mut self, universe: Universe, start_code: u8) -> Result<(), SourceError> {
+    pub fn terminate_stream(&mut self, universe: UniverseId, start_code: u8) -> Result<(), SourceError> {
         unlock_internal_mut(&mut self.internal)?.terminate_stream(universe, start_code)
     }
 
@@ -510,7 +510,7 @@ impl SacnSource {
     /// # Errors
     /// SourceCorrupt: Returned if the Mutex used to control access to the internal sender is poisoned by a thread encountering
     /// a panic while accessing causing the source to be left in a potentially inconsistent state.
-    pub fn universes(&self) -> Result<Vec<Universe>, SourceError> {
+    pub fn universes(&self) -> Result<Vec<UniverseId>, SourceError> {
         Ok(unlock_internal(&self.internal)?.universes().to_vec())
     }
 }
@@ -603,7 +603,7 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// See register_universe(fn.register_universe.source) for more details.
-    fn register_universes(&mut self, universes: &[Universe]) {
+    fn register_universes(&mut self, universes: &[UniverseId]) {
         for u in universes {
             self.register_universe(*u);
         }
@@ -612,7 +612,7 @@ impl SacnSourceInternal {
     /// Registers the given universe for sending with this source.
     ///
     /// If a universe is already registered then this method has no effect.
-    fn register_universe(&mut self, universe: Universe) {
+    fn register_universe(&mut self, universe: UniverseId) {
         if self.universes.is_empty() {
             self.universes.push(universe);
         } else {
@@ -632,7 +632,7 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// UniverseNotFound: Returned if the given universe was never registered originally.
-    fn deregister_universe(&mut self, universe: Universe) -> Result<(), SourceError> {
+    fn deregister_universe(&mut self, universe: UniverseId) -> Result<(), SourceError> {
         match self.universes.binary_search(&universe) {
             Err(_i) => {
                 // Value not found
@@ -653,7 +653,7 @@ impl SacnSourceInternal {
     /// # Errors
     ///
     /// UniverseNotRegistered: Returned if the universe is not registered on the given SacnSourceInternal.
-    fn universe_allowed(&self, u: &Universe) -> Result<(), SourceError> {
+    fn universe_allowed(&self, u: &UniverseId) -> Result<(), SourceError> {
         if !self.universes.contains(u) {
             Err(SourceError::UniverseNotRegistered(*u))?;
         }
@@ -699,11 +699,11 @@ impl SacnSourceInternal {
     /// Io: Returned if the data fails to be sent on the socket, see send_to(fn.send_to.Socket).
     fn send(
         &self,
-        universes: &[Universe],
+        universes: &[UniverseId],
         data: &[u8],
         priority: Option<Priority>,
         dst_ip: Option<SocketAddr>,
-        synchronisation_addr: Option<Universe>,
+        synchronisation_addr: Option<UniverseId>,
     ) -> Result<usize, SourceError> {
         if !self.running {
             // Indicates that this sender has been terminated.
@@ -783,11 +783,11 @@ impl SacnSourceInternal {
     /// Io: Returned if the data fails to be sent on the socket, see send_to(fn.send_to.Socket).
     fn send_universe(
         &self,
-        universe: Universe,
+        universe: UniverseId,
         data: &[u8],
         priority: Priority,
         dst_ip: &Option<SocketAddr>,
-        sync_address: Option<Universe>,
+        sync_address: Option<UniverseId>,
     ) -> Result<usize, SourceError> {
         if data.len() > UNIVERSE_CHANNEL_CAPACITY {
             Err(SourceError::ExceedUniverseCapacity(format!(
@@ -864,7 +864,7 @@ impl SacnSourceInternal {
     /// Io: Returned if the packet fails to be sent using the underlying network socket.
     ///
     /// SacnParsePackError: Returned if the sync packet fails to be packed.
-    fn send_sync_packet(&self, universe: Universe, dst_ip: Option<SocketAddr>) -> Result<(), SourceError> {
+    fn send_sync_packet(&self, universe: UniverseId, dst_ip: Option<SocketAddr>) -> Result<(), SourceError> {
         self.universe_allowed(&universe)?;
 
         let ip = match dst_ip {
@@ -918,7 +918,7 @@ impl SacnSourceInternal {
     /// UniverseNotRegistered: Returned if the universe is not registered on the given SacnSourceInternal.
     ///
     /// Io: Returned if the termination packets fail to be sent on the underlying socket.
-    fn send_terminate_stream_pkt(&self, universe: Universe, dst_ip: Option<SocketAddr>, start_code: u8) -> Result<(), SourceError> {
+    fn send_terminate_stream_pkt(&self, universe: UniverseId, dst_ip: Option<SocketAddr>, start_code: u8) -> Result<(), SourceError> {
         self.universe_allowed(&universe)?;
 
         let ip = match dst_ip {
@@ -943,7 +943,7 @@ impl SacnSourceInternal {
                 data: E131RootLayerData::DataPacket(DataPacketFramingLayer {
                     source_name: self.name.clone(),
                     priority: Priority::default(),
-                    synchronization_address: Some(Universe::new(1).expect("in range")),
+                    synchronization_address: Some(UniverseId::new(1).expect("in range")),
                     sequence_number: sequence,
                     preview_data: self.preview_data,
                     stream_terminated: true,
@@ -984,7 +984,7 @@ impl SacnSourceInternal {
     /// UniverseNotRegistered: Returned if the universe is not registered on this source.
     ///
     /// Io: Returned if the termination packets fail to be sent on the socket.
-    fn terminate_stream(&mut self, universe: Universe, start_code: u8) -> Result<(), SourceError> {
+    fn terminate_stream(&mut self, universe: UniverseId, start_code: u8) -> Result<(), SourceError> {
         for _ in 0..E131_TERMINATE_STREAM_PACKET_COUNT {
             self.send_terminate_stream_pkt(universe, None, start_code)?;
         }
@@ -1046,7 +1046,7 @@ impl SacnSourceInternal {
     /// Io: Returned if the discovery packet fails to be sent on the socket.
     ///
     /// SacnParsePackError: Returned if the discovery packet cannot be packed to send.
-    fn send_universe_discovery_detailed(&self, page: u8, last_page: u8, universes: &[Universe]) -> Result<(), SourceError> {
+    fn send_universe_discovery_detailed(&self, page: u8, last_page: u8, universes: &[UniverseId]) -> Result<(), SourceError> {
         let universes =
             Box::new(heapless::Vec::from_slice(universes).map_err(|_| ParsePackError::TooManyDiscoveryUniverses(universes.len()))?);
 
@@ -1065,9 +1065,9 @@ impl SacnSourceInternal {
         };
 
         let ip = if self.addr.is_ipv6() {
-            Universe::DISCOVERY.to_ipv6_multicast_addr()
+            UniverseId::DISCOVERY.to_ipv6_multicast_addr()
         } else {
-            Universe::DISCOVERY.to_ipv4_multicast_addr()
+            UniverseId::DISCOVERY.to_ipv4_multicast_addr()
         };
 
         self.socket.send_to(&packet.pack_alloc()?, &ip)?;
@@ -1172,7 +1172,7 @@ impl SacnSourceInternal {
     }
 
     /// Returns the universes currently registered on this source.
-    pub fn universes(&self) -> &[Universe] {
+    pub fn universes(&self) -> &[UniverseId] {
         self.universes.as_ref()
     }
 }
