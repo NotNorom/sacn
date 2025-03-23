@@ -217,9 +217,6 @@ pub const ACN_SDT_MULTICAST_PORT: u16 = 5568;
 /// The payload capacity for a sacn packet, for DMX data this would translate to 512 frames + a startcode byte.
 pub const UNIVERSE_CHANNEL_CAPACITY: usize = 513;
 
-/// The synchronisation universe/address of packets which do not require synchronisation as specified in section 6.2.4.1 of ANSI E1.31-2018.
-pub const NO_SYNC_UNIVERSE: u16 = 0;
-
 /// The timeout before data loss is assumed for an E131 source, as defined in Appendix A of ANSI E1.31-2018.
 pub const E131_NETWORK_DATA_LOSS_TIMEOUT: Duration = Duration::from_millis(2500);
 

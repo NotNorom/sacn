@@ -82,7 +82,9 @@ impl UniverseId {
     /// Value is non-zero
     pub const MAX: Self = Self(unsafe { NonZeroU16::new_unchecked(Self::MAX_RAW) });
 
-    /// Special case for a sync address of 0
+    /// Special case for a sync address of 0.
+    ///
+    /// The synchronisation universe/address of packets which do not require synchronisation as specified in section 6.2.4.1 of ANSI E1.31-2018.
     pub const E131_NO_SYNC_ADDR: Option<Self> = None;
 
     /// Checks if the given universe is a valid universe to send on (within allowed range).
