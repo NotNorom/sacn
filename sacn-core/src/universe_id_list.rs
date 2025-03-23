@@ -1,3 +1,5 @@
+//! This module contains types for a compact list of universes
+
 use core::{
     fmt::Display,
     ops::{Div, Rem},

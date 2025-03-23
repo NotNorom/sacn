@@ -1,4 +1,7 @@
-use sacn::{error::{ReceiveError, SourceError}, priority::PriorityError};
+use sacn::{
+    error::{ReceiveError, SourceError},
+    priority::PriorityError,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExampleError {

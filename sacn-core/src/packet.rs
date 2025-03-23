@@ -54,7 +54,6 @@
 
 extern crate alloc;
 use alloc::boxed::Box;
-
 /// The core crate is used for string processing during packet parsing/packing as well as to provide access to the Hash trait.
 use core::hash::{self, Hash};
 
@@ -973,7 +972,10 @@ impl Pdu for UniverseDiscoveryPacketUniverseDiscoveryLayer {
 
         // The number of universes, calculated by dividing the remaining space in the packet by the size of a single universe.
         let universes_length = (length - E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX) / E131_UNIVERSE_FIELD_LENGTH;
-        let universes = Box::new(parse_universe_list(&buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX..], universes_length)?);
+        let universes = Box::new(parse_universe_list(
+            &buf[E131_DISCOVERY_LAYER_UNIVERSE_LIST_FIELD_INDEX..],
+            universes_length,
+        )?);
 
         Ok(UniverseDiscoveryPacketUniverseDiscoveryLayer {
             page,
