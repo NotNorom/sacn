@@ -192,5 +192,5 @@ impl Duration {
 /// Puts the current thread to sleep for at least the specified amount of time.
 pub fn sleep(dur: Duration) {
     #[cfg(feature = "std")]
-    std::thread::sleep(dur.inner)
+    std::thread::sleep(dur.inner);
 }

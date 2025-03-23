@@ -86,7 +86,7 @@ impl UniverseIdList64000 {
     pub fn marked_count(&self) -> usize {
         let mut result = 0;
         for entry in self.inner {
-            result += entry.count_ones() as usize
+            result += entry.count_ones() as usize;
         }
         result
     }
@@ -95,7 +95,7 @@ impl UniverseIdList64000 {
     pub fn unmarked_count(&self) -> usize {
         let mut result = 0;
         for entry in self.inner {
-            result += entry.count_zeros() as usize
+            result += entry.count_zeros() as usize;
         }
         result
     }
@@ -141,7 +141,7 @@ impl Display for UniverseIdList64000 {
                     idx * 64 + 63,
                     entry.count_ones(),
                     entry
-                )?
+                )?;
             }
         }
 

@@ -29,7 +29,7 @@ impl TryFrom<u16> for UniverseId {
     type Error = UniverseError;
 
     fn try_from(raw_universe: u16) -> Result<Self, Self::Error> {
-        Self::in_range(raw_universe).map(|_| Self(unsafe { NonZeroU16::new_unchecked(raw_universe) }))
+        Self::in_range(raw_universe).map(|()| Self(unsafe { NonZeroU16::new_unchecked(raw_universe) }))
     }
 }
 
@@ -134,7 +134,7 @@ impl UniverseId {
     pub const fn new(raw_universe: u16) -> Result<Self, UniverseError> {
         // safety: Self::in_range already checks if value is non-zero
         match Self::in_range(raw_universe) {
-            Ok(_) => Ok(Self(unsafe { NonZeroU16::new_unchecked(raw_universe) })),
+            Ok(()) => Ok(Self(unsafe { NonZeroU16::new_unchecked(raw_universe) })),
             Err(_) => Err(UniverseError::InvalidValue(raw_universe)),
         }
     }
@@ -180,7 +180,7 @@ impl<'a> core::ops::Deref for UniverseSlice<'a> {
 
 impl<'a> From<UniverseSlice<'a>> for &'a [u16] {
     fn from(value: UniverseSlice) -> Self {
-        unsafe { &*slice_from_raw_parts(value.0.as_ptr() as *const u16, value.0.len()) }
+        unsafe { &*slice_from_raw_parts(value.0.as_ptr().cast::<u16>(), value.0.len()) }
     }
 }
 
@@ -218,7 +218,7 @@ pub const fn slice_to_universes(raw: &[u16]) -> Result<&[UniverseId], UniverseEr
 /// # Safety
 /// All values must be in the valid range of a universe. See [Universe::in_range]
 pub const unsafe fn slice_to_universes_unchecked(raw: &[u16]) -> &[UniverseId] {
-    unsafe { &*slice_from_raw_parts(raw.as_ptr() as *const UniverseId, raw.len()) }
+    unsafe { &*slice_from_raw_parts(raw.as_ptr().cast::<UniverseId>(), raw.len()) }
 }
 
 /// Error for creation of [Universe]

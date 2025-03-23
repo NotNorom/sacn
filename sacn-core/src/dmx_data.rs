@@ -236,8 +236,8 @@ impl DMXValues {
     /// Try to create a [DMXValues] container from a slice of u8.
     ///
     /// Fails if the slice is longer than 512 bytes
-    pub fn from_slice(values: &[u8]) -> Result<Self, ()> {
-        let inner = Vec::from_slice(values)?;
+    pub fn from_slice(values: &[u8]) -> Result<Self, SliceTooLong> {
+        let inner = Vec::from_slice(values).map_err(|()| SliceTooLong)?;
         Ok(Self { inner })
     }
 
@@ -256,6 +256,11 @@ impl DMXValues {
         &self.inner
     }
 }
+
+/// Slice is too long to create [DMXValues]
+#[derive(Debug, thiserror::Error)]
+#[error("Slice is too long to create DMXValues")]
+pub struct SliceTooLong;
 
 /// List of known start codes that don't belong to companies
 ///

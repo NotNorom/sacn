@@ -43,7 +43,7 @@ impl DiscoveredSacnSource {
     /// Returns all the universes being send by this SacnSource as discovered through the universe discovery mechanism.
     ///
     /// Intentionally abstracts over the underlying concept of pages as this is purely an E1.31 Universe Discovery concept and is otherwise transparent.
-    pub fn get_all_universes(&self) -> Vec<UniverseId, { u8::MAX as usize * DISCOVERY_UNI_PER_PAGE as usize }> {
+    pub fn get_all_universes(&self) -> Vec<UniverseId, { u8::MAX as usize * DISCOVERY_UNI_PER_PAGE }> {
         let mut uni = Vec::new();
         for p in &*self.pages {
             uni.extend_from_slice(&p.universes).unwrap();

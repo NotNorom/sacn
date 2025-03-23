@@ -35,7 +35,7 @@ impl SourceName {
     pub fn new<S: AsRef<str>>(s: S) -> Result<Self, SourceNameError> {
         let value = s.as_ref();
 
-        let inner = String::from_str(value).map_err(|_| SourceNameError::SourceNameTooLong(value.len()))?;
+        let inner = String::from_str(value).map_err(|()| SourceNameError::SourceNameTooLong(value.len()))?;
         Ok(Self { inner })
     }
 
@@ -58,6 +58,13 @@ impl SourceName {
     pub fn len(&self) -> usize {
         self.inner.len()
     }
+
+    /// Returns `true` if `self` has a length of zero bytes.
+    /// Note that length and capacity are two different things
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
 
     /// Returns the bytes this source name is made out of
     pub fn as_bytes(&self) -> &[u8] {
@@ -87,7 +94,7 @@ impl TryFrom<&[u8]> for SourceName {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let first_null_pos = value.iter().position(|&b| b == 0).ok_or(SourceNameError::MissingNullTermination)?;
 
-        let as_vec = Vec::from_slice(&value[..first_null_pos]).map_err(|_| SourceNameError::SourceNameTooLong(value.len()))?;
+        let as_vec = Vec::from_slice(&value[..first_null_pos]).map_err(|()| SourceNameError::SourceNameTooLong(value.len()))?;
         let inner = String::from_utf8(as_vec)?;
 
         Ok(Self { inner })

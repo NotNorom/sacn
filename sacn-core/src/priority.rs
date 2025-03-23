@@ -17,7 +17,7 @@ impl TryFrom<u8> for Priority {
     type Error = PriorityError;
 
     fn try_from(raw_priority: u8) -> Result<Self, Self::Error> {
-        Self::in_range(raw_priority).map(|_| Self(raw_priority))
+        Self::in_range(raw_priority).map(|()| Self(raw_priority))
     }
 }
 
@@ -64,7 +64,7 @@ impl Priority {
     /// Creates a new `Priority`
     pub const fn new(raw_priority: u8) -> Result<Self, PriorityError> {
         match Self::in_range(raw_priority) {
-            Ok(_) => Ok(Self(raw_priority)),
+            Ok(()) => Ok(Self(raw_priority)),
             Err(_) => Err(PriorityError::InvalidValue(raw_priority)),
         }
     }
