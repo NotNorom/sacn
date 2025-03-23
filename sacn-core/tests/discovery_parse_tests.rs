@@ -2,10 +2,10 @@
 pub mod discovery_parse_tests {
     use heapless::Vec;
     use sacn_core::{
-        e131_definitions::DISCOVERY_UNI_PER_PAGE,
+        e131_definitions::{DISCOVERY_UNI_PER_PAGE, MAXIMUM_PACKET_SIZE},
         packet::*,
         sacn_parse_pack_error::ParsePackError,
-        universe_id::{UniverseId, slice_to_universes},
+        universe_id::{slice_to_universes, UniverseId},
     };
     use uuid::Uuid;
 
@@ -13,7 +13,7 @@ pub mod discovery_parse_tests {
     const UNIVERSE_DISCOVERY_PACKET_EXPECTED_MIN_SIZE: usize = 120;
 
     /// The expected maximum size of a universe discovery packet as per ANSI E1.31-2018 Section 6.1.
-    const UNIVERSE_DISCOVERY_PACKET_EXPECTED_MAX_SIZE: usize = 1144;
+    const UNIVERSE_DISCOVERY_PACKET_EXPECTED_MAX_SIZE: usize = MAXIMUM_PACKET_SIZE;
 
     #[rustfmt::skip]
     /// Built up / checked as per:

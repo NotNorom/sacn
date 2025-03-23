@@ -26,7 +26,7 @@ use std::{collections::HashMap, io::Read};
 use sacn_core::{
     discovery::{DiscoveredSacnSource, UniversePage},
     dmx_data::{DMXData, MergeError},
-    e131_definitions::ACN_SDT_MULTICAST_PORT,
+    e131_definitions::{ACN_SDT_MULTICAST_PORT, MAXIMUM_PACKET_SIZE},
     source_name::SourceName,
     time::{Duration, Timestamp},
 };
@@ -51,7 +51,7 @@ use crate::{
 
 /// The default size of the buffer used to receive E1.31 packets.
 /// 1143 bytes is biggest packet required as per Section 8 of ANSI E1.31-2018, aligned to 64 bit that is 1144 bytes.
-pub const RCV_BUF_DEFAULT_SIZE: usize = 1144;
+pub const RCV_BUF_DEFAULT_SIZE: usize = MAXIMUM_PACKET_SIZE;
 
 /// DMX payload size in bytes (512 bytes of data + 1 byte start code).
 pub const DMX_PAYLOAD_SIZE: usize = 513;
