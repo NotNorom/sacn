@@ -5,11 +5,28 @@ use crate::{
     packet::{DataPacketFramingLayer, SynchronizationPacketFramingLayer, UniverseDiscoveryPacketFramingLayer},
     protocol::Transmit,
     time::Timestamp,
-    universe::UniverseId,
+    universe_id::UniverseId,
 };
 
 pub trait Receiver {
     type Error;
+
+    fn handle_data_packet(&mut self, when: Timestamp, cid: Uuid, frame: DataPacketFramingLayer) -> Result<(), Self::Error>;
+
+    fn handle_sync_packet(&mut self, when: Timestamp, cid: Uuid, frame: SynchronizationPacketFramingLayer) -> Result<(), Self::Error>;
+
+    fn handle_discovery_packet(
+        &mut self,
+        when: Timestamp,
+        cid: Uuid,
+        frame: UniverseDiscoveryPacketFramingLayer,
+    ) -> Result<(), Self::Error>;
+
+    fn poll_dmx_values(&mut self) -> Option<DMXData>;
+
+    fn poll_transmit(&mut self) -> Option<Transmit>;
+
+    fn handle_timeout(&mut self, now: Timestamp) -> Result<(), Self::Error>;
 
     fn clear_sources(&mut self);
 
