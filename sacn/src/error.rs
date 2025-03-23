@@ -114,6 +114,14 @@ pub enum ReceiveError {
     /// A string describing why the error was returned.
     #[error("Error when merging DMX data, msg: {0}")]
     DmxMerge(#[from] MergeError),
+
+    /// Thrown to indicate that the operation attempted is unsupported on the current OS
+    /// For example this is used to indicate that multicast-IPv6 isn't supported current on Windows.
+    ///
+    /// # Arguments
+    /// A message describing why this error was returned / the operation that was not supported.
+    #[error("Operation attempted is unsupported on the current OS, msg: {0}")]
+    OsOperationUnsupported(String),
 }
 
 /// Source specific errors
@@ -194,6 +202,7 @@ pub enum SourceError {
     #[error("source name error: {0:?}")]
     SourceName(#[from] SourceNameError),
 }
+
 /// Error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -220,21 +229,6 @@ pub enum Error {
     /// Error with universe
     #[error("universe error: {0:?}")]
     UniverseError(#[from] UniverseError),
-
-    /// Attempted to use an unsupported (not Ipv4 or Ipv6) IP version.
-    ///
-    /// # Arguments
-    /// A string describing the situation where an unsupported IP version is used.
-    #[error("Attempted to use an unsupported (not Ipv4 or Ipv6) IP version, msg: {0}")]
-    UnsupportedIpVersion(String),
-
-    /// Thrown to indicate that the operation attempted is unsupported on the current OS
-    /// For example this is used to indicate that multicast-IPv6 isn't supported current on Windows.
-    ///
-    /// # Arguments
-    /// A message describing why this error was returned / the operation that was not supported.
-    #[error("Operation attempted is unsupported on the current OS, msg: {0}")]
-    OsOperationUnsupported(String),
 
     /// Error created in a source
     #[error("SourceError: {0}")]

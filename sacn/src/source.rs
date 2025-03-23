@@ -197,8 +197,6 @@ impl SacnSource {
     /// Io: Returned if the underlying UDP socket cannot be created and bound or if the thread used for sending periodic
     ///     discovery adverts fails to be created. Causes can be distinguished by looking at the error chain.
     ///
-    /// UnsupportedIpVersion: Returned if the SocketAddr is not IPv4 or IPv6.
-    ///
     /// MalformedSourceName: Returned if the given source name is longer than the maximum allowed size of E131_SOURCE_NAME_FIELD_LENGTH.
     pub fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> Result<Self, SourceCreationError> {
         let internal_src = Arc::new(Mutex::new(SacnSourceInternal::with_cid_ip(name, cid, ip)?));
@@ -554,8 +552,6 @@ impl SacnSourceInternal {
     ///
     /// # Errors
     /// Io: Returned if the underlying socket cannot be created or the IP cannot be bound to the underlying socket. See (UdpBuilder::new_v4)[fn.new_v4.UdpBuilder], (UdpBuilder::new_v6)[fn.new_v6.UdpBuilder] and (Socket::bind)[fn.bind.Socket2].
-    ///
-    /// UnsupportedIpVersion: Returned if the SockAddr is not IPv4 or IPv6.
     fn with_cid_ip(name: &str, cid: Uuid, ip: SocketAddr) -> Result<Self, SourceCreationError> {
         let socket = Socket::new(Domain::for_address(ip), Type::DGRAM, None)?;
 
