@@ -1025,7 +1025,7 @@ impl SacnNetworkReceiver {
     fn set_is_multicast_enabled(&mut self, val: bool) -> Result<(), ReceiveError> {
         #[cfg(target_os = "windows")]
         {
-            if val && self.is_ipv6() {
+            if val && self.addr.is_ipv6() {
                 Err(ReceiveError::OsOperationUnsupported(
                     "IPv6 multicast is currently unsupported on Windows".to_string(),
                 ))?;
@@ -1082,11 +1082,6 @@ impl SacnNetworkReceiver {
     /// A timeout with Duration 0 will cause an error. See (set_read_timeout)[fn.set_read_timeout.Socket].
     fn set_timeout(&mut self, timeout: Option<Duration>) -> Result<(), std::io::Error> {
         self.socket.set_read_timeout(timeout.map(Into::into))
-    }
-
-    /// Returns true if this SacnNetworkReceiver is bound to an Ipv6 address.
-    fn is_ipv6(&self) -> bool {
-        self.addr.is_ipv6()
     }
 }
 
