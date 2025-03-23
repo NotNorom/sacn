@@ -290,7 +290,10 @@ fn handle_full_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exam
     let universe = UniverseId::new(universe).map_err(SacnError::UniverseError)?;
 
     let sync_uni: u16 = split_input[2].parse().unwrap();
-    let sync_uni = UniverseId::new(sync_uni).map_err(SacnError::UniverseError)?;
+    let sync_uni = match sync_uni {
+        0 => None,
+        _ => Some(UniverseId::new(sync_uni).map_err(SacnError::UniverseError)?),
+    };
 
     let priority: u8 = split_input[3].parse().unwrap();
     let priority = Priority::new(priority)?;
@@ -301,11 +304,7 @@ fn handle_full_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exam
         data[i - 4] = split_input[i].parse().unwrap();
     }
 
-    if sync_uni == 0 {
-        src.send(&[universe], &data, Some(priority), None, None)?;
-    } else {
-        src.send(&[universe], &data, Some(priority), None, Some(sync_uni))?;
-    }
+    src.send(&[universe], &data, Some(priority), None, sync_uni)?;
 
     Ok(true)
 }
@@ -368,7 +367,10 @@ fn handle_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleRe
     }
 
     let sync_uni: u16 = split_input[2].parse().unwrap();
-    let sync_uni = UniverseId::new(sync_uni).map_err(SacnError::UniverseError)?;
+    let sync_uni = match sync_uni {
+        0 => None,
+        _ => Some(UniverseId::new(sync_uni).map_err(SacnError::UniverseError)?),
+    };
 
     let priority: u8 = split_input[3].parse().unwrap();
     let priority = Priority::new(priority)?;
@@ -379,11 +381,7 @@ fn handle_data_option(src: &mut SacnSource, split_input: Vec<&str>) -> ExampleRe
         data.push(split_input[i].parse().unwrap());
     }
 
-    if sync_uni == 0 {
-        src.send(&[universe], &data, Some(priority), None, None)?;
-    } else {
-        src.send(&[universe], &data, Some(priority), None, Some(sync_uni))?;
-    }
+    src.send(&[universe], &data, Some(priority), None, sync_uni)?;
 
     Ok(true)
 }
@@ -417,7 +415,10 @@ fn handle_unicast_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exampl
     }
 
     let sync_uni: u16 = split_input[2].parse().unwrap();
-    let sync_uni = UniverseId::new(sync_uni).map_err(SacnError::UniverseError)?;
+    let sync_uni = match sync_uni {
+        0 => None,
+        _ => Some(UniverseId::new(sync_uni).map_err(SacnError::UniverseError)?),
+    };
 
     let priority: u8 = split_input[3].parse().unwrap();
     let priority = Priority::new(priority).expect("in range");
@@ -430,23 +431,13 @@ fn handle_unicast_option(src: &mut SacnSource, split_input: Vec<&str>) -> Exampl
         data.push(split_input[i].parse().unwrap());
     }
 
-    if sync_uni == 0 {
-        src.send(
-            &[universe],
-            &data,
-            Some(priority),
-            Some(SocketAddr::new(IpAddr::V4(dst_ip.parse().unwrap()), ACN_SDT_MULTICAST_PORT).into()),
-            None,
-        )?;
-    } else {
-        src.send(
-            &[universe],
-            &data,
-            Some(priority),
-            Some(SocketAddr::new(IpAddr::V4(dst_ip.parse().unwrap()), ACN_SDT_MULTICAST_PORT).into()),
-            Some(sync_uni),
-        )?;
-    }
+    src.send(
+        &[universe],
+        &data,
+        Some(priority),
+        Some(SocketAddr::new(IpAddr::V4(dst_ip.parse().unwrap()), ACN_SDT_MULTICAST_PORT).into()),
+        sync_uni,
+    )?;
 
     Ok(true)
 }
